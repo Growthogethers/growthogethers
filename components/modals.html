@@ -1,0 +1,347 @@
+<div class="modal fade" id="planModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content rounded-4">
+      <div class="modal-header border-0">
+        <h5 class="fw-bold">Edit rencana</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="editPlanId">
+        <input type="hidden" id="editPlanParentId">
+        <input id="editPlanText" class="form-control mb-2">
+        <input type="date" id="editPlanTargetDate" class="form-control mb-2">
+        <input type="number" id="editPlanProgress" class="form-control mb-2" placeholder="Progres %">
+        <div class="bg-light p-3 rounded-3">
+          <label class="small">Sub rencana</label>
+          <div class="input-group mt-1">
+            <input id="newSubText" class="form-control">
+            <button class="btn btn-sm btn-secondary" onclick="addSubPlan()">Tambah</button>
+          </div>
+        </div>
+        <button onclick="updatePlan()" class="btn btn-primary w-100 mt-3">Simpan</button>
+        <button onclick="deletePlanItem()" class="btn btn-outline-danger w-100 mt-2">Hapus rencana</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="commentModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content rounded-4">
+      <div class="modal-header border-0">
+        <h5 class="fw-bold">💬 Diskusi</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="commentVisionId">
+        <div id="commentList" class="mb-3" style="max-height:280px; overflow:auto"></div>
+        <textarea id="newCommentText" class="form-control mb-2" rows="2" placeholder="tanggapan kamu..."></textarea>
+        <button onclick="addComment()" class="btn btn-primary w-100">Kirim komentar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="passModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content rounded-4">
+      <div class="modal-header border-0">
+        <h5 class="fw-bold">Ganti sandi</h5>
+      </div>
+      <div class="modal-body">
+        <input type="password" id="newPass" class="form-control mb-2" placeholder="Password baru">
+        <input type="password" id="confirmPass" class="form-control mb-3" placeholder="Konfirmasi">
+        <button onclick="updateCloudPassword()" class="btn btn-primary w-100">Update</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="confirmDeleteModal" tabindex="-1">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content rounded-4">
+      <div class="modal-header bg-danger text-white border-0">
+        <h5 class="fw-bold">Hapus data</h5>
+      </div>
+      <div class="modal-body">Yakin ingin menghapus?</div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+        <button id="confirmDeleteBtn" class="btn btn-danger">Hapus</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="confirmLogoutModal" tabindex="-1">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content rounded-4">
+      <div class="modal-header bg-warning text-dark border-0">
+        <h5 class="fw-bold">Keluar</h5>
+      </div>
+      <div class="modal-body">Yakin ingin keluar?</div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+        <button id="confirmLogoutBtn" class="btn btn-danger">Logout</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="forgotPassModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content rounded-4">
+      <div class="modal-header border-0">
+        <h5 class="fw-bold">Reset sandi</h5>
+      </div>
+      <div class="modal-body">
+        <p class="small">Reset ke default: <strong>gokil223</strong> (Fachmi) / <strong>1234</strong> (Azizah)</p>
+        <select id="resetUserSelect" class="form-select">
+          <option value="FACHMI">Fachmi</option>
+          <option value="AZIZAH">Azizah</option>
+        </select>
+        <button class="btn btn-primary w-100 mt-3" onclick="resetPassword()">Reset password</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Tambah Rencana Baru -->
+<div class="modal fade" id="addPlanModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content rounded-4">
+      <div class="modal-header border-0 bg-gradient bg-primary text-white">
+        <h5 class="fw-bold"><i class="bi bi-plus-circle me-2"></i>Buat Rencana Baru</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-4">
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Nama Rencana <span class="text-danger">*</span></label>
+          <input type="text" id="planText" class="form-control" placeholder="Contoh: Persiapan Akad Nikah">
+        </div>
+        
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Kategori</label>
+          <select id="planCat" class="form-select">
+            <option value="💍 Menikah">💍 Menikah</option>
+            <option value="💍 Lamaran">💍 Lamaran</option>
+            <option value="✈️ Liburan">✈️ Liburan</option>
+          </select>
+        </div>
+        
+        <div class="row g-3 mb-3">
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Target Tanggal</label>
+            <input type="date" id="planTargetDate" class="form-control">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Progress (%)</label>
+            <input type="number" id="planProgress" class="form-control" placeholder="0-100" min="0" max="100">
+          </div>
+        </div>
+        
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Deskripsi</label>
+          <textarea id="planDesc" class="form-control" rows="3" placeholder="Detail rencana, catatan penting, atau checklist..."></textarea>
+        </div>
+        
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Anggaran (Rp)</label>
+          <input type="number" id="planBudget" class="form-control" placeholder="Estimasi biaya">
+        </div>
+        
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Prioritas</label>
+          <select id="planPriority" class="form-select">
+            <option value="high">🔴 Tinggi</option>
+            <option value="medium">🟡 Sedang</option>
+            <option value="low">🟢 Rendah</option>
+          </select>
+        </div>
+        
+        <div class="form-check mb-3">
+          <input type="checkbox" id="planIsUrgent" class="form-check-input">
+          <label class="form-check-label">⚠️ Tandai sebagai urgent</label>
+        </div>
+      </div>
+      <div class="modal-footer border-0">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+        <button type="button" onclick="savePlan()" class="btn btn-primary px-4">Simpan Rencana</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Edit Rencana -->
+<div class="modal fade" id="planModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content rounded-4">
+      <div class="modal-header border-0 bg-gradient bg-info text-white">
+        <h5 class="fw-bold"><i class="bi bi-pencil-square me-2"></i>Edit Rencana</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-4">
+        <input type="hidden" id="editPlanId">
+        <input type="hidden" id="editPlanParentId">
+        
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Nama Rencana</label>
+          <input id="editPlanText" class="form-control">
+        </div>
+        
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Kategori</label>
+          <select id="editPlanCat" class="form-select">
+            <option value="💍 Menikah">💍 Menikah</option>
+            <option value="💍 Lamaran">💍 Lamaran</option>
+            <option value="✈️ Liburan">✈️ Liburan</option>
+          </select>
+        </div>
+        
+        <div class="row g-3 mb-3">
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Target Tanggal</label>
+            <input type="date" id="editPlanTargetDate" class="form-control">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Progress (%)</label>
+            <input type="number" id="editPlanProgress" class="form-control" min="0" max="100">
+          </div>
+        </div>
+        
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Deskripsi</label>
+          <textarea id="editPlanDesc" class="form-control" rows="3"></textarea>
+        </div>
+        
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Anggaran (Rp)</label>
+          <input type="number" id="editPlanBudget" class="form-control">
+        </div>
+        
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Prioritas</label>
+          <select id="editPlanPriority" class="form-select">
+            <option value="high">🔴 Tinggi</option>
+            <option value="medium">🟡 Sedang</option>
+            <option value="low">🟢 Rendah</option>
+          </select>
+        </div>
+        
+        <div class="form-check mb-3">
+          <input type="checkbox" id="editPlanIsUrgent" class="form-check-input">
+          <label class="form-check-label">⚠️ Urgent</label>
+        </div>
+        
+        <div class="bg-light p-3 rounded-3 mb-3">
+          <label class="small fw-bold mb-2"><i class="bi bi-list-check me-1"></i>Sub Rencana / Checklist</label>
+          <div class="input-group mb-2">
+            <input id="newSubText" class="form-control form-control-sm" placeholder="Tambah subtugas...">
+            <button class="btn btn-sm btn-secondary" onclick="addSubPlan()">Tambah</button>
+          </div>
+          <div id="subPlansList" class="small"></div>
+        </div>
+      </div>
+      <div class="modal-footer border-0">
+        <button type="button" class="btn btn-danger" onclick="deletePlanItem()">Hapus Rencana</button>
+        <button type="button" class="btn btn-primary" onclick="updatePlan()">Simpan Perubahan</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm Delete Modal dengan Emoji -->
+<div class="modal fade" id="confirmDeleteModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content rounded-4">
+      <div class="modal-header bg-danger text-white border-0">
+        <h5 class="fw-bold"><i class="bi bi-exclamation-triangle-fill me-2"></i>Konfirmasi Hapus</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body text-center py-4">
+        <i class="bi bi-trash3-fill text-danger fs-1 mb-3"></i>
+        <h5>Yakin ingin menghapus data ini?</h5>
+        <p class="text-muted">Data yang sudah dihapus tidak dapat dikembalikan</p>
+      </div>
+      <div class="modal-footer border-0 justify-content-center gap-3">
+        <button class="btn btn-secondary px-4" data-bs-dismiss="modal">
+          <i class="bi bi-x-circle me-2"></i>Batal
+        </button>
+        <button id="confirmDeleteBtn" class="btn btn-danger px-4">
+          <i class="bi bi-trash me-2"></i>Hapus
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Welcome Tour Modal -->
+<div class="modal fade" id="welcomeTourModal" tabindex="-1" data-bs-backdrop="static">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content rounded-4">
+      <div class="modal-header border-0">
+        <div class="text-center w-100">
+          <i class="bi bi-emoji-smile fs-1 text-primary"></i>
+          <h4 class="mt-2">Selamat Datang di Growthogether! 🎉</h4>
+        </div>
+      </div>
+      <div class="modal-body">
+        <div class="tour-step" id="tourStep1">
+          <div class="d-flex align-items-center gap-3 mb-3 p-3 bg-light rounded-3">
+            <i class="bi bi-speedometer2 fs-2 text-primary"></i>
+            <div>
+              <h6 class="mb-1">Dashboard</h6>
+              <p class="small text-muted mb-0">Lihat progress keuangan dan rencana kalian</p>
+            </div>
+          </div>
+          <div class="d-flex align-items-center gap-3 mb-3 p-3 bg-light rounded-3">
+            <i class="bi bi-chat-heart fs-2 text-danger"></i>
+            <div>
+              <h6 class="mb-1">Sharing</h6>
+              <p class="small text-muted mb-0">Bagikan wawasan dan mimpi bersama</p>
+            </div>
+          </div>
+          <div class="d-flex align-items-center gap-3 mb-3 p-3 bg-light rounded-3">
+            <i class="bi bi-calendar-check fs-2 text-success"></i>
+            <div>
+              <h6 class="mb-1">Rencana</h6>
+              <p class="small text-muted mb-0">Kelola semua rencana pernikahan kalian</p>
+            </div>
+          </div>
+          <div class="d-flex align-items-center gap-3 p-3 bg-light rounded-3">
+            <i class="bi bi-graph-up fs-2 text-info"></i>
+            <div>
+              <h6 class="mb-1">Keuangan</h6>
+              <p class="small text-muted mb-0">Catat pemasukan dan tabungan pernikahan</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer border-0">
+        <button class="btn btn-primary w-100" data-bs-dismiss="modal">Mulai Sekarang</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Comment Modal - Enhanced -->
+<div class="modal fade" id="commentModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content rounded-4">
+      <div class="modal-header border-0 bg-gradient bg-info text-white">
+        <h5 class="fw-bold"><i class="bi bi-chat-dots me-2"></i>💬 Diskusi & Komentar</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="commentVisionId">
+        <div id="commentList" class="mb-3" style="max-height: 400px; overflow-y: auto;"></div>
+        <div class="border-top pt-3">
+          <label class="form-label fw-semibold">Tulis komentar</label>
+          <textarea id="newCommentText" class="form-control mb-2" rows="2" placeholder="Bagikan pendapat atau dukunganmu..."></textarea>
+          <button onclick="addComment()" class="btn btn-primary w-100">
+            <i class="bi bi-send me-2"></i>Kirim Komentar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

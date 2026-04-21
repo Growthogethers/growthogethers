@@ -1,0 +1,461 @@
+<!-- DASHBOARD -->
+<section id="dashboard-page">
+  <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+    <h3 class="fw-bold m-0">👋 Halo, <span id="userGreet" class="text-primary"></span></h3>
+    <button id="privacyToggleDash" class="privacy-toggle-btn"><i class="bi bi-eye-slash"></i> Privasi angka</button>
+  </div>
+  
+  <div class="row g-4 mb-5">
+    <div class="col-md-7">
+      <div class="card p-4 h-100 border-0">
+        <div class="d-flex justify-content-between align-items-start">
+          <div><h6 class="text-muted">💍 Dana Pernikahan</h6><h2 class="fw-bold text-primary" id="totalWedding">Rp0</h2><small>Target: <span id="targetWeddingAmount" class="fw-semibold">Rp0</span></small></div>
+          <div class="text-end"><span class="badge bg-primary-subtle text-primary px-3 py-2" id="weddingPercentText">0%</span></div>
+        </div>
+        <div class="progress-custom-dash mt-3"><div id="weddingProgressFill" class="progress-bar-dash" style="width:0%"></div></div>
+        <div class="row mt-4 g-2">
+          <div class="col-6"><div class="bg-light rounded-3 p-2 text-center"><small class="text-muted">Fachmi</small><h5 class="mb-0" id="savingsA">0</h5></div></div>
+          <div class="col-6"><div class="bg-light rounded-3 p-2 text-center"><small class="text-muted">Azizah</small><h5 class="mb-0" id="savingsB">0</h5></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-5">
+      <div class="row g-3 h-100">
+        <div class="col-6"><div class="card p-3 text-center h-100"><i class="bi bi-arrow-up-circle-fill text-success fs-2"></i><h6 class="mt-2">Pemasukan</h6><h4 id="totalIncome" class="text-success">Rp0</h4></div></div>
+        <div class="col-6"><div class="card p-3 text-center h-100"><i class="bi bi-arrow-down-circle-fill text-warning fs-2"></i><h6 class="mt-2">Pengeluaran</h6><h4 id="totalExpense" class="text-warning">Rp0</h4></div></div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- CHART SECTION - UKURAN SELARAS 300px -->
+  <div class="row g-4 mb-4">
+    <div class="col-md-6">
+      <div class="card p-3 h-100">
+        <h6 class="fw-semibold mb-3"><i class="bi bi-graph-up me-2"></i>Progres tabungan (bulanan)</h6>
+        <div style="position: relative; height: 300px; width: 100%;">
+          <canvas id="weddingTrendChart"></canvas>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="card p-3 h-100">
+        <h6 class="fw-semibold mb-3"><i class="bi bi-graph-up me-2"></i>Rencana terselesaikan (progress)</h6>
+        <div style="position: relative; height: 300px; width: 100%;">
+          <canvas id="plansProgressChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="row g-3">
+    <div class="col-3"><div class="card p-3 text-center"><i class="bi bi-chat-dots fs-4 text-primary"></i><h3 id="totalShared" class="mt-2">0</h3><small>Wawasan</small></div></div>
+    <div class="col-3"><div class="card p-3 text-center"><i class="bi bi-list-check fs-4 text-secondary"></i><h3 id="totalPlans" class="mt-2">0</h3><small>Rencana</small></div></div>
+    <div class="col-3"><div class="card p-3 text-center"><i class="bi bi-check2-circle fs-4 text-success"></i><h3 id="totalDone" class="mt-2">0%</h3><small>Selesai</small></div></div>
+    <div class="col-3"><div class="card p-3 text-center"><i class="bi bi-calendar-event fs-4 text-info"></i><h3 id="targetPlanCount" class="mt-2">0</h3><small>Target waktu</small></div></div>
+  </div>
+  <!-- Tambahkan setelah chart section -->
+<div class="row g-3 mb-4">
+  <div class="col-md-3 col-6">
+    <div class="card p-3 text-center card-hover">
+      <div class="progress-ring" id="progressRing">
+        <svg width="60" height="60">
+          <circle cx="30" cy="30" r="26" fill="none" stroke="#e2e8f0" stroke-width="3"/>
+          <circle cx="30" cy="30" r="26" fill="none" stroke="#10b981" stroke-width="3" 
+                  stroke-dasharray="163.36" stroke-dashoffset="163.36" id="progressRingCircle"/>
+        </svg>
+      </div>
+      <h6 class="mt-2 mb-0">Progress Rencana</h6>
+      <small class="text-muted" id="ringPercent">0%</small>
+    </div>
+  </div>
+  <div class="col-md-3 col-6">
+    <div class="card p-3 text-center card-hover">
+      <i class="bi bi-calendar-check fs-2 text-info"></i>
+      <h3 id="completedThisMonth" class="mt-2 mb-0">0</h3>
+      <small class="text-muted">Selesai bulan ini</small>
+    </div>
+  </div>
+  <div class="col-md-3 col-6">
+    <div class="card p-3 text-center card-hover">
+      <i class="bi bi-clock-history fs-2 text-warning"></i>
+      <h3 id="overdueCount" class="mt-2 mb-0">0</h3>
+      <small class="text-muted">Rencana terlambat</small>
+    </div>
+  </div>
+  <div class="col-md-3 col-6">
+    <div class="card p-3 text-center card-hover">
+      <i class="bi bi-stars fs-2 text-primary"></i>
+      <h3 id="achievementRate" class="mt-2 mb-0">0%</h3>
+      <small class="text-muted">Tingkat pencapaian</small>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- VISION PAGE - Enhanced -->
+<section id="vision-page" style="display:none">
+  <!-- Form Sharing -->
+  <div class="card p-4 mb-4 shadow-sm">
+    <h5 class="fw-bold mb-3"><i class="bi bi-pencil-square me-2"></i>Bagikan Wawasan & Mimpi</h5>
+    
+    <!-- Mood Selector -->
+    <div class="mb-3">
+      <label class="form-label fw-semibold small">Bagaimana perasaanmu?</label>
+      <div class="mood-selector" id="moodSelector">
+        <span class="mood-option" data-mood="🎉">🎉 Semangat</span>
+        <span class="mood-option" data-mood="💭">💭 Merenung</span>
+        <span class="mood-option" data-mood="❤️">❤️ Bahagia</span>
+        <span class="mood-option" data-mood="🤔">🤔 Berpikir</span>
+        <span class="mood-option" data-mood="✨">✨ Inspirasi</span>
+        <span class="mood-option" data-mood="📚">📚 Belajar</span>
+        <span class="mood-option" data-mood="🙏">🙏 Bersyukur</span>
+      </div>
+      <input type="hidden" id="visionMood" value="✨">
+    </div>
+    
+    <div class="row g-3">
+      <div class="col-md-12">
+        <input type="text" id="vTitle" class="form-control" placeholder="Judul ide atau pelajaran *">
+      </div>
+      <div class="col-md-6">
+        <textarea id="vNote" class="form-control" rows="3" placeholder="Tulis wawasan atau mimpi kalian di sini..."></textarea>
+      </div>
+      <div class="col-md-3">
+        <input type="text" id="visionTags" class="form-control" placeholder="Tag (pisahkan koma)">
+        <small class="text-muted">contoh: inspirasi, mimpi, pelajaran</small>
+      </div>
+      <div class="col-md-3">
+        <select id="vShare" class="form-select">
+          <option value="Shared">🤝 Untuk pasangan (Publik)</option>
+          <option value="Private">🔒 Catatan pribadi (Private)</option>
+        </select>
+      </div>
+    </div>
+    
+    <div class="row mt-3">
+      <div class="col-md-6">
+        <div class="form-check">
+          <input type="checkbox" id="visionImportant" class="form-check-input">
+          <label class="form-check-label">
+            ⭐ Jadikan sebagai momen penting (Highlight)
+          </label>
+        </div>
+      </div>
+      <div class="col-md-6 text-end">
+        <button onclick="saveVision()" class="btn btn-primary px-5">
+          <i class="bi bi-send me-2"></i>Bagikan
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filter & Search Bar -->
+  <div class="filter-bar-sharing">
+    <i class="bi bi-funnel-fill text-muted"></i>
+    <select id="visionFilter" class="form-select form-select-sm w-auto">
+      <option value="all">📋 Semua Post</option>
+      <option value="my">👤 Postinganku</option>
+      <option value="shared">🤝 Berbagi</option>
+      <option value="bookmarked">🔖 Tersimpan</option>
+      <option value="important">⭐ Penting</option>
+    </select>
+    <select id="visionSort" class="form-select form-select-sm w-auto">
+      <option value="newest">🕐 Terbaru</option>
+      <option value="oldest">🕐 Terlama</option>
+      <option value="mostLiked">❤️ Paling Disukai</option>
+      <option value="mostCommented">💬 Paling Dikomentari</option>
+    </select>
+    <div class="input-group ms-auto" style="max-width: 250px;">
+      <span class="input-group-text bg-transparent"><i class="bi bi-search"></i></span>
+      <input type="text" id="visionSearch" class="form-control" placeholder="Cari postingan...">
+    </div>
+  </div>
+
+  <!-- Vision List Container -->
+  <div id="visionList" class="row g-3"></div>
+  
+  <!-- Loading Indicator -->
+  <div id="visionLoading" class="text-center py-5" style="display:none;">
+    <div class="loading-spinner"></div>
+    <p class="text-muted mt-2">Memuat postingan...</p>
+  </div>
+</section>
+
+<!-- PLANNING PAGE -->
+<section id="planning-page" style="display:none">
+  <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+    <h3 class="fw-bold mb-0">📋 Rencana Kita Berdua</h3>
+    <div class="d-flex gap-2">
+      <div class="input-group" style="max-width: 250px;">
+        <span class="input-group-text bg-white border-end-0"><i class="bi bi-search"></i></span>
+        <input type="text" id="searchPlanInput" class="form-control border-start-0" placeholder="Cari rencana...">
+      </div>
+      <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addPlanModal">
+        <i class="bi bi-plus-circle me-2"></i>Buat Rencana
+      </button>
+    </div>
+  </div>
+  
+  <!-- Board View -->
+  <div class="row g-4" id="planBoardContainer">
+    <!-- Menikah Board -->
+    <div class="col-md-4">
+      <div class="card h-100 border-0 shadow-sm">
+        <div class="card-header bg-primary text-white rounded-top-3 py-3">
+          <h5 class="mb-0"><i class="bi bi-heart-fill me-2"></i>💍 Menikah</h5>
+        </div>
+        <div class="card-body p-3" id="menikahPlans" style="max-height: 550px; overflow-y: auto;">
+          <div class="loading-spinner"></div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Lamaran Board -->
+    <div class="col-md-4">
+      <div class="card h-100 border-0 shadow-sm">
+        <div class="card-header bg-info text-white rounded-top-3 py-3">
+          <h5 class="mb-0"><i class="bi bi-gem-fill me-2"></i>💍 Lamaran</h5>
+        </div>
+        <div class="card-body p-3" id="lamaranPlans" style="max-height: 550px; overflow-y: auto;">
+          <div class="loading-spinner"></div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Liburan Board -->
+    <div class="col-md-4">
+      <div class="card h-100 border-0 shadow-sm">
+        <div class="card-header bg-warning text-dark rounded-top-3 py-3">
+          <h5 class="mb-0"><i class="bi bi-airplane-fill me-2"></i>✈️ Liburan</h5>
+        </div>
+        <div class="card-body p-3" id="liburanPlans" style="max-height: 550px; overflow-y: auto;">
+          <div class="loading-spinner"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FINANCIAL PAGE -->
+<section id="financial-page" style="display:none">
+  <div class="d-flex justify-content-between flex-wrap mb-3">
+    <h3 class="fw-bold">💰 Keuangan bersama</h3>
+    <button id="privacyToggleFinance" class="privacy-toggle-btn"><i class="bi bi-eye-slash"></i> Privasi</button>
+  </div>
+  <div class="card p-4 mb-4">
+    <div class="row g-3">
+      <div class="col-md-2"><input type="date" id="fDate" class="form-control"></div>
+      <div class="col-md-3"><input type="text" id="fDesc" class="form-control" placeholder="Keterangan"></div>
+      <div class="col-md-2"><input type="number" id="fAmt" class="form-control" placeholder="Nominal"></div>
+      <div class="col-md-3"><select id="fType" class="form-select"><option value="in">📈 Pemasukan</option><option value="wedding">💍 Tabungan Nikah</option><option value="out">📉 Pengeluaran</option></select></div>
+      <div class="col-md-2"><button id="btnSaveFinance" onclick="saveFinance()" class="btn btn-success w-100">Catat</button></div>
+    </div>
+    <div id="targetWeddingField" style="display:none; margin-top: 16px;">
+      <div class="bg-light p-3 rounded-3 mt-2">
+        <div class="row align-items-center">
+          <div class="col-8"><label class="small fw-bold">🎯 Target tabungan pernikahan (total)</label><input type="number" id="weddingTargetInput" class="form-control mt-1" placeholder="contoh: 75000000"></div>
+          <div class="col-4"><button onclick="saveWeddingTarget()" class="btn btn-outline-primary mt-4 w-100">Set Target</button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="filter-bar d-flex gap-2 align-items-center bg-white p-2 rounded-3 mb-3">
+    <i class="bi bi-funnel-fill"></i>
+    <select id="financeFilter" class="form-select form-select-sm w-auto">
+      <option value="all">Semua transaksi</option>
+      <option value="in">Pemasukan</option>
+      <option value="out">Pengeluaran</option>
+      <option value="wedding">Tabungan Nikah</option>
+    </select>
+    <span class="text-muted small" id="filterInfo"></span>
+  </div>
+  <div class="card overflow-auto">
+    <table class="table table-sm align-middle">
+      <thead class="table-light">
+        <tr><th>User</th><th>Tanggal</th><th>Rincian</th><th>Nominal</th><th></th></tr>
+      </thead>
+      <tbody id="fTable"></tbody>
+    </table>
+  </div>
+</section>
+
+<!-- components/moment.html - Tambahkan ke dalam content.html setelah section financial-page -->
+<section id="moment-page" style="display:none">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h3 class="fw-bold"><i class="bi bi-calendar-heart me-2 text-danger"></i>Momen Spesial Kita</h3>
+    <button class="btn btn-outline-primary" onclick="exportMoments()">
+      <i class="bi bi-download me-2"></i>Export
+    </button>
+  </div>
+
+  <!-- Calendar View -->
+  <div class="card p-4 mb-4 border-0 shadow-sm">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <button class="btn btn-sm btn-outline-secondary" onclick="changeMonth(-1)">
+        <i class="bi bi-chevron-left"></i>
+      </button>
+      <h4 class="fw-bold mb-0" id="currentMonthYear">Januari 2024</h4>
+      <button class="btn btn-sm btn-outline-secondary" onclick="changeMonth(1)">
+        <i class="bi bi-chevron-right"></i>
+      </button>
+    </div>
+    
+    <!-- Calendar Grid -->
+    <div class="calendar-grid" id="calendarGrid">
+      <!-- Day names -->
+      <div class="calendar-day-name">Min</div>
+      <div class="calendar-day-name">Sen</div>
+      <div class="calendar-day-name">Sel</div>
+      <div class="calendar-day-name">Rab</div>
+      <div class="calendar-day-name">Kam</div>
+      <div class="calendar-day-name">Jum</div>
+      <div class="calendar-day-name">Sab</div>
+      <!-- Calendar dates will be filled here -->
+    </div>
+  </div>
+
+  <!-- Moments List -->
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 class="fw-bold"><i class="bi bi-collection me-2"></i>Koleksi Momen</h5>
+    <button class="btn btn-sm btn-success" onclick="openMomentModal(null)">
+      <i class="bi bi-plus-circle me-1"></i>Tambah Momen
+    </button>
+  </div>
+  
+  <div id="momentsList" class="row g-3">
+    <!-- Moments will be displayed here -->
+  </div>
+</section>
+
+<!-- Moment Modal (Add/Edit) -->
+<div class="modal fade" id="momentModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content rounded-4">
+      <div class="modal-header border-0 bg-gradient bg-danger text-white">
+        <h5 class="fw-bold"><i class="bi bi-camera-fill me-2"></i><span id="momentModalTitle">Tambah Momen</span></h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-4">
+        <input type="hidden" id="momentEditId">
+        
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Tanggal <span class="text-danger">*</span></label>
+          <input type="date" id="momentDate" class="form-control">
+        </div>
+        
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Judul Momen</label>
+          <input type="text" id="momentTitle" class="form-control" placeholder="Contoh: Pertama Kali Bertemu, Lamaran, dll">
+        </div>
+        
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Cerita / Deskripsi</label>
+          <textarea id="momentStory" class="form-control" rows="3" placeholder="Ceritakan momen spesial ini..."></textarea>
+        </div>
+        
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Upload Foto</label>
+          <div class="photo-upload-area" id="photoUploadArea" onclick="document.getElementById('momentPhotoInput').click()">
+            <i class="bi bi-cloud-upload fs-1"></i>
+            <p class="mb-0">Klik untuk upload foto</p>
+            <small class="text-muted">Maks 5MB, format JPG/PNG</small>
+          </div>
+          <input type="file" id="momentPhotoInput" accept="image/jpeg,image/png" style="display:none" onchange="previewPhoto(this)">
+          <div id="photoPreview" class="photo-preview mt-2" style="display:none">
+            <img id="previewImg" class="preview-image">
+            <button type="button" class="btn btn-sm btn-danger remove-photo" onclick="removePhoto()">
+              <i class="bi bi-trash"></i> Hapus Foto
+            </button>
+          </div>
+        </div>
+        
+        <div class="mb-3">
+          <label class="form-label fw-semibeed">Suasana Hati</label>
+          <div class="moment-mood-selector">
+            <span class="moment-mood-option" data-mood="🥰">🥰 Romantis</span>
+            <span class="moment-mood-option" data-mood="🎉">🎉 Bahagia</span>
+            <span class="moment-mood-option" data-mood="😢">😢 Haru</span>
+            <span class="moment-mood-option" data-mood="😂">😂 Lucu</span>
+            <span class="moment-mood-option" data-mood="💪">💪 Berkesan</span>
+          </div>
+          <input type="hidden" id="momentMood" value="🥰">
+        </div>
+        
+        <div class="form-check mb-3">
+          <input type="checkbox" id="momentIsSpecial" class="form-check-input">
+          <label class="form-check-label">
+            ⭐ Jadikan sebagai momen spesial (highlight)
+          </label>
+        </div>
+      </div>
+      <div class="modal-footer border-0">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+        <button type="button" class="btn btn-danger px-4" onclick="saveMoment()">
+          <i class="bi bi-save me-2"></i>Simpan Momen
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Moment Detail Modal -->
+<div class="modal fade" id="momentDetailModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content rounded-4">
+      <div class="modal-header border-0">
+        <h5 class="fw-bold" id="detailTitle"></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-0">
+        <div id="detailCarousel" class="carousel slide" data-bs-ride="carousel">
+          <div class="carousel-inner" id="detailCarouselInner"></div>
+          <button class="carousel-control-prev" type="button" data-bs-target="#detailCarousel" data-bs-slide="prev">
+            <span class="carousel-control-prev-icon bg-dark rounded-circle p-3"></span>
+          </button>
+          <button class="carousel-control-next" type="button" data-bs-target="#detailCarousel" data-bs-slide="next">
+            <span class="carousel-control-next-icon bg-dark rounded-circle p-3"></span>
+          </button>
+        </div>
+        <div class="p-4">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+              <span class="badge bg-danger me-2" id="detailMood"></span>
+              <span class="badge bg-warning text-dark" id="detailDate"></span>
+            </div>
+            <div>
+              <button class="btn btn-sm btn-outline-primary me-1" onclick="editMomentFromDetail()">
+                <i class="bi bi-pencil"></i> Edit
+              </button>
+              <button class="btn btn-sm btn-outline-danger" onclick="deleteMomentFromDetail()">
+                <i class="bi bi-trash"></i> Hapus
+              </button>
+            </div>
+          </div>
+          <p id="detailStory" class="mb-0"></p>
+          <hr>
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <i class="bi bi-heart text-danger"></i>
+              <span id="detailLikes">0</span> suka
+              <i class="bi bi-chat ms-3 text-primary"></i>
+              <span id="detailComments">0</span> komentar
+            </div>
+            <div>
+              <span class="text-muted small" id="detailAuthor"></span>
+            </div>
+          </div>
+          
+          <!-- Comment Section -->
+          <div class="mt-3 pt-3 border-top">
+            <h6 class="fw-bold"><i class="bi bi-chat-dots me-2"></i>Komentar</h6>
+            <div id="momentCommentList" class="moment-comment-list mb-2" style="max-height:200px; overflow-y:auto"></div>
+            <div class="input-group">
+              <input type="text" id="momentCommentInput" class="form-control form-control-sm" placeholder="Tulis komentar...">
+              <button class="btn btn-sm btn-primary" onclick="addMomentComment()">Kirim</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

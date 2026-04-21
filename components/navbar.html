@@ -1,0 +1,57 @@
+<div class="bottom-nav" id="bottomNav">
+  <button class="bottom-nav-item" data-page="dashboard">
+    <i class="bi bi-speedometer2"></i><span>Beranda</span>
+  </button>
+  <button class="bottom-nav-item" data-page="vision">
+    <i class="bi bi-chat-heart"></i><span>Sharing</span>
+  </button>
+  <button class="bottom-nav-item" data-page="planning">
+    <i class="bi bi-calendar-check"></i><span>Rencana</span>
+  </button>
+  <button class="bottom-nav-item" data-page="financial">
+    <i class="bi bi-graph-up"></i><span>Keuangan</span>
+  </button>
+  <button class="bottom-nav-item" data-page="moment">
+    <i class="bi bi-calendar-heart"></i><span>Moment</span>
+  </button>
+</div>
+<button class="menu-toggle-hp" id="menuToggleHp">
+  <i class="bi bi-list"></i>
+</button>
+<button id="darkModeFab" class="dark-mode-fab">
+  <i class="bi bi-moon-stars fs-5"></i>
+</button>
+<div class="toast-notif" id="customToast" style="display: none">
+  <div class="toast align-items-center border-0 text-bg-dark">
+    <div class="d-flex">
+      <div class="toast-body" id="toastMessage"></div>
+      <button
+        type="button"
+        class="btn-close btn-close-white me-2"
+        onclick="hideToast()"
+      ></button>
+    </div>
+  </div>
+</div>
+<!-- Global Progress Bar -->
+<div
+  id="globalProgressBar"
+  style="
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    z-index: 9999;
+    display: none;
+  "
+>
+  <div
+    style="
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, #6366f1, #8b5cf6, #a78bfa);
+      transition: width 0.3s ease;
+    "
+  ></div>
+</div>
