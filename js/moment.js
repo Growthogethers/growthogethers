@@ -57,7 +57,6 @@ async function compressImage(file, maxSizeMB = 2) {
   });
 }
 
-// Handle multiple photos
 export async function handleMultiplePhotos(input) {
   const files = Array.from(input.files);
   const remainingSlots = 5 - currentMomentPhotos.length;
@@ -94,6 +93,12 @@ export async function handleMultiplePhotos(input) {
   input.value = '';
   renderPhotoGrid();
   showMomentToast(`${files.length} foto berhasil ditambahkan`);
+}
+
+// Remove photo at index
+export function removePhotoAtIndex(index) {
+  currentMomentPhotos.splice(index, 1);
+  renderPhotoGrid();
 }
 
 // Render photo grid
