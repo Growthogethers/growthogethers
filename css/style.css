@@ -513,23 +513,21 @@ canvas {
     padding-left: 10px;
   }
 
-  /* Tambahkan di akhir style.css */
+/* Tambahkan di style.css setelah moment styles */
 
-/* ============ MOMENT PAGE STYLES ============ */
-
-/* Calendar Grid */
+/* Calendar Grid Update */
 .calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 8px;
+  gap: 6px;
   text-align: center;
 }
 
 .calendar-day-name {
   font-weight: 600;
   color: #64748b;
-  padding: 12px 8px;
-  font-size: 0.85rem;
+  padding: 10px 4px;
+  font-size: 0.75rem;
 }
 
 .calendar-day {
@@ -544,11 +542,13 @@ canvas {
   background: var(--card-bg);
   border: 1px solid var(--border-light);
   position: relative;
+  font-size: 0.85rem;
 }
 
 .calendar-day:hover {
   transform: scale(1.05);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  background: #fee2e2;
+  border-color: #ef4444;
 }
 
 .calendar-day.today {
@@ -563,13 +563,14 @@ canvas {
 
 .calendar-day.has-moment {
   border: 2px solid #ef4444;
+  background: #fff5f5;
 }
 
 .calendar-day.has-moment::after {
   content: '❤️';
   position: absolute;
   top: 2px;
-  right: 2px;
+  right: 4px;
   font-size: 8px;
 }
 
@@ -579,15 +580,102 @@ canvas {
 
 .day-number {
   font-weight: 600;
-  font-size: 1rem;
+  font-size: 0.9rem;
 }
 
-.day-moment-indicator {
-  font-size: 0.7rem;
-  margin-top: 2px;
+/* Photo Upload Grid */
+.photo-upload-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 8px;
 }
 
-/* Moment Card */
+.photo-upload-item {
+  width: 80px;
+  height: 80px;
+  border: 2px dashed var(--border-light);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: var(--bg-body);
+  gap: 4px;
+}
+
+.photo-upload-item:hover {
+  border-color: #ef4444;
+  background: #fff5f5;
+}
+
+.photo-upload-item i {
+  font-size: 24px;
+  color: #94a3b8;
+}
+
+.photo-upload-item span {
+  font-size: 10px;
+  color: #64748b;
+}
+
+.photo-preview-item {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--border-light);
+}
+
+.photo-preview-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.photo-preview-item .remove-photo-btn {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #ef4444;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 12px;
+  border: none;
+}
+
+.photo-preview-item .remove-photo-btn:hover {
+  background: #dc2626;
+}
+
+/* Carousel styling */
+.carousel-item {
+  background: #1a1a2e;
+}
+
+.carousel-item img {
+  width: 100%;
+  max-height: 300px;
+  object-fit: contain;
+}
+
+.carousel-control-prev-icon,
+.carousel-control-next-icon {
+  background-size: 60%;
+  width: 32px;
+  height: 32px;
+}
+
+/* Moment Card Update */
 .moment-card {
   transition: all 0.3s ease;
   border: none;
@@ -608,18 +696,25 @@ canvas {
 
 .moment-image {
   width: 100%;
-  height: 200px;
+  height: 180px;
   object-fit: cover;
   cursor: pointer;
   transition: transform 0.3s ease;
 }
 
-.moment-image:hover {
-  transform: scale(1.05);
+.moment-image-placeholder {
+  width: 100%;
+  height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  cursor: pointer;
 }
 
-.moment-card .card-body {
-  padding: 12px;
+.moment-image-placeholder i {
+  font-size: 48px;
+  color: rgba(255,255,255,0.5);
 }
 
 .moment-mood-badge {
@@ -628,73 +723,25 @@ canvas {
   gap: 4px;
   padding: 4px 10px;
   border-radius: 20px;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   background: var(--bg-body);
 }
 
-/* Photo Upload Area */
-.photo-upload-area {
-  border: 2px dashed var(--border-light);
-  border-radius: 16px;
-  padding: 30px;
-  text-align: center;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  background: var(--bg-body);
-}
-
-.photo-upload-area:hover {
-  border-color: #ef4444;
-  background: rgba(239, 68, 68, 0.05);
-}
-
-.photo-upload-area i {
-  font-size: 48px;
-  color: #94a3b8;
-}
-
-.photo-preview {
-  position: relative;
-  display: inline-block;
-}
-
-.preview-image {
-  max-width: 200px;
-  max-height: 150px;
-  border-radius: 12px;
-  object-fit: cover;
-}
-
-.remove-photo {
-  position: absolute;
-  top: -10px;
-  right: -10px;
-  border-radius: 50%;
-  width: 30px;
-  height: 30px;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* Moment Mood Selector */
+/* Mood Selector */
 .moment-mood-selector {
   display: flex;
-  gap: 12px;
+  gap: 8px;
   flex-wrap: wrap;
 }
 
 .moment-mood-option {
   cursor: pointer;
-  padding: 8px 16px;
+  padding: 6px 14px;
   border-radius: 40px;
   background: var(--bg-body);
   border: 1px solid var(--border-light);
   transition: all 0.2s;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
+  font-size: 0.85rem;
 }
 
 .moment-mood-option:hover {
@@ -707,73 +754,69 @@ canvas {
   border-color: #ef4444;
 }
 
-/* Comment in Moment */
+/* Comment Item */
 .moment-comment-item {
   background: var(--bg-body);
   border-radius: 12px;
-  padding: 10px;
+  padding: 8px 12px;
   margin-bottom: 8px;
 }
 
 .moment-comment-item .comment-author {
   font-weight: 600;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
 }
 
 .moment-comment-item .comment-text {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   margin-top: 4px;
   margin-bottom: 0;
 }
 
 .moment-comment-item .comment-time {
-  font-size: 0.7rem;
-  color: var(--text-muted);
-}
-
-/* Carousel styling */
-.carousel-item img {
-  width: 100%;
-  max-height: 400px;
-  object-fit: contain;
-  background: #1a1a2e;
+  font-size: 0.65rem;
+  color: #94a3b8;
 }
 
 /* Empty State */
 .empty-moments {
   text-align: center;
-  padding: 60px 20px;
+  padding: 40px 20px;
   background: var(--card-bg);
-  border-radius: 24px;
+  border-radius: 20px;
   border: 2px dashed var(--border-light);
 }
 
 .empty-moments i {
-  font-size: 64px;
+  font-size: 48px;
   color: #cbd5e1;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
 /* Responsive */
-@media (max-width: 768px) {
+@media (max-width: 576px) {
   .calendar-grid {
     gap: 4px;
   }
   
   .calendar-day {
-    font-size: 0.75rem;
+    font-size: 0.7rem;
+    border-radius: 8px;
   }
   
   .day-number {
-    font-size: 0.85rem;
+    font-size: 0.75rem;
   }
   
-  .moment-image {
-    height: 150px;
+  .photo-upload-item,
+  .photo-preview-item {
+    width: 65px;
+    height: 65px;
   }
   
-  .moment-mood-selector {
-    gap: 6px;
+  .moment-image,
+  .moment-image-placeholder {
+    height: 140px;
   }
   
   .moment-mood-option {
