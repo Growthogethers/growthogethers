@@ -57,6 +57,46 @@ async function compressImage(file, maxSizeMB = 2) {
   });
 }
 
+// Show toast khusus moment
+function showMomentToast(msg, isError = false) {
+  const toast = document.getElementById('momentToast');
+  const messageEl = document.getElementById('momentToastMessage');
+  if (!toast || !messageEl) return;
+  
+  messageEl.innerText = msg;
+  toast.style.display = 'block';
+  const toastDiv = toast.querySelector('.toast');
+  if (toastDiv) {
+    toastDiv.className = `toast align-items-center border-0 ${isError ? 'text-bg-danger' : 'text-bg-success'}`;
+  }
+  setTimeout(() => {
+    toast.style.display = 'none';
+  }, 2500);
+}
+
+// Render photo grid
+function renderPhotoGrid() {
+  const grid = document.getElementById('photoUploadGrid');
+  if (!grid) return;
+  
+  const existingPhotos = currentMomentPhotos.map((photo, idx) => `
+    <div class="photo-preview-item">
+      <img src="${photo}" alt="Preview">
+      <button class="remove-photo-btn" onclick="window.removePhotoAtIndex(${idx})">✕</button>
+    </div>
+  `).join('');
+  
+  const addButton = currentMomentPhotos.length < 5 ? `
+    <div class="photo-upload-item" onclick="document.getElementById('momentPhotoInput').click()">
+      <i class="bi bi-plus-circle-fill"></i>
+      <span>Tambah</span>
+    </div>
+  ` : '';
+  
+  grid.innerHTML = existingPhotos + addButton;
+}
+
+// Handle multiple photos
 export async function handleMultiplePhotos(input) {
   const files = Array.from(input.files);
   const remainingSlots = 5 - currentMomentPhotos.length;
@@ -95,61 +135,11 @@ export async function handleMultiplePhotos(input) {
   showMomentToast(`${files.length} foto berhasil ditambahkan`);
 }
 
-// Remove photo at index
+// Remove photo at index - HANYA SATU KALI DEKLARASI
 export function removePhotoAtIndex(index) {
   currentMomentPhotos.splice(index, 1);
   renderPhotoGrid();
 }
-
-// Render photo grid
-function renderPhotoGrid() {
-  const grid = document.getElementById('photoUploadGrid');
-  if (!grid) return;
-  
-  const existingPhotos = currentMomentPhotos.map((photo, idx) => `
-    <div class="photo-preview-item">
-      <img src="${photo}" alt="Preview">
-      <button class="remove-photo-btn" onclick="removePhotoAtIndex(${idx})">✕</button>
-    </div>
-  `).join('');
-  
-  const addButton = currentMomentPhotos.length < 5 ? `
-    <div class="photo-upload-item" onclick="document.getElementById('momentPhotoInput').click()">
-      <i class="bi bi-plus-circle-fill"></i>
-      <span>Tambah</span>
-    </div>
-  ` : '';
-  
-  grid.innerHTML = existingPhotos + addButton;
-}
-
-// Remove photo at index
-export function removePhotoAtIndex(index) {
-  currentMomentPhotos.splice(index, 1);
-  renderPhotoGrid();
-}
-
-// Show toast khusus moment
-function showMomentToast(msg, isError = false) {
-  const toast = document.getElementById('momentToast');
-  const messageEl = document.getElementById('momentToastMessage');
-  if (!toast || !messageEl) return;
-  
-  messageEl.innerText = msg;
-  toast.style.display = 'block';
-  const toastDiv = toast.querySelector('.toast');
-  if (toastDiv) {
-    toastDiv.className = `toast align-items-center border-0 ${isError ? 'text-bg-danger' : 'text-bg-success'}`;
-  }
-  setTimeout(() => {
-    toast.style.display = 'none';
-  }, 2500);
-}
-
-window.hideMomentToast = () => {
-  const toast = document.getElementById('momentToast');
-  if (toast) toast.style.display = 'none';
-};
 
 // Initialize moment page
 export function initMomentPage() {
@@ -615,7 +605,6 @@ export function exportMoments() {
   showMomentToast('Momen berhasil diexport! 📥');
 }
 
-// Export ke window
 // Export ke window - PASTIKAN SEMUA FUNGSI YANG DIPANGGIL ADA
 window.initMomentPage = initMomentPage;
 window.renderCalendar = renderCalendar;
@@ -627,7 +616,7 @@ window.removePhotoAtIndex = removePhotoAtIndex;
 window.saveMoment = saveMoment;
 window.viewMomentDetail = viewMomentDetail;
 window.editMomentFromDetail = editMomentFromDetail;
-window.deleteMomentFromDetail = deleteMomentFromDetail;  // ← Ganti dari deleteMoment
+window.deleteMomentFromDetail = deleteMomentFromDetail;
 window.likeMoment = likeMoment;
 window.addMomentComment = addMomentComment;
 window.changeMonth = changeMonth;
