@@ -611,6 +611,7 @@ export function exportMoments() {
 }
 
 // Export ke window
+// Export ke window - PASTIKAN SEMUA FUNGSI YANG DIPANGGIL ADA
 window.initMomentPage = initMomentPage;
 window.renderCalendar = renderCalendar;
 window.renderMomentsList = renderMomentsList;
@@ -621,7 +622,7 @@ window.removePhotoAtIndex = removePhotoAtIndex;
 window.saveMoment = saveMoment;
 window.viewMomentDetail = viewMomentDetail;
 window.editMomentFromDetail = editMomentFromDetail;
-window.deleteMomentFromDetail = deleteMomentFromDetail;
+window.deleteMomentFromDetail = deleteMomentFromDetail;  // ← Ganti dari deleteMoment
 window.likeMoment = likeMoment;
 window.addMomentComment = addMomentComment;
 window.changeMonth = changeMonth;
