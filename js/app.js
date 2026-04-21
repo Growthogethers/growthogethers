@@ -7,6 +7,7 @@ import { savePlan, renderBoardPlans, updatePlan, deletePlanItem, addSubPlan, tog
 import { saveFinance, saveWeddingTarget, editFinance, renderFinances } from './financial.js';
 import { saveVision, renderVisions, toggleLike, addComment, openCommentModal, renderComments, initMoodSelector, setupFilterListeners, toggleBookmark, addReaction, shareToSocial, searchByTag, deleteVision } from './vision.js';
 import { initMomentPage, renderCalendar, renderMomentsList, saveMoment, viewMomentDetail, deleteMomentFromDetail, likeMoment, addMomentComment, changeMonth, exportMoments, selectMomentDate, openMomentModal, handleMultiplePhotos, removePhotoAtIndex } from './moment.js';
+
 // Global variables
 let weddingChart = null;
 let plansChart = null;
@@ -59,7 +60,7 @@ async function loadComponents() {
   }
 }
 
-// ============ FUNGSI TAMBAHAN YANG HILANG ============
+// ============ FUNGSI TAMBAHAN ============
 
 // Fungsi untuk couple chat
 function initCoupleChat() {
@@ -334,9 +335,13 @@ function showPage(pageId) {
       targetField.style.display = typeSelect.value === "wedding" ? "block" : "none";
     }
   }
+  
+  // Refresh moment page when shown
   if (pageId === "moment" && window.initMomentPage) {
-  window.initMomentPage();
-}
+    setTimeout(() => {
+      window.initMomentPage();
+    }, 100);
+  }
 }
 
 export function setupAppSession(u) {
@@ -368,17 +373,20 @@ export function setupAppSession(u) {
 
 function renderAll() {
   if (!masterData) return;
-  if (document.getElementById('moment-page') && document.getElementById('moment-page').style.display !== 'none') {
-  if (window.renderCalendar) window.renderCalendar();
-  if (window.renderMomentsList) window.renderMomentsList();
-}
-
+  
   if (window.renderDashboard) window.renderDashboard();
   if (window.renderVisions) window.renderVisions();
   if (window.renderFinances) window.renderFinances();
   
   const plansArray = masterData.plans ? Object.entries(masterData.plans) : [];
   if (window.renderBoardPlans) window.renderBoardPlans(plansArray);
+  
+  // Refresh moment page if it's visible
+  const momentPage = document.getElementById('moment-page');
+  if (momentPage && momentPage.style.display !== 'none') {
+    if (window.renderCalendar) window.renderCalendar();
+    if (window.renderMomentsList) window.renderMomentsList();
+  }
   
   const finances = masterData.finances ? Object.entries(masterData.finances) : [];
   let weddingHistoryMap = new Map();
@@ -426,7 +434,7 @@ function checkPlanReminders() {
 
 // Firebase realtime listener
 onValue(ref(db, "data/"), (snapshot) => {
-  const data = snapshot.val() || { visions: {}, plans: {}, finances: {}, settings: {}, comments: {}, likes: {} };
+  const data = snapshot.val() || { visions: {}, plans: {}, finances: {}, settings: {}, comments: {}, likes: {}, moments: {} };
   setMasterData(data);
   
   if (!data.auth) {
@@ -477,6 +485,8 @@ window.renderBoardPlans = renderBoardPlans;
 window.togglePrivacy = togglePrivacy;
 window.showGlobalProgress = showGlobalProgress;
 window.hideGlobalProgress = hideGlobalProgress;
+
+// Moment functions exports
 window.initMomentPage = initMomentPage;
 window.renderCalendar = renderCalendar;
 window.renderMomentsList = renderMomentsList;
@@ -489,8 +499,9 @@ window.changeMonth = changeMonth;
 window.exportMoments = exportMoments;
 window.selectMomentDate = selectMomentDate;
 window.openMomentModal = openMomentModal;
-window.previewPhoto = previewPhoto;
-window.removePhotoAtIndex = removePhotoAtIndex;  // ← Ganti dari removePhoto
+window.handleMultiplePhotos = handleMultiplePhotos;
+window.removePhotoAtIndex = removePhotoAtIndex;
+
 window.backupData = null; // akan diisi di initBackupRestore
 window.restoreData = null;
 
@@ -499,7 +510,9 @@ window.confirmDelete = (path, id) => {
   const modalEl = document.getElementById("confirmDeleteModal");
   if (modalEl) new bootstrap.Modal(modalEl).show();
 };
+
 window.deleteItem = (path, id) => window.confirmDelete(path, id);
+
 window.applyWeddingReco = async () => {
   showGlobalProgress();
   const items = ["💍 Persiapan Lamaran", "🏨 Booking Venue", "💄 MUA & Busana", "📸 Dokumentasi", "🎤 MC & Entertainment"];
@@ -510,6 +523,7 @@ window.applyWeddingReco = async () => {
   showNotif("Rekomendasi wedding ditambahkan!");
   if (window.renderAll) window.renderAll();
 };
+
 window.applyTravelReco = async () => {
   showGlobalProgress();
   const items = ["✈️ Cari Tiket", "🏨 Booking Hotel", "🗺️ Itinerary", "📱 Travel Insurance", "🍴 Cari Kuliner"];
@@ -520,6 +534,7 @@ window.applyTravelReco = async () => {
   showNotif("Rekomendasi liburan ditambahkan!");
   if (window.renderAll) window.renderAll();
 };
+
 window.hideToast = () => {
   const toast = document.getElementById("customToast");
   if (toast) toast.style.display = "none";
