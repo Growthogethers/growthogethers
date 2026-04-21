@@ -279,98 +279,86 @@
   </div>
 </section>
 
-<!-- components/moment.html - Tambahkan ke dalam content.html setelah section financial-page -->
+<!-- components/moment.html - Update content -->
 <section id="moment-page" style="display:none">
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    <h3 class="fw-bold"><i class="bi bi-calendar-heart me-2 text-danger"></i>Momen Spesial Kita</h3>
-    <button class="btn btn-outline-primary" onclick="exportMoments()">
-      <i class="bi bi-download me-2"></i>Export
-    </button>
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+    <h3 class="fw-bold"><i class="bi bi-calendar-heart-fill me-2 text-danger"></i>Momen Spesial Kita</h3>
+    <div class="d-flex gap-2">
+      <button class="btn btn-outline-secondary" onclick="exportMoments()">
+        <i class="bi bi-download me-2"></i>Export
+      </button>
+      <button class="btn btn-danger" onclick="openMomentModal(null)">
+        <i class="bi bi-plus-circle me-2"></i>Tambah Momen
+      </button>
+    </div>
   </div>
 
-  <!-- Calendar View -->
-  <div class="card p-4 mb-4 border-0 shadow-sm">
+  <!-- Calendar Card -->
+  <div class="card p-3 p-md-4 mb-4 border-0 shadow-sm">
     <div class="d-flex justify-content-between align-items-center mb-3">
-      <button class="btn btn-sm btn-outline-secondary" onclick="changeMonth(-1)">
+      <button class="btn btn-sm btn-outline-secondary rounded-circle" onclick="changeMonth(-1)">
         <i class="bi bi-chevron-left"></i>
       </button>
-      <h4 class="fw-bold mb-0" id="currentMonthYear">Januari 2024</h4>
-      <button class="btn btn-sm btn-outline-secondary" onclick="changeMonth(1)">
+      <h4 class="fw-bold mb-0" id="currentMonthYear">April 2026</h4>
+      <button class="btn btn-sm btn-outline-secondary rounded-circle" onclick="changeMonth(1)">
         <i class="bi bi-chevron-right"></i>
       </button>
     </div>
     
-    <!-- Calendar Grid -->
-    <div class="calendar-grid" id="calendarGrid">
-      <!-- Day names -->
-      <div class="calendar-day-name">Min</div>
-      <div class="calendar-day-name">Sen</div>
-      <div class="calendar-day-name">Sel</div>
-      <div class="calendar-day-name">Rab</div>
-      <div class="calendar-day-name">Kam</div>
-      <div class="calendar-day-name">Jum</div>
-      <div class="calendar-day-name">Sab</div>
-      <!-- Calendar dates will be filled here -->
-    </div>
+    <div class="calendar-grid" id="calendarGrid"></div>
   </div>
 
-  <!-- Moments List -->
+  <!-- Moments Collection -->
   <div class="d-flex justify-content-between align-items-center mb-3">
-    <h5 class="fw-bold"><i class="bi bi-collection me-2"></i>Koleksi Momen</h5>
-    <button class="btn btn-sm btn-success" onclick="openMomentModal(null)">
-      <i class="bi bi-plus-circle me-1"></i>Tambah Momen
-    </button>
+    <h5 class="fw-bold"><i class="bi bi-collection me-2 text-danger"></i>Koleksi Momen</h5>
+    <span id="momentsCount" class="badge bg-secondary">0 momen</span>
   </div>
   
   <div id="momentsList" class="row g-3">
-    <!-- Moments will be displayed here -->
+    <!-- Dynamic moments -->
   </div>
 </section>
 
-<!-- Moment Modal (Add/Edit) -->
-<div class="modal fade" id="momentModal" tabindex="-1">
-  <div class="modal-dialog modal-dialog-centered modal-lg">
+<!-- Modal Tambah/Edit Momen -->
+<div class="modal fade" id="momentModal" tabindex="-1" data-bs-backdrop="static">
+  <div class="modal-dialog modal-dialog-centered modal-md">
     <div class="modal-content rounded-4">
-      <div class="modal-header border-0 bg-gradient bg-danger text-white">
-        <h5 class="fw-bold"><i class="bi bi-camera-fill me-2"></i><span id="momentModalTitle">Tambah Momen</span></h5>
+      <div class="modal-header border-0 bg-gradient bg-danger text-white py-3">
+        <h5 class="fw-bold mb-0"><i class="bi bi-camera-fill me-2"></i><span id="momentModalTitle">Tambah Momen</span></h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
-      <div class="modal-body p-4">
+      <div class="modal-body p-4" style="max-height: 70vh; overflow-y: auto;">
         <input type="hidden" id="momentEditId">
         
         <div class="mb-3">
-          <label class="form-label fw-semibold">Tanggal <span class="text-danger">*</span></label>
-          <input type="date" id="momentDate" class="form-control">
+          <label class="form-label fw-semibold small">📅 Tanggal <span class="text-danger">*</span></label>
+          <input type="date" id="momentDate" class="form-control rounded-3">
         </div>
         
         <div class="mb-3">
-          <label class="form-label fw-semibold">Judul Momen</label>
-          <input type="text" id="momentTitle" class="form-control" placeholder="Contoh: Pertama Kali Bertemu, Lamaran, dll">
+          <label class="form-label fw-semibold small">✏️ Judul Momen</label>
+          <input type="text" id="momentTitle" class="form-control rounded-3" placeholder="Misal: Pertama Kali Bertemu">
         </div>
         
         <div class="mb-3">
-          <label class="form-label fw-semibold">Cerita / Deskripsi</label>
-          <textarea id="momentStory" class="form-control" rows="3" placeholder="Ceritakan momen spesial ini..."></textarea>
+          <label class="form-label fw-semibold small">📝 Cerita / Deskripsi</label>
+          <textarea id="momentStory" class="form-control rounded-3" rows="3" placeholder="Ceritakan momen spesial ini..."></textarea>
         </div>
         
         <div class="mb-3">
-          <label class="form-label fw-semibold">Upload Foto</label>
-          <div class="photo-upload-area" id="photoUploadArea" onclick="document.getElementById('momentPhotoInput').click()">
-            <i class="bi bi-cloud-upload fs-1"></i>
-            <p class="mb-0">Klik untuk upload foto</p>
-            <small class="text-muted">Maks 5MB, format JPG/PNG</small>
+          <label class="form-label fw-semibold small">🖼️ Foto (max 5 foto)</label>
+          <div class="photo-upload-grid" id="photoUploadGrid">
+            <div class="photo-upload-item" onclick="document.getElementById('momentPhotoInput').click()">
+              <i class="bi bi-plus-circle-fill"></i>
+              <span>Tambah Foto</span>
+            </div>
           </div>
-          <input type="file" id="momentPhotoInput" accept="image/jpeg,image/png" style="display:none" onchange="previewPhoto(this)">
-          <div id="photoPreview" class="photo-preview mt-2" style="display:none">
-            <img id="previewImg" class="preview-image">
-            <button type="button" class="btn btn-sm btn-danger remove-photo" onclick="removePhoto()">
-              <i class="bi bi-trash"></i> Hapus Foto
-            </button>
-          </div>
+          <input type="file" id="momentPhotoInput" accept="image/jpeg,image/png,image/jpg" multiple style="display:none" onchange="handleMultiplePhotos(this)">
+          <small class="text-muted">Klik untuk upload, maksimal 5 foto (max 2MB per foto)</small>
         </div>
         
         <div class="mb-3">
-          <label class="form-label fw-semibeed">Suasana Hati</label>
+          <label class="form-label fw-semibold small">😊 Suasana Hati</label>
           <div class="moment-mood-selector">
             <span class="moment-mood-option" data-mood="🥰">🥰 Romantis</span>
             <span class="moment-mood-option" data-mood="🎉">🎉 Bahagia</span>
@@ -381,81 +369,96 @@
           <input type="hidden" id="momentMood" value="🥰">
         </div>
         
-        <div class="form-check mb-3">
+        <div class="form-check">
           <input type="checkbox" id="momentIsSpecial" class="form-check-input">
           <label class="form-check-label">
             ⭐ Jadikan sebagai momen spesial (highlight)
           </label>
         </div>
       </div>
-      <div class="modal-footer border-0">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-        <button type="button" class="btn btn-danger px-4" onclick="saveMoment()">
-          <i class="bi bi-save me-2"></i>Simpan Momen
+      <div class="modal-footer border-0 pt-0 pb-4">
+        <button type="button" class="btn btn-secondary rounded-3 px-4" data-bs-dismiss="modal">Batal</button>
+        <button type="button" class="btn btn-danger rounded-3 px-4" onclick="saveMoment()">
+          <i class="bi bi-save me-2"></i>Simpan
         </button>
       </div>
     </div>
   </div>
 </div>
 
-<!-- Moment Detail Modal -->
+<!-- Modal Detail Momen -->
 <div class="modal fade" id="momentDetailModal" tabindex="-1">
-  <div class="modal-dialog modal-dialog-centered modal-lg">
+  <div class="modal-dialog modal-dialog-centered modal-md">
     <div class="modal-content rounded-4">
-      <div class="modal-header border-0">
-        <h5 class="fw-bold" id="detailTitle"></h5>
+      <div class="modal-header border-0 py-3">
+        <h5 class="fw-bold mb-0" id="detailTitle">Momen Spesial</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body p-0">
-        <div id="detailCarousel" class="carousel slide" data-bs-ride="carousel">
+        <!-- Carousel Foto -->
+        <div id="detailCarousel" class="carousel slide" data-bs-ride="false">
           <div class="carousel-inner" id="detailCarouselInner"></div>
           <button class="carousel-control-prev" type="button" data-bs-target="#detailCarousel" data-bs-slide="prev">
-            <span class="carousel-control-prev-icon bg-dark rounded-circle p-3"></span>
+            <span class="carousel-control-prev-icon bg-dark rounded-circle p-2"></span>
           </button>
           <button class="carousel-control-next" type="button" data-bs-target="#detailCarousel" data-bs-slide="next">
-            <span class="carousel-control-next-icon bg-dark rounded-circle p-3"></span>
+            <span class="carousel-control-next-icon bg-dark rounded-circle p-2"></span>
           </button>
         </div>
+        
         <div class="p-4">
-          <div class="d-flex justify-content-between align-items-center mb-3">
-            <div>
-              <span class="badge bg-danger me-2" id="detailMood"></span>
-              <span class="badge bg-warning text-dark" id="detailDate"></span>
+          <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+            <div class="d-flex gap-2">
+              <span class="badge bg-danger px-3 py-2" id="detailMood">🥰 Romantis</span>
+              <span class="badge bg-secondary px-3 py-2" id="detailDate"></span>
             </div>
-            <div>
-              <button class="btn btn-sm btn-outline-primary me-1" onclick="editMomentFromDetail()">
-                <i class="bi bi-pencil"></i> Edit
+            <div class="dropdown">
+              <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="dropdown">
+                <i class="bi bi-three-dots-vertical"></i>
               </button>
-              <button class="btn btn-sm btn-outline-danger" onclick="deleteMomentFromDetail()">
-                <i class="bi bi-trash"></i> Hapus
-              </button>
-            </div>
-          </div>
-          <p id="detailStory" class="mb-0"></p>
-          <hr>
-          <div class="d-flex justify-content-between align-items-center">
-            <div>
-              <i class="bi bi-heart text-danger"></i>
-              <span id="detailLikes">0</span> suka
-              <i class="bi bi-chat ms-3 text-primary"></i>
-              <span id="detailComments">0</span> komentar
-            </div>
-            <div>
-              <span class="text-muted small" id="detailAuthor"></span>
+              <ul class="dropdown-menu dropdown-menu-end">
+                <li><a class="dropdown-item" onclick="editMomentFromDetail()"><i class="bi bi-pencil me-2"></i>Edit</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item text-danger" onclick="deleteMomentFromDetail()"><i class="bi bi-trash me-2"></i>Hapus</a></li>
+              </ul>
             </div>
           </div>
           
-          <!-- Comment Section -->
-          <div class="mt-3 pt-3 border-top">
-            <h6 class="fw-bold"><i class="bi bi-chat-dots me-2"></i>Komentar</h6>
-            <div id="momentCommentList" class="moment-comment-list mb-2" style="max-height:200px; overflow-y:auto"></div>
-            <div class="input-group">
-              <input type="text" id="momentCommentInput" class="form-control form-control-sm" placeholder="Tulis komentar...">
-              <button class="btn btn-sm btn-primary" onclick="addMomentComment()">Kirim</button>
+          <p id="detailStory" class="mb-3" style="line-height: 1.6;"></p>
+          
+          <hr>
+          
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="d-flex gap-3">
+              <span class="like-btn" onclick="likeMoment(currentDetailMomentId)" style="cursor: pointer;">
+                <i class="bi bi-heart text-danger"></i> <span id="detailLikes">0</span>
+              </span>
+              <span><i class="bi bi-chat text-primary"></i> <span id="detailComments">0</span></span>
+            </div>
+            <small class="text-muted" id="detailAuthor"></small>
+          </div>
+          
+          <!-- Komentar -->
+          <div class="mt-3">
+            <h6 class="fw-bold mb-2"><i class="bi bi-chat-dots me-2"></i>Komentar</h6>
+            <div id="momentCommentList" class="moment-comment-list mb-2" style="max-height: 200px; overflow-y: auto;"></div>
+            <div class="input-group mt-2">
+              <input type="text" id="momentCommentInput" class="form-control form-control-sm rounded-3" placeholder="Tulis komentar...">
+              <button class="btn btn-sm btn-danger rounded-3 ms-2" onclick="addMomentComment()">Kirim</button>
             </div>
           </div>
         </div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast untuk notifikasi -->
+<div class="toast-notif" id="momentToast" style="display:none; position: fixed; bottom: 80px; right: 16px; z-index: 9999;">
+  <div class="toast align-items-center border-0 text-bg-dark">
+    <div class="d-flex">
+      <div class="toast-body" id="momentToastMessage"></div>
+      <button type="button" class="btn-close btn-close-white me-2" onclick="hideMomentToast()"></button>
     </div>
   </div>
 </div>
