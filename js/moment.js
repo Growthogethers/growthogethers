@@ -1,12 +1,61 @@
-// js/moment.js - Updated tanpa like, comment, export
+// js/moment.js - Full working version
 import { db, ref, push, update, remove, get } from './firebase-config.js';
-import { showNotif, masterData, escapeHtml } from './utils.js';
+import { masterData, escapeHtml } from './utils.js';
 
 // State
-let currentDate = new Date();
 let currentViewDate = new Date();
 let currentDetailMomentId = null;
 let currentMomentPhotos = [];
+let pendingDeleteCallback = null;
+
+// Show toast custom
+function showMomentToast(msg, isError = false) {
+  const toast = document.getElementById('momentToast');
+  const messageEl = document.getElementById('momentToastMessage');
+  if (!toast || !messageEl) return;
+  
+  messageEl.innerText = msg;
+  toast.style.display = 'block';
+  const toastDiv = toast.querySelector('.toast');
+  if (toastDiv) {
+    toastDiv.className = `toast align-items-center border-0 ${isError ? 'text-bg-danger' : 'text-bg-success'}`;
+  }
+  
+  setTimeout(() => {
+    const t = document.getElementById('momentToast');
+    if (t) t.style.display = 'none';
+  }, 3000);
+}
+
+window.hideMomentToast = function() {
+  const toast = document.getElementById('momentToast');
+  if (toast) toast.style.display = 'none';
+};
+
+// Custom confirm dialog (bukan browser default)
+function showCustomConfirm(message, onConfirm) {
+  const modal = document.getElementById('customConfirmModal');
+  const messageEl = document.getElementById('customConfirmMessage');
+  const okBtn = document.getElementById('customConfirmOkBtn');
+  
+  if (!modal || !messageEl || !okBtn) return;
+  
+  messageEl.innerText = message;
+  modal.style.display = 'flex';
+  
+  const handleConfirm = () => {
+    modal.style.display = 'none';
+    okBtn.removeEventListener('click', handleConfirm);
+    onConfirm();
+  };
+  
+  okBtn.addEventListener('click', handleConfirm, { once: true });
+}
+
+window.hideCustomConfirm = function() {
+  const modal = document.getElementById('customConfirmModal');
+  if (modal) modal.style.display = 'none';
+};
 
 // Kompresi foto
 async function compressImage(file, maxSizeMB = 2) {
@@ -21,7 +70,6 @@ async function compressImage(file, maxSizeMB = 2) {
         let width = img.width;
         let height = img.height;
         
-        // Max dimension 1024px untuk mencegah overflow
         const maxDimension = 1024;
         if (width > maxDimension || height > maxDimension) {
           if (width > height) {
@@ -38,11 +86,9 @@ async function compressImage(file, maxSizeMB = 2) {
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0, width, height);
         
-        // Kompresi kualitas
         let quality = 0.8;
         let result = canvas.toDataURL('image/jpeg', quality);
         
-        // Jika masih terlalu besar, turunkan kualitas
         while (result.length > maxSizeMB * 1024 * 1024 && quality > 0.3) {
           quality -= 0.1;
           result = canvas.toDataURL('image/jpeg', quality);
@@ -56,32 +102,6 @@ async function compressImage(file, maxSizeMB = 2) {
   });
 }
 
-// Show toast custom (bukan default browser)
-function showMomentToast(msg, isError = false) {
-  const toast = document.getElementById('momentToast');
-  const messageEl = document.getElementById('momentToastMessage');
-  if (!toast || !messageEl) return;
-  
-  messageEl.innerText = msg;
-  toast.style.display = 'block';
-  const toastDiv = toast.querySelector('.toast');
-  if (toastDiv) {
-    toastDiv.className = `toast align-items-center border-0 ${isError ? 'text-bg-danger' : 'text-bg-success'}`;
-  }
-  
-  // Auto hide after 3 seconds
-  setTimeout(() => {
-    hideMomentToast();
-  }, 3000);
-}
-
-// Hide toast function
-window.hideMomentToast = function() {
-  const toast = document.getElementById('momentToast');
-  if (toast) toast.style.display = 'none';
-};
-
-// Render photo grid
 function renderPhotoGrid() {
   const grid = document.getElementById('photoUploadGrid');
   if (!grid) return;
@@ -103,7 +123,6 @@ function renderPhotoGrid() {
   grid.innerHTML = existingPhotos + addButton;
 }
 
-// Handle multiple photos
 export async function handleMultiplePhotos(input) {
   const files = Array.from(input.files);
   const remainingSlots = 5 - currentMomentPhotos.length;
@@ -117,13 +136,11 @@ export async function handleMultiplePhotos(input) {
   showMomentToast('Memproses foto...', false);
   
   for (const file of files) {
-    // Check file size
     if (file.size > 5 * 1024 * 1024) {
       showMomentToast(`Foto ${file.name} terlalu besar (max 5MB)`, true);
       continue;
     }
     
-    // Check file type
     if (!file.type.startsWith('image/')) {
       showMomentToast(`File ${file.name} bukan gambar`, true);
       continue;
@@ -139,21 +156,20 @@ export async function handleMultiplePhotos(input) {
   
   input.value = '';
   renderPhotoGrid();
-  showMomentToast(`${files.length} foto berhasil ditambahkan`);
+  if (files.length > 0) {
+    showMomentToast(`${files.length} foto berhasil ditambahkan`);
+  }
 }
 
-// Remove photo at index
 export function removePhotoAtIndex(index) {
   currentMomentPhotos.splice(index, 1);
   renderPhotoGrid();
 }
 
-// Initialize moment page
 export function initMomentPage() {
   renderCalendar();
   renderMomentsList();
   
-  // Setup mood selector
   document.querySelectorAll('.moment-mood-option').forEach(opt => {
     opt.addEventListener('click', function() {
       document.querySelectorAll('.moment-mood-option').forEach(o => o.classList.remove('active'));
@@ -162,12 +178,10 @@ export function initMomentPage() {
     });
   });
   
-  // Set default active mood
   const defaultMood = document.querySelector('.moment-mood-option[data-mood="🥰"]');
   if (defaultMood) defaultMood.classList.add('active');
 }
 
-// Render Calendar
 export function renderCalendar() {
   const year = currentViewDate.getFullYear();
   const month = currentViewDate.getMonth();
@@ -239,7 +253,6 @@ export function renderCalendar() {
   grid.innerHTML = calendarHtml;
 }
 
-// Render Moments List
 export function renderMomentsList() {
   const data = masterData;
   if (!data) return;
@@ -316,28 +329,62 @@ function getMoodText(mood) {
   return moods[mood] || 'Spesial';
 }
 
-// Select date from calendar - langsung buka modal tambah momen
 export function selectMomentDate(dateKey) {
-  // Cek apakah sudah ada momen di tanggal tersebut
   const data = masterData;
   const moments = data?.moments || {};
-  const existingMoment = Object.entries(moments).find(([id, m]) => m.date === dateKey);
+  const existingEntry = Object.entries(moments).find(([id, m]) => m.date === dateKey);
   
-  if (existingMoment) {
-    // Jika sudah ada momen, tampilkan detail
-    viewMomentDetail(existingMoment[0]);
+  if (existingEntry) {
+    viewMomentDetail(existingEntry[0]);
   } else {
-    // Jika belum ada, buka modal tambah momen
+    // Reset form untuk tambah momen baru
+    document.getElementById('momentEditId').value = '';
     document.getElementById('momentDate').value = dateKey;
-    openMomentModal(null);
+    document.getElementById('momentTitle').value = '';
+    document.getElementById('momentStory').value = '';
+    document.getElementById('momentIsSpecial').checked = false;
+    document.getElementById('momentMood').value = '🥰';
+    currentMomentPhotos = [];
+    
+    document.querySelectorAll('.moment-mood-option').forEach(opt => {
+      if (opt.getAttribute('data-mood') === '🥰') {
+        opt.classList.add('active');
+      } else {
+        opt.classList.remove('active');
+      }
+    });
+    
+    renderPhotoGrid();
+    
+    const modal = new bootstrap.Modal(document.getElementById('momentModal'));
+    modal.show();
   }
 }
 
-// Open modal for add/edit
 export function openMomentModal(momentId) {
-  currentMomentPhotos = [];
-  
-  if (momentId) {
+  if (!momentId) {
+    // Reset untuk tambah baru
+    document.getElementById('momentEditId').value = '';
+    if (!document.getElementById('momentDate').value) {
+      document.getElementById('momentDate').value = new Date().toISOString().split('T')[0];
+    }
+    document.getElementById('momentTitle').value = '';
+    document.getElementById('momentStory').value = '';
+    document.getElementById('momentIsSpecial').checked = false;
+    document.getElementById('momentMood').value = '🥰';
+    currentMomentPhotos = [];
+    
+    document.querySelectorAll('.moment-mood-option').forEach(opt => {
+      if (opt.getAttribute('data-mood') === '🥰') {
+        opt.classList.add('active');
+      } else {
+        opt.classList.remove('active');
+      }
+    });
+    
+    renderPhotoGrid();
+  } else {
+    // Edit existing moment
     const data = masterData;
     const moment = data?.moments?.[momentId];
     if (moment) {
@@ -358,37 +405,15 @@ export function openMomentModal(momentId) {
         }
       });
       
-      if (moment.photos && moment.photos.length > 0) {
-        currentMomentPhotos = [...moment.photos];
-      }
+      currentMomentPhotos = moment.photos ? [...moment.photos] : [];
+      renderPhotoGrid();
     }
-  } else {
-    document.getElementById('momentModalTitle').innerText = 'Tambah Momen';
-    document.getElementById('momentEditId').value = '';
-    if (!document.getElementById('momentDate').value) {
-      document.getElementById('momentDate').value = new Date().toISOString().split('T')[0];
-    }
-    document.getElementById('momentTitle').value = '';
-    document.getElementById('momentStory').value = '';
-    document.getElementById('momentIsSpecial').checked = false;
-    document.getElementById('momentMood').value = '🥰';
-    
-    document.querySelectorAll('.moment-mood-option').forEach(opt => {
-      if (opt.getAttribute('data-mood') === '🥰') {
-        opt.classList.add('active');
-      } else {
-        opt.classList.remove('active');
-      }
-    });
   }
-  
-  renderPhotoGrid();
   
   const modal = new bootstrap.Modal(document.getElementById('momentModal'));
   modal.show();
 }
 
-// Save moment
 export async function saveMoment() {
   const editId = document.getElementById('momentEditId').value;
   const date = document.getElementById('momentDate').value;
@@ -422,12 +447,15 @@ export async function saveMoment() {
   try {
     if (!editId) {
       momentData.createdAt = Date.now();
+      momentData.likes = {};
+      momentData.comments = {};
       await push(ref(db, 'data/moments'), momentData);
       showMomentToast('Momen berhasil ditambahkan! 🎉');
     } else {
-      // Preserve existing data
       const existing = masterData?.moments?.[editId];
       momentData.createdAt = existing?.createdAt || Date.now();
+      momentData.likes = existing?.likes || {};
+      momentData.comments = existing?.comments || {};
       await update(ref(db, `data/moments/${editId}`), momentData);
       showMomentToast('Momen berhasil diupdate! ✨');
     }
@@ -443,7 +471,6 @@ export async function saveMoment() {
   }
 }
 
-// View moment detail
 export async function viewMomentDetail(momentId) {
   currentDetailMomentId = momentId;
   const data = masterData;
@@ -451,23 +478,17 @@ export async function viewMomentDetail(momentId) {
   
   if (!moment) return;
   
-  const titleEl = document.getElementById('detailTitle');
-  const moodEl = document.getElementById('detailMood');
-  const dateEl = document.getElementById('detailDate');
-  const storyEl = document.getElementById('detailStory');
-  const authorEl = document.getElementById('detailAuthor');
-  const dateCreatedEl = document.getElementById('detailDateCreated');
+  document.getElementById('detailTitle').innerHTML = escapeHtml(moment.title || 'Momen Spesial');
+  document.getElementById('detailMood').innerHTML = `${moment.mood || '🥰'} ${getMoodText(moment.mood)}`;
+  document.getElementById('detailDate').innerHTML = formatDate(moment.date);
+  document.getElementById('detailStory').innerHTML = escapeHtml(moment.story || 'Tidak ada cerita yang ditulis.').replace(/\n/g, '<br>');
+  document.getElementById('detailAuthor').innerHTML = moment.author || '';
   
-  if (titleEl) titleEl.innerHTML = escapeHtml(moment.title || 'Momen Spesial');
-  if (moodEl) moodEl.innerHTML = `${moment.mood || '🥰'} ${getMoodText(moment.mood)}`;
-  if (dateEl) dateEl.innerHTML = formatDate(moment.date);
-  if (storyEl) storyEl.innerHTML = escapeHtml(moment.story || 'Tidak ada cerita yang ditulis.').replace(/\n/g, '<br>');
-  if (authorEl) authorEl.innerHTML = `${moment.author}`;
+  const dateCreatedEl = document.getElementById('detailDateCreated');
   if (dateCreatedEl && moment.createdAt) {
     dateCreatedEl.innerHTML = `Dibuat: ${new Date(moment.createdAt).toLocaleDateString('id-ID')}`;
   }
   
-  // Render carousel
   const carouselInner = document.getElementById('detailCarouselInner');
   const photos = moment.photos || [];
   
@@ -488,7 +509,6 @@ export async function viewMomentDetail(momentId) {
       </div>
     `).join('');
     
-    // Initialize carousel
     const carouselElement = document.getElementById('detailCarousel');
     if (carouselElement && typeof bootstrap !== 'undefined') {
       new bootstrap.Carousel(carouselElement, {
@@ -501,28 +521,31 @@ export async function viewMomentDetail(momentId) {
   modal.show();
 }
 
-// Edit from detail
 export function editMomentFromDetail() {
   const modal = bootstrap.Modal.getInstance(document.getElementById('momentDetailModal'));
   if (modal) modal.hide();
   openMomentModal(currentDetailMomentId);
 }
 
-// Delete from detail
 export async function deleteMomentFromDetail() {
-  if (confirm('Yakin ingin menghapus momen ini?')) {
-    await remove(ref(db, `data/moments/${currentDetailMomentId}`));
-    showMomentToast('Momen berhasil dihapus');
-    
-    const modal = bootstrap.Modal.getInstance(document.getElementById('momentDetailModal'));
-    if (modal) modal.hide();
-    
-    renderCalendar();
-    renderMomentsList();
-  }
+  // Gunakan custom confirm, bukan browser default
+  showCustomConfirm('Yakin ingin menghapus momen ini?', async () => {
+    try {
+      await remove(ref(db, `data/moments/${currentDetailMomentId}`));
+      showMomentToast('Momen berhasil dihapus');
+      
+      const modal = bootstrap.Modal.getInstance(document.getElementById('momentDetailModal'));
+      if (modal) modal.hide();
+      
+      renderCalendar();
+      renderMomentsList();
+    } catch (err) {
+      console.error(err);
+      showMomentToast('Gagal menghapus momen', true);
+    }
+  });
 }
 
-// Change month
 export function changeMonth(delta) {
   currentViewDate = new Date(currentViewDate.getFullYear(), currentViewDate.getMonth() + delta, 1);
   renderCalendar();
