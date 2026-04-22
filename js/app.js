@@ -492,7 +492,6 @@ window.renderMomentsList = renderMomentsList;
 window.saveMoment = saveMoment;
 window.viewMomentDetail = viewMomentDetail;
 window.deleteMomentFromDetail = deleteMomentFromDetail;
-window.likeMoment = likeMoment;
 window.addMomentComment = addMomentComment;
 window.changeMonth = changeMonth;
 window.selectMomentDate = selectMomentDate;
