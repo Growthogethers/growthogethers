@@ -4,7 +4,7 @@ import { masterData, setMasterData, showNotif, togglePrivacy, setCurrentUser } f
 import { handleLogin, updateCloudPassword, resetPassword, confirmLogout, handleLogout } from './auth.js';
 import { renderDashboard, updateCharts } from './dashboard.js';
 import { savePlan, renderBoardPlans, updatePlan, deletePlanItem, addSubPlan, togglePlan, openEditPlan, deletePlanItemById, deleteSubPlan } from './planning.js';
-import { saveFinance, saveWeddingTarget, editFinance, renderFinances } from './financial.js';
+import { saveFinance, editFinance, renderFinances } from './financial.js';
 import { saveVision, renderVisions, toggleLike, addComment, openCommentModal, renderComments, initMoodSelector, setupFilterListeners, toggleBookmark, addReaction, shareToSocial, searchByTag, deleteVision } from './vision.js';
 import { initMomentPage, renderCalendar, renderMomentsList, saveMoment, viewMomentDetail, deleteMomentFromDetail, changeMonth, selectMomentDate, openMomentModal, handleMultiplePhotos, removePhotoAtIndex } from './moment.js';
 // Global variables
@@ -454,7 +454,6 @@ window.handleLogin = handleLogin;
 window.saveVision = saveVision;
 window.savePlan = savePlan;
 window.saveFinance = saveFinance;
-window.saveWeddingTarget = saveWeddingTarget;
 window.updateCloudPassword = updateCloudPassword;
 window.resetPassword = resetPassword;
 window.confirmLogout = confirmLogout;
