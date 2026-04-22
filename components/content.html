@@ -1,28 +1,78 @@
-<!-- DASHBOARD -->
+<!-- DASHBOARD PAGE - Updated -->
 <section id="dashboard-page">
   <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
     <h3 class="fw-bold m-0">👋 Halo, <span id="userGreet" class="text-primary"></span></h3>
-    <button id="privacyToggleDash" class="privacy-toggle-btn"><i class="bi bi-eye-slash"></i> Privasi angka</button>
+    <button id="privacyToggleDash" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+      <i class="bi bi-eye-slash me-1"></i> Privasi
+    </button>
   </div>
   
+  <!-- Ringkasan Tabungan -->
   <div class="row g-4 mb-5">
     <div class="col-md-7">
-      <div class="card p-4 h-100 border-0">
-        <div class="d-flex justify-content-between align-items-start">
-          <div><h6 class="text-muted">💍 Dana Pernikahan</h6><h2 class="fw-bold text-primary" id="totalWedding">Rp0</h2><small>Target: <span id="targetWeddingAmount" class="fw-semibold">Rp0</span></small></div>
-          <div class="text-end"><span class="badge bg-primary-subtle text-primary px-3 py-2" id="weddingPercentText">0%</span></div>
-        </div>
-        <div class="progress-custom-dash mt-3"><div id="weddingProgressFill" class="progress-bar-dash" style="width:0%"></div></div>
-        <div class="row mt-4 g-2">
-          <div class="col-6"><div class="bg-light rounded-3 p-2 text-center"><small class="text-muted">Fachmi</small><h5 class="mb-0" id="savingsA">0</h5></div></div>
-          <div class="col-6"><div class="bg-light rounded-3 p-2 text-center"><small class="text-muted">Azizah</small><h5 class="mb-0" id="savingsB">0</h5></div></div>
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body p-4">
+          <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+            <div>
+              <h6 class="text-muted mb-1"><i class="bi bi-heart-fill text-danger me-1"></i> Dana Pernikahan</h6>
+              <h2 class="fw-bold text-primary mb-0" id="totalWedding">Rp0</h2>
+              <small class="text-muted">Target: <span id="targetWeddingAmount" class="fw-semibold">Rp0</span></small>
+            </div>
+            <div>
+              <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-2 rounded-pill" id="weddingPercentText">0%</span>
+            </div>
+          </div>
+          <div class="progress mb-4" style="height: 10px; border-radius: 10px;">
+            <div id="weddingProgressFill" class="progress-bar bg-primary" style="width: 0%; border-radius: 10px;"></div>
+          </div>
+          <div class="row g-3">
+            <div class="col-6">
+              <div class="bg-light rounded-3 p-3 text-center">
+                <i class="bi bi-person-circle text-primary"></i>
+                <small class="text-muted d-block">Fachmi</small>
+                <h5 class="mb-0 fw-bold" id="savingsA">Rp0</h5>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="bg-light rounded-3 p-3 text-center">
+                <i class="bi bi-person-circle text-danger"></i>
+                <small class="text-muted d-block">Azizah</small>
+                <h5 class="mb-0 fw-bold" id="savingsB">Rp0</h5>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
     <div class="col-md-5">
       <div class="row g-3 h-100">
-        <div class="col-6"><div class="card p-3 text-center h-100"><i class="bi bi-arrow-up-circle-fill text-success fs-2"></i><h6 class="mt-2">Pemasukan</h6><h4 id="totalIncome" class="text-success">Rp0</h4></div></div>
-        <div class="col-6"><div class="card p-3 text-center h-100"><i class="bi bi-arrow-down-circle-fill text-warning fs-2"></i><h6 class="mt-2">Pengeluaran</h6><h4 id="totalExpense" class="text-warning">Rp0</h4></div></div>
+        <div class="col-12">
+          <div class="card border-0 shadow-sm h-100">
+            <div class="card-body p-4 text-center">
+              <i class="bi bi-trophy-fill text-warning fs-1"></i>
+              <h3 class="fw-bold mt-2 mb-0" id="totalShared">0</h3>
+              <p class="text-muted mb-0">Total Wawasan & Mimpi</p>
+            </div>
+          </div>
+        </div>
+        <div class="col-12">
+          <div class="row g-3">
+            <div class="col-6">
+              <div class="card border-0 shadow-sm text-center p-3 h-100">
+                <i class="bi bi-list-check fs-2 text-secondary"></i>
+                <h3 class="fw-bold mt-1 mb-0" id="totalPlans">0</h3>
+                <small class="text-muted">Total Rencana</small>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="card border-0 shadow-sm text-center p-3 h-100">
+                <i class="bi bi-check2-circle fs-2 text-success"></i>
+                <h3 class="fw-bold mt-1 mb-0" id="totalDone">0%</h3>
+                <small class="text-muted">Rencana Selesai</small>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -30,34 +80,35 @@
   <!-- CHART SECTION -->
   <div class="row g-4 mb-4">
     <div class="col-md-6">
-      <div class="card p-3 h-100">
-        <h6 class="fw-semibold mb-3"><i class="bi bi-graph-up me-2"></i>Progres tabungan (bulanan)</h6>
-        <div style="position: relative; height: 300px; width: 100%;">
-          <canvas id="weddingTrendChart"></canvas>
+      <div class="card border-0 shadow-sm">
+        <div class="card-body p-4">
+          <h6 class="fw-semibold mb-3"><i class="bi bi-graph-up me-2 text-primary"></i>Progres Tabungan (Bulanan)</h6>
+          <div style="position: relative; height: 280px; width: 100%;">
+            <canvas id="weddingTrendChart"></canvas>
+          </div>
         </div>
       </div>
     </div>
     <div class="col-md-6">
-      <div class="card p-3 h-100">
-        <h6 class="fw-semibold mb-3"><i class="bi bi-graph-up me-2"></i>Rencana terselesaikan (progress)</h6>
-        <div style="position: relative; height: 300px; width: 100%;">
-          <canvas id="plansProgressChart"></canvas>
+      <div class="card border-0 shadow-sm">
+        <div class="card-body p-4">
+          <h6 class="fw-semibold mb-3"><i class="bi bi-graph-up me-2 text-success"></i>Progress Rencana</h6>
+          <div style="position: relative; height: 280px; width: 100%;">
+            <canvas id="plansProgressChart"></canvas>
+          </div>
         </div>
       </div>
     </div>
   </div>
   
-  <div class="row g-3">
-    <div class="col-3"><div class="card p-3 text-center"><i class="bi bi-chat-dots fs-4 text-primary"></i><h3 id="totalShared" class="mt-2">0</h3><small>Wawasan</small></div></div>
-    <div class="col-3"><div class="card p-3 text-center"><i class="bi bi-list-check fs-4 text-secondary"></i><h3 id="totalPlans" class="mt-2">0</h3><small>Rencana</small></div></div>
-    <div class="col-3"><div class="card p-3 text-center"><i class="bi bi-check2-circle fs-4 text-success"></i><h3 id="totalDone" class="mt-2">0%</h3><small>Selesai</small></div></div>
-    <div class="col-3"><div class="card p-3 text-center"><i class="bi bi-calendar-event fs-4 text-info"></i><h3 id="targetPlanCount" class="mt-2">0</h3><small>Target waktu</small></div></div>
-  </div>
+  <!-- Target Bulanan Info -->
+  <div class="row g-3 mb-4" id="monthlyTargetInfo"></div>
   
-  <div class="row g-3 mb-4">
+  <!-- Statistik Cards -->
+  <div class="row g-3">
     <div class="col-md-3 col-6">
-      <div class="card p-3 text-center card-hover">
-        <div class="progress-ring" id="progressRing">
+      <div class="card border-0 shadow-sm text-center p-3">
+        <div class="progress-ring mx-auto" id="progressRing">
           <svg width="60" height="60">
             <circle cx="30" cy="30" r="26" fill="none" stroke="#e2e8f0" stroke-width="3"/>
             <circle cx="30" cy="30" r="26" fill="none" stroke="#10b981" stroke-width="3" 
@@ -69,21 +120,21 @@
       </div>
     </div>
     <div class="col-md-3 col-6">
-      <div class="card p-3 text-center card-hover">
+      <div class="card border-0 shadow-sm text-center p-3 h-100">
         <i class="bi bi-calendar-check fs-2 text-info"></i>
         <h3 id="completedThisMonth" class="mt-2 mb-0">0</h3>
         <small class="text-muted">Selesai bulan ini</small>
       </div>
     </div>
     <div class="col-md-3 col-6">
-      <div class="card p-3 text-center card-hover">
+      <div class="card border-0 shadow-sm text-center p-3 h-100">
         <i class="bi bi-clock-history fs-2 text-warning"></i>
         <h3 id="overdueCount" class="mt-2 mb-0">0</h3>
         <small class="text-muted">Rencana terlambat</small>
       </div>
     </div>
     <div class="col-md-3 col-6">
-      <div class="card p-3 text-center card-hover">
+      <div class="card border-0 shadow-sm text-center p-3 h-100">
         <i class="bi bi-stars fs-2 text-primary"></i>
         <h3 id="achievementRate" class="mt-2 mb-0">0%</h3>
         <small class="text-muted">Tingkat pencapaian</small>
