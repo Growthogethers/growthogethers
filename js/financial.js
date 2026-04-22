@@ -2,11 +2,30 @@
 import { db, ref, push, update, remove, get, set } from './firebase-config.js';
 import { showNotif, masterData, formatNumberRp, escapeHtml } from './utils.js';
 
-// Load saving targets from Firebase
+// Load saving targets from Firebase - PERBAIKAN
 function loadSavingTargets() {
-  const settings = masterData?.settings || {};
+  console.log("=== loadSavingTargets called ===");
+  console.log("masterData:", masterData);
+  
+  // Pastikan masterData ada dan memiliki settings
+  if (!masterData) {
+    console.log("masterData masih kosong, coba ambil dari window");
+    if (window.masterData) {
+      console.log("Menggunakan window.masterData");
+      const settings = window.masterData.settings || {};
+      const savingTargets = settings.savingTargets || {};
+      console.log("Saving targets from window.masterData:", savingTargets);
+      renderSavingTargets(savingTargets);
+    } else {
+      console.log("Belum ada data, akan dirender kosong");
+      renderSavingTargets({});
+    }
+    return;
+  }
+  
+  const settings = masterData.settings || {};
   const savingTargets = settings.savingTargets || {};
-  console.log("Loading saving targets:", savingTargets);
+  console.log("Saving targets loaded:", savingTargets);
   renderSavingTargets(savingTargets);
 }
 
@@ -53,9 +72,13 @@ function formatMonthYearDisplay(dateStr) {
 // Render target periode dengan progress bar
 function renderSavingTargets(savingTargets) {
   const container = document.getElementById('savingTargetsList');
-  if (!container) return;
+  if (!container) {
+    console.log("Container savingTargetsList not found");
+    return;
+  }
   
   const targets = Object.entries(savingTargets).sort((a, b) => a[0].localeCompare(b[0]));
+  console.log("Rendering targets:", targets.length);
   
   if (targets.length === 0) {
     container.innerHTML = '<div class="text-center py-4 text-muted"><i class="bi bi-inbox fs-1 d-block mb-2"></i><p class="mb-0">✨ Belum ada target tabungan</p><small>Buat target di bawah</small></div>';
@@ -252,11 +275,8 @@ export async function addSavingTarget() {
     document.getElementById('targetEndDate').value = '';
     document.getElementById('targetAmount').value = '';
     
-    // Refresh masterData
-    const freshSnapshot = await get(ref(db, 'data/'));
-    if (window.setMasterData) {
-      window.setMasterData(freshSnapshot.val() || { visions: {}, plans: {}, finances: {}, settings: {}, comments: {}, likes: {}, moments: {} });
-    }
+    // Refresh data dari Firebase
+    await refreshDataFromFirebase();
     
     // Refresh semua tampilan
     if (window.renderAll) window.renderAll();
@@ -264,6 +284,29 @@ export async function addSavingTarget() {
   } catch (error) {
     console.error("Error saving to Firebase:", error);
     showNotif('Gagal menyimpan target: ' + error.message, true);
+  }
+}
+
+// Refresh data dari Firebase
+async function refreshDataFromFirebase() {
+  console.log("Refreshing data from Firebase...");
+  try {
+    const snapshot = await get(ref(db, 'data/'));
+    const freshData = snapshot.val() || { visions: {}, plans: {}, finances: {}, settings: {}, comments: {}, likes: {}, moments: {} };
+    
+    // Update masterData
+    if (window.setMasterData) {
+      window.setMasterData(freshData);
+    }
+    
+    // Update window.masterData langsung
+    window.masterData = freshData;
+    
+    console.log("Data refreshed, settings:", freshData.settings);
+    return freshData;
+  } catch (error) {
+    console.error("Error refreshing data:", error);
+    return null;
   }
 }
 
@@ -292,11 +335,8 @@ export async function editSavingTarget(id) {
       await update(ref(db, 'data/settings'), { savingTargets: currentTargets });
       showNotif('✅ Target berhasil diupdate!');
       
-      // Refresh masterData
-      const freshSnapshot = await get(ref(db, 'data/'));
-      if (window.setMasterData) {
-        window.setMasterData(freshSnapshot.val() || {});
-      }
+      // Refresh data dari Firebase
+      await refreshDataFromFirebase();
       
       if (window.renderAll) window.renderAll();
       loadSavingTargets();
@@ -324,11 +364,8 @@ export async function deleteSavingTarget(id) {
       await update(ref(db, 'data/settings'), { savingTargets: currentTargets });
       showNotif('🗑️ Target berhasil dihapus');
       
-      // Refresh masterData
-      const freshSnapshot = await get(ref(db, 'data/'));
-      if (window.setMasterData) {
-        window.setMasterData(freshSnapshot.val() || {});
-      }
+      // Refresh data dari Firebase
+      await refreshDataFromFirebase();
       
       if (window.renderAll) window.renderAll();
       loadSavingTargets();
@@ -341,7 +378,8 @@ export async function deleteSavingTarget(id) {
 
 // Update ringkasan tabungan
 function updateSavingsSummary() {
-  const finances = masterData?.finances || {};
+  const data = window.masterData || masterData;
+  const finances = data?.finances || {};
   let totalWedding = 0;
   let fachmiTotal = 0;
   let azizahTotal = 0;
@@ -382,9 +420,9 @@ export async function saveFinance() {
   if (isNaN(amt) || amt <= 0) { showNotif("Nominal harus lebih dari 0", true); return; }
   if (!date) { showNotif("Tanggal harus dipilih", true); return; }
   
-  // Get saving targets
-  const settings = masterData?.settings || {};
-  const savingTargets = settings.savingTargets || {};
+  // Get saving targets dari data terbaru
+  const data = window.masterData || masterData;
+  const savingTargets = data?.settings?.savingTargets || {};
   
   // Cari target periode yang mencakup tanggal ini
   let activeTarget = null;
@@ -408,6 +446,8 @@ export async function saveFinance() {
     await push(ref(db, "data/finances"), { user: currentUser, date, desc, amt, type: 'wedding' });
     
     if (activeTarget) {
+      // Hitung ulang total setelah save
+      await refreshDataFromFirebase();
       const totalSaved = calculateTotalInPeriod(activeTarget.startDate, activeTarget.endDate);
       const remaining = activeTarget.amount - totalSaved;
       
@@ -434,6 +474,7 @@ export async function saveFinance() {
   if (fAmtEl) fAmtEl.value = "";
   
   // Refresh semua tampilan
+  await refreshDataFromFirebase();
   if (window.renderAll) window.renderAll();
   loadSavingTargets();
   updateSavingsSummary();
@@ -554,8 +595,9 @@ window.deleteSavingTarget = deleteSavingTarget;
 window.saveWeddingTarget = saveWeddingTarget;
 
 // Inisialisasi halaman keuangan
-export function initFinancialPage() {
+export async function initFinancialPage() {
   console.log("=== initFinancialPage called ===");
+  await refreshDataFromFirebase();
   loadSavingTargets();
   setDefaultDate();
   updateSavingsSummary();
