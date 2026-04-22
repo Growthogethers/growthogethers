@@ -82,7 +82,7 @@
     <div class="col-md-6">
       <div class="card border-0 shadow-sm">
         <div class="card-body p-4">
-          <h6 class="fw-semibold mb-3"><i class="bi bi-graph-up me-2 text-primary"></i>Progres Tabungan (Bulanan)</h6>
+          <h6 class="fw-semibold mb-3"><i class="bi bi-graph-up me-2 text-primary"></i>Progres Tabungan</h6>
           <div style="position: relative; height: 280px; width: 100%;">
             <canvas id="weddingTrendChart"></canvas>
           </div>
@@ -101,8 +101,8 @@
     </div>
   </div>
   
-  <!-- Target Bulanan Info -->
-  <div class="row g-3 mb-4" id="monthlyTargetInfo"></div>
+  <!-- Target Info -->
+  <div class="row g-3 mb-4" id="targetInfo"></div>
   
   <!-- Statistik Cards -->
   <div class="row g-3">
@@ -274,7 +274,7 @@
   </div>
 </section>
 
-<!-- FINANCIAL PAGE - Fokus Tabungan Pernikahan -->
+<!-- FINANCIAL PAGE - Fokus Tabungan Pernikahan dengan Target Periode -->
 <section id="financial-page" style="display:none">
   <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
     <h3 class="fw-bold mb-0"><i class="bi bi-piggy-bank-fill text-primary me-2"></i>Tabungan Pernikahan</h3>
@@ -320,34 +320,39 @@
     </div>
   </div>
   
-  <!-- Target Bulanan Card -->
+  <!-- Target Tabungan Card -->
   <div class="card border-0 shadow-sm mb-4">
     <div class="card-header bg-white border-0 pt-4 px-4">
-      <h6 class="fw-bold mb-0"><i class="bi bi-target me-2 text-primary"></i>🎯 Target Tabungan per Bulan</h6>
-      <p class="small text-muted mt-1 mb-0">Buat target tabungan per bulan, misalnya target Rp10.000.000 untuk bulan Agustus 2026</p>
+      <h6 class="fw-bold mb-0"><i class="bi bi-target me-2 text-primary"></i>🎯 Target Tabungan</h6>
+      <p class="small text-muted mt-1 mb-0">Tentukan periode menabung dan target nominal yang ingin dicapai</p>
     </div>
     <div class="card-body p-4">
-      <div id="monthlyTargetsList" class="mb-4">
+      <div id="savingTargetsList" class="mb-4">
         <div class="text-center py-4 text-muted">
           <i class="bi bi-inbox fs-1 d-block mb-2"></i>
-          <p class="mb-0">✨ Belum ada target bulanan</p>
-          <small>Tambah target di bawah</small>
+          <p class="mb-0">✨ Belum ada target tabungan</p>
+          <small>Buat target di bawah</small>
         </div>
       </div>
       
       <div class="row g-3 align-items-end">
-        <div class="col-md-5">
-          <label class="form-label small fw-semibold mb-1">📅 Pilih Bulan Target</label>
-          <input type="month" id="targetMonth" class="form-control">
-          <small class="text-muted">Contoh: 2026-08 untuk Agustus 2026</small>
+        <div class="col-md-3">
+          <label class="form-label small fw-semibold mb-1">📅 Tanggal Mulai</label>
+          <input type="date" id="targetStartDate" class="form-control">
+          <small class="text-muted">Kapan mulai nabung?</small>
         </div>
-        <div class="col-md-5">
-          <label class="form-label small fw-semibold mb-1">🎯 Target Nominal (Rp)</label>
+        <div class="col-md-3">
+          <label class="form-label small fw-semibold mb-1">🎯 Target Selesai</label>
+          <input type="date" id="targetEndDate" class="form-control">
+          <small class="text-muted">Target tercapai pada?</small>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label small fw-semibold mb-1">💰 Target Nominal (Rp)</label>
           <input type="number" id="targetAmount" class="form-control" placeholder="Contoh: 10000000">
         </div>
         <div class="col-md-2">
-          <button onclick="addMonthlyTarget()" class="btn btn-primary w-100">
-            <i class="bi bi-plus-circle me-1"></i> Tambah
+          <button onclick="addSavingTarget()" class="btn btn-primary w-100">
+            <i class="bi bi-plus-circle me-1"></i> Buat Target
           </button>
         </div>
       </div>
@@ -358,6 +363,7 @@
   <div class="card border-0 shadow-sm mb-4">
     <div class="card-header bg-white border-0 pt-4 px-4">
       <h6 class="fw-bold mb-0"><i class="bi bi-pencil-square me-2 text-success"></i>📝 Catat Tabungan Baru</h6>
+      <p class="small text-muted mt-1 mb-0">Tabungan akan otomatis masuk ke target periode yang sesuai dengan tanggal</p>
     </div>
     <div class="card-body p-4">
       <div class="row g-3">
@@ -379,9 +385,6 @@
           </button>
         </div>
       </div>
-      <div class="mt-3 small text-muted">
-        <i class="bi bi-info-circle"></i> Tabungan akan otomatis masuk ke target bulan sesuai tanggal yang dipilih
-      </div>
     </div>
   </div>
   
@@ -396,7 +399,6 @@
             <option value="all">Semua Riwayat</option>
             <option value="thisMonth">Bulan Ini</option>
             <option value="lastMonth">Bulan Lalu</option>
-            <option value="target">Target Tercapai</option>
           </select>
         </div>
       </div>
@@ -577,7 +579,7 @@
   <div style="background:var(--card-bg); border-radius:20px; max-width:320px; width:90%; padding:24px; text-align:center;">
     <i class="bi bi-exclamation-triangle-fill text-danger fs-1 mb-3"></i>
     <h5 id="customConfirmTitle" class="mb-2">Konfirmasi Hapus</h5>
-    <p id="customConfirmMessage" class="text-muted mb-4">Yakin ingin menghapus momen ini?</p>
+    <p id="customConfirmMessage" class="text-muted mb-4">Yakin ingin menghapus item ini?</p>
     <div class="d-flex gap-3">
       <button onclick="hideCustomConfirm()" class="btn btn-secondary flex-grow-1">Batal</button>
       <button id="customConfirmOkBtn" class="btn btn-danger flex-grow-1">Hapus</button>
