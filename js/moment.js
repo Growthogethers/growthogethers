@@ -1,4 +1,4 @@
-// js/moment.js - Update dengan kompresi foto dan multiple upload
+// js/moment.js - Updated tanpa like, comment, export
 import { db, ref, push, update, remove, get } from './firebase-config.js';
 import { showNotif, masterData, escapeHtml } from './utils.js';
 
@@ -7,7 +7,6 @@ let currentDate = new Date();
 let currentViewDate = new Date();
 let currentDetailMomentId = null;
 let currentMomentPhotos = [];
-let tempPhotoFiles = [];
 
 // Kompresi foto
 async function compressImage(file, maxSizeMB = 2) {
@@ -22,7 +21,7 @@ async function compressImage(file, maxSizeMB = 2) {
         let width = img.width;
         let height = img.height;
         
-        // Max dimension 1024px
+        // Max dimension 1024px untuk mencegah overflow
         const maxDimension = 1024;
         if (width > maxDimension || height > maxDimension) {
           if (width > height) {
@@ -57,7 +56,7 @@ async function compressImage(file, maxSizeMB = 2) {
   });
 }
 
-// Show toast khusus moment
+// Show toast custom (bukan default browser)
 function showMomentToast(msg, isError = false) {
   const toast = document.getElementById('momentToast');
   const messageEl = document.getElementById('momentToastMessage');
@@ -69,10 +68,18 @@ function showMomentToast(msg, isError = false) {
   if (toastDiv) {
     toastDiv.className = `toast align-items-center border-0 ${isError ? 'text-bg-danger' : 'text-bg-success'}`;
   }
+  
+  // Auto hide after 3 seconds
   setTimeout(() => {
-    toast.style.display = 'none';
-  }, 2500);
+    hideMomentToast();
+  }, 3000);
 }
+
+// Hide toast function
+window.hideMomentToast = function() {
+  const toast = document.getElementById('momentToast');
+  if (toast) toast.style.display = 'none';
+};
 
 // Render photo grid
 function renderPhotoGrid() {
@@ -81,7 +88,7 @@ function renderPhotoGrid() {
   
   const existingPhotos = currentMomentPhotos.map((photo, idx) => `
     <div class="photo-preview-item">
-      <img src="${photo}" alt="Preview">
+      <img src="${photo}" alt="Preview" style="width:100%; height:100%; object-fit:cover;">
       <button class="remove-photo-btn" onclick="window.removePhotoAtIndex(${idx})">✕</button>
     </div>
   `).join('');
@@ -135,7 +142,7 @@ export async function handleMultiplePhotos(input) {
   showMomentToast(`${files.length} foto berhasil ditambahkan`);
 }
 
-// Remove photo at index - HANYA SATU KALI DEKLARASI
+// Remove photo at index
 export function removePhotoAtIndex(index) {
   currentMomentPhotos.splice(index, 1);
   renderPhotoGrid();
@@ -166,7 +173,8 @@ export function renderCalendar() {
   const month = currentViewDate.getMonth();
   
   const monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
-  document.getElementById('currentMonthYear').innerHTML = `${monthNames[month]} ${year}`;
+  const monthYearEl = document.getElementById('currentMonthYear');
+  if (monthYearEl) monthYearEl.innerHTML = `${monthNames[month]} ${year}`;
   
   const firstDay = new Date(year, month, 1);
   const startDay = firstDay.getDay();
@@ -251,10 +259,7 @@ export function renderMomentsList() {
         <div class="empty-moments">
           <i class="bi bi-calendar-heart"></i>
           <h6>Belum ada momen</h6>
-          <p class="text-muted small">Mulai abadikan momen spesial kalian</p>
-          <button class="btn btn-danger btn-sm mt-2" onclick="window.openMomentModal(null)">
-            <i class="bi bi-plus-circle me-1"></i>Tambah Momen
-          </button>
+          <p class="text-muted small">Klik tanggal pada kalender untuk menambah momen</p>
         </div>
       </div>
     `;
@@ -269,11 +274,11 @@ export function renderMomentsList() {
     
     return `
       <div class="col-6 col-md-4 col-lg-3">
-        <div class="card moment-card ${specialClass} h-100">
+        <div class="card moment-card ${specialClass} h-100" onclick="window.viewMomentDetail('${id}')" style="cursor: pointer;">
           ${firstPhoto ? `
-            <img src="${firstPhoto}" class="moment-image" onclick="window.viewMomentDetail('${id}')" loading="lazy">
+            <img src="${firstPhoto}" class="moment-image" loading="lazy">
           ` : `
-            <div class="moment-image-placeholder" onclick="window.viewMomentDetail('${id}')">
+            <div class="moment-image-placeholder">
               <i class="bi bi-camera-fill"></i>
             </div>
           `}
@@ -311,10 +316,21 @@ function getMoodText(mood) {
   return moods[mood] || 'Spesial';
 }
 
-// Select date from calendar
+// Select date from calendar - langsung buka modal tambah momen
 export function selectMomentDate(dateKey) {
-  document.getElementById('momentDate').value = dateKey;
-  openMomentModal(null);
+  // Cek apakah sudah ada momen di tanggal tersebut
+  const data = masterData;
+  const moments = data?.moments || {};
+  const existingMoment = Object.entries(moments).find(([id, m]) => m.date === dateKey);
+  
+  if (existingMoment) {
+    // Jika sudah ada momen, tampilkan detail
+    viewMomentDetail(existingMoment[0]);
+  } else {
+    // Jika belum ada, buka modal tambah momen
+    document.getElementById('momentDate').value = dateKey;
+    openMomentModal(null);
+  }
 }
 
 // Open modal for add/edit
@@ -406,15 +422,11 @@ export async function saveMoment() {
   try {
     if (!editId) {
       momentData.createdAt = Date.now();
-      momentData.likes = {};
-      momentData.comments = {};
       await push(ref(db, 'data/moments'), momentData);
       showMomentToast('Momen berhasil ditambahkan! 🎉');
     } else {
-      // Preserve existing likes and comments
+      // Preserve existing data
       const existing = masterData?.moments?.[editId];
-      momentData.likes = existing?.likes || {};
-      momentData.comments = existing?.comments || {};
       momentData.createdAt = existing?.createdAt || Date.now();
       await update(ref(db, `data/moments/${editId}`), momentData);
       showMomentToast('Momen berhasil diupdate! ✨');
@@ -439,17 +451,27 @@ export async function viewMomentDetail(momentId) {
   
   if (!moment) return;
   
-  document.getElementById('detailTitle').innerHTML = escapeHtml(moment.title || 'Momen Spesial');
-  document.getElementById('detailMood').innerHTML = `${moment.mood || '🥰'} ${getMoodText(moment.mood)}`;
-  document.getElementById('detailDate').innerHTML = formatDate(moment.date);
-  document.getElementById('detailStory').innerHTML = escapeHtml(moment.story || 'Tidak ada cerita yang ditulis.').replace(/\n/g, '<br>');
-  document.getElementById('detailLikes').innerHTML = Object.keys(moment.likes || {}).length;
-  document.getElementById('detailComments').innerHTML = Object.keys(moment.comments || {}).length;
-  document.getElementById('detailAuthor').innerHTML = `${moment.author}`;
+  const titleEl = document.getElementById('detailTitle');
+  const moodEl = document.getElementById('detailMood');
+  const dateEl = document.getElementById('detailDate');
+  const storyEl = document.getElementById('detailStory');
+  const authorEl = document.getElementById('detailAuthor');
+  const dateCreatedEl = document.getElementById('detailDateCreated');
+  
+  if (titleEl) titleEl.innerHTML = escapeHtml(moment.title || 'Momen Spesial');
+  if (moodEl) moodEl.innerHTML = `${moment.mood || '🥰'} ${getMoodText(moment.mood)}`;
+  if (dateEl) dateEl.innerHTML = formatDate(moment.date);
+  if (storyEl) storyEl.innerHTML = escapeHtml(moment.story || 'Tidak ada cerita yang ditulis.').replace(/\n/g, '<br>');
+  if (authorEl) authorEl.innerHTML = `${moment.author}`;
+  if (dateCreatedEl && moment.createdAt) {
+    dateCreatedEl.innerHTML = `Dibuat: ${new Date(moment.createdAt).toLocaleDateString('id-ID')}`;
+  }
   
   // Render carousel
   const carouselInner = document.getElementById('detailCarouselInner');
   const photos = moment.photos || [];
+  
+  if (!carouselInner) return;
   
   if (photos.length === 0) {
     carouselInner.innerHTML = `
@@ -462,91 +484,21 @@ export async function viewMomentDetail(momentId) {
   } else {
     carouselInner.innerHTML = photos.map((photo, idx) => `
       <div class="carousel-item ${idx === 0 ? 'active' : ''}">
-        <img src="${photo}" alt="Moment photo">
+        <img src="${photo}" alt="Moment photo" style="width:100%; max-height: 300px; object-fit: contain;">
       </div>
     `).join('');
+    
+    // Initialize carousel
+    const carouselElement = document.getElementById('detailCarousel');
+    if (carouselElement && typeof bootstrap !== 'undefined') {
+      new bootstrap.Carousel(carouselElement, {
+        interval: false
+      });
+    }
   }
-  
-  renderMomentComments(momentId);
   
   const modal = new bootstrap.Modal(document.getElementById('momentDetailModal'));
   modal.show();
-}
-
-// Render comments
-function renderMomentComments(momentId) {
-  const data = masterData;
-  const moment = data?.moments?.[momentId];
-  const comments = moment?.comments || {};
-  const commentList = document.getElementById('momentCommentList');
-  
-  if (Object.keys(comments).length === 0) {
-    commentList.innerHTML = '<p class="text-muted text-center py-2 small">Belum ada komentar</p>';
-    return;
-  }
-  
-  commentList.innerHTML = Object.entries(comments)
-    .sort((a, b) => b[1].time - a[1].time)
-    .map(([id, c]) => `
-      <div class="moment-comment-item">
-        <div class="d-flex justify-content-between align-items-center">
-          <span class="comment-author">${escapeHtml(c.user)}</span>
-          <span class="comment-time">${new Date(c.time).toLocaleString('id-ID', {hour:'2-digit', minute:'2-digit', day:'numeric', month:'short'})}</span>
-        </div>
-        <p class="comment-text">${escapeHtml(c.text)}</p>
-      </div>
-    `).join('');
-}
-
-// Add comment
-export async function addMomentComment() {
-  const text = document.getElementById('momentCommentInput').value.trim();
-  if (!text) {
-    showMomentToast('Komentar tidak boleh kosong', true);
-    return;
-  }
-  
-  const currentUser = sessionStorage.getItem('progrowth_user');
-  const commentData = {
-    user: currentUser,
-    text: text,
-    time: Date.now()
-  };
-  
-  await push(ref(db, `data/moments/${currentDetailMomentId}/comments`), commentData);
-  
-  document.getElementById('momentCommentInput').value = '';
-  renderMomentComments(currentDetailMomentId);
-  
-  const data = masterData;
-  const moment = data?.moments?.[currentDetailMomentId];
-  if (moment) {
-    document.getElementById('detailComments').innerHTML = Object.keys(moment.comments || {}).length + 1;
-  }
-  
-  showMomentToast('Komentar terkirim! 💬');
-}
-
-// Like moment
-export async function likeMoment(momentId) {
-  const currentUser = sessionStorage.getItem('progrowth_user');
-  const data = masterData;
-  const moment = data?.moments?.[momentId];
-  const likes = moment?.likes || {};
-  
-  if (likes[currentUser]) {
-    delete likes[currentUser];
-    showMomentToast('Batal menyukai');
-  } else {
-    likes[currentUser] = true;
-    showMomentToast('❤️ Menyukai momen ini');
-  }
-  
-  await update(ref(db, `data/moments/${momentId}/likes`), likes);
-  
-  if (currentDetailMomentId === momentId) {
-    document.getElementById('detailLikes').innerHTML = Object.keys(likes).length;
-  }
 }
 
 // Edit from detail
@@ -576,36 +528,7 @@ export function changeMonth(delta) {
   renderCalendar();
 }
 
-// Export moments
-export function exportMoments() {
-  const data = masterData;
-  const moments = data?.moments || {};
-  const exportData = Object.entries(moments).map(([id, m]) => ({
-    id: id,
-    date: m.date,
-    title: m.title,
-    story: m.story,
-    mood: m.mood,
-    isSpecial: m.isSpecial,
-    author: m.author,
-    createdAt: new Date(m.createdAt).toLocaleString(),
-    updatedAt: new Date(m.updatedAt).toLocaleString(),
-    likesCount: Object.keys(m.likes || {}).length,
-    commentsCount: Object.keys(m.comments || {}).length,
-    photosCount: (m.photos || []).length
-  }));
-  
-  const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `growthogether_moments_${new Date().toISOString().split('T')[0]}.json`;
-  a.click();
-  URL.revokeObjectURL(url);
-  showMomentToast('Momen berhasil diexport! 📥');
-}
-
-// Export ke window - PASTIKAN SEMUA FUNGSI YANG DIPANGGIL ADA
+// Export ke window
 window.initMomentPage = initMomentPage;
 window.renderCalendar = renderCalendar;
 window.renderMomentsList = renderMomentsList;
@@ -617,7 +540,4 @@ window.saveMoment = saveMoment;
 window.viewMomentDetail = viewMomentDetail;
 window.editMomentFromDetail = editMomentFromDetail;
 window.deleteMomentFromDetail = deleteMomentFromDetail;
-window.likeMoment = likeMoment;
-window.addMomentComment = addMomentComment;
 window.changeMonth = changeMonth;
-window.exportMoments = exportMoments;
