@@ -1,15 +1,20 @@
 // js/financial.js - Fokus Tabungan Pernikahan dengan Target Periode
-import { db, ref, push, update, remove, get, set } from './firebase-config.js';
-import { showNotif, masterData, formatNumberRp, escapeHtml } from './utils.js';
+import { db, ref, push, update, remove, get, set, onValue } from './firebase-config.js';
+import { showNotif, masterData, formatNumberRp, escapeHtml, setMasterData } from './utils.js';
 
-// Load saving targets from Firebase - PERBAIKAN
+// State untuk listener
+let financialDataListener = null;
+
+// Load saving targets from Firebase
 function loadSavingTargets() {
   console.log("=== loadSavingTargets called ===");
-  console.log("masterData:", masterData);
   
-  // Pastikan masterData ada dan memiliki settings
-  if (!masterData) {
-    console.log("masterData masih kosong, coba ambil dari window");
+  // Ambil data dari window.masterData
+  const data = window.masterData || masterData;
+  console.log("Data in loadSavingTargets:", data);
+  
+  if (!data) {
+    console.log("Data masih kosong, coba ambil dari window");
     if (window.masterData) {
       console.log("Menggunakan window.masterData");
       const settings = window.masterData.settings || {};
@@ -23,15 +28,18 @@ function loadSavingTargets() {
     return;
   }
   
-  const settings = masterData.settings || {};
+  const settings = data.settings || {};
   const savingTargets = settings.savingTargets || {};
   console.log("Saving targets loaded:", savingTargets);
+  console.log("Number of targets:", Object.keys(savingTargets).length);
+  
   renderSavingTargets(savingTargets);
 }
 
 // Hitung total tabungan dalam periode tertentu
 function calculateTotalInPeriod(startDate, endDate) {
-  const finances = masterData?.finances || {};
+  const data = window.masterData || masterData;
+  const finances = data?.finances || {};
   let total = 0;
   
   Object.values(finances).forEach(f => {
@@ -292,17 +300,26 @@ async function refreshDataFromFirebase() {
   console.log("Refreshing data from Firebase...");
   try {
     const snapshot = await get(ref(db, 'data/'));
-    const freshData = snapshot.val() || { visions: {}, plans: {}, finances: {}, settings: {}, comments: {}, likes: {}, moments: {} };
+    const freshData = snapshot.val() || { 
+      visions: {}, 
+      plans: {}, 
+      finances: {}, 
+      settings: {}, 
+      comments: {}, 
+      likes: {}, 
+      moments: {} 
+    };
     
-    // Update masterData
+    console.log("Fresh data from Firebase:", freshData);
+    console.log("Settings:", freshData.settings);
+    console.log("Saving targets:", freshData.settings?.savingTargets);
+    
+    // Update masterData di kedua tempat
     if (window.setMasterData) {
       window.setMasterData(freshData);
     }
-    
-    // Update window.masterData langsung
     window.masterData = freshData;
     
-    console.log("Data refreshed, settings:", freshData.settings);
     return freshData;
   } catch (error) {
     console.error("Error refreshing data:", error);
@@ -558,7 +575,7 @@ export function renderFinances() {
           <td class="text-nowrap">
             <i class="bi bi-pencil-square text-primary me-2" onclick="window.editFinance('${id}')" style="cursor: pointer; font-size: 1.1rem;"></i>
             <i class="bi bi-trash3 text-danger" onclick="window.deleteItem('finances','${id}')" style="cursor: pointer; font-size: 1.1rem;"></i>
-          </td>
+           </td>
         </tr>
       `}).join("");
   }
@@ -586,6 +603,92 @@ export async function saveWeddingTarget() {
   if (window.renderAll) window.renderAll();
 }
 
+// Start realtime data listener
+export function startFinancialDataListener() {
+  if (financialDataListener) return;
+  
+  console.log("Starting financial data listener...");
+  const dataRef = ref(db, 'data/');
+  financialDataListener = onValue(dataRef, (snapshot) => {
+    const data = snapshot.val() || { 
+      visions: {}, 
+      plans: {}, 
+      finances: {}, 
+      settings: {}, 
+      comments: {}, 
+      likes: {}, 
+      moments: {} 
+    };
+    
+    if (window.setMasterData) {
+      window.setMasterData(data);
+    }
+    window.masterData = data;
+    
+    // Hanya refresh jika halaman financial sedang aktif
+    const financialPage = document.getElementById('financial-page');
+    if (financialPage && financialPage.style.display !== 'none') {
+      console.log("Data changed, refreshing financial page...");
+      loadSavingTargets();
+      updateSavingsSummary();
+      if (window.renderFinances) window.renderFinances();
+    }
+  });
+}
+
+// Inisialisasi halaman keuangan
+export async function initFinancialPage() {
+  console.log("=== initFinancialPage called ===");
+  
+  // Pastikan kita punya data terbaru dari Firebase
+  const snapshot = await get(ref(db, 'data/'));
+  const freshData = snapshot.val() || { 
+    visions: {}, 
+    plans: {}, 
+    finances: {}, 
+    settings: {}, 
+    comments: {}, 
+    likes: {}, 
+    moments: {} 
+  };
+  
+  // Update masterData
+  if (window.setMasterData) {
+    window.setMasterData(freshData);
+  }
+  window.masterData = freshData;
+  
+  console.log("Fresh data settings:", freshData.settings);
+  console.log("Saving targets:", freshData.settings?.savingTargets);
+  
+  // Load saving targets
+  loadSavingTargets();
+  
+  // Set default date
+  setDefaultDate();
+  
+  // Update summary
+  updateSavingsSummary();
+  
+  // Render finances table
+  if (window.renderFinances) {
+    window.renderFinances();
+  }
+}
+
+// Override fungsi showPage untuk memanggil initFinancialPage
+const originalShowPage = window.showPage;
+if (originalShowPage) {
+  window.showPage = function(pageId) {
+    originalShowPage(pageId);
+    if (pageId === 'financial') {
+      setTimeout(() => {
+        initFinancialPage();
+      }, 100);
+    }
+  };
+}
+
 // Export ke window
 window.renderFinances = renderFinances;
 window.editFinance = editFinance;
@@ -593,17 +696,26 @@ window.addSavingTarget = addSavingTarget;
 window.editSavingTarget = editSavingTarget;
 window.deleteSavingTarget = deleteSavingTarget;
 window.saveWeddingTarget = saveWeddingTarget;
+window.initFinancialPage = initFinancialPage;
+window.loadSavingTargets = loadSavingTargets;
 
-// Inisialisasi halaman keuangan
-export async function initFinancialPage() {
-  console.log("=== initFinancialPage called ===");
-  await refreshDataFromFirebase();
-  loadSavingTargets();
-  setDefaultDate();
-  updateSavingsSummary();
+// Start listener saat file dimuat
+if (typeof window !== 'undefined') {
+  startFinancialDataListener();
 }
 
-// Inisialisasi
-if (typeof window !== 'undefined') {
-  window.initFinancialPage = initFinancialPage;
+// Inisialisasi saat DOM ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => {
+    // Cek apakah halaman financial aktif saat load
+    const financialPage = document.getElementById('financial-page');
+    if (financialPage && financialPage.style.display !== 'none') {
+      initFinancialPage();
+    }
+  });
+} else {
+  const financialPage = document.getElementById('financial-page');
+  if (financialPage && financialPage.style.display !== 'none') {
+    initFinancialPage();
+  }
 }
