@@ -455,15 +455,15 @@ export function renderFinances() {
         
         return `
         <tr>
-          <td><span class="badge ${f.user === "FACHMI" ? "badge-fachmi" : "badge-azizah"}">${escapeHtml(f.user)}</span>${inTarget ? ' <i class="bi bi-check-circle-fill text-success" title="Termasuk dalam target periode"></i>' : ''}</td>
+          <td><span class="badge ${f.user === "FACHMI" ? "badge-fachmi" : "badge-azizah"}">${escapeHtml(f.user)}</span>${inTarget ? ' <i class="bi bi-check-circle-fill text-success" title="Termasuk dalam target periode"></i>' : ''}</span></td>
           <td class="text-nowrap">${formatDateDisplay(f.date)}</td>
-          <td>${escapeHtml(f.desc)}</td>
+          <td class="text-wrap">${escapeHtml(f.desc)}</td>
           <td class="fw-semibold text-success text-nowrap">${formatNumberRp(f.amt)}</td>
           <td class="text-nowrap">
             <i class="bi bi-pencil-square text-primary me-2" onclick="window.editFinance('${id}')" style="cursor: pointer; font-size: 1.1rem;"></i>
             <i class="bi bi-trash3 text-danger" onclick="window.deleteItem('finances','${id}')" style="cursor: pointer; font-size: 1.1rem;"></i>
           </td>
-        </tr>
+        </table>
       `}).join("");
   }
   
@@ -488,13 +488,6 @@ export async function saveWeddingTarget() {
   await update(ref(db, "data/settings"), { weddingTarget: val });
   showNotif("✅ Target total pernikahan diperbarui!");
   if (window.renderAll) window.renderAll();
-}
-
-// Load saving targets (wrapper)
-function loadSavingTargets() {
-  const settings = masterData?.settings || {};
-  const savingTargets = settings.savingTargets || {};
-  renderSavingTargets(savingTargets);
 }
 
 // Export ke window
