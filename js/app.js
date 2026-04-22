@@ -4,9 +4,10 @@ import { masterData, setMasterData, showNotif, togglePrivacy, setCurrentUser } f
 import { handleLogin, updateCloudPassword, resetPassword, confirmLogout, handleLogout } from './auth.js';
 import { renderDashboard, updateCharts } from './dashboard.js';
 import { savePlan, renderBoardPlans, updatePlan, deletePlanItem, addSubPlan, togglePlan, openEditPlan, deletePlanItemById, deleteSubPlan } from './planning.js';
-import { saveFinance, editFinance, renderFinances } from './financial.js';
+import { saveFinance, editFinance, renderFinances, initFinancialPage, addSavingTarget, editSavingTarget, deleteSavingTarget, loadSavingTargets } from './financial.js';
 import { saveVision, renderVisions, toggleLike, addComment, openCommentModal, renderComments, initMoodSelector, setupFilterListeners, toggleBookmark, addReaction, shareToSocial, searchByTag, deleteVision } from './vision.js';
 import { initMomentPage, renderCalendar, renderMomentsList, saveMoment, viewMomentDetail, deleteMomentFromDetail, changeMonth, selectMomentDate, openMomentModal, handleMultiplePhotos, removePhotoAtIndex } from './moment.js';
+
 // Global variables
 let weddingChart = null;
 let plansChart = null;
@@ -333,6 +334,12 @@ function showPage(pageId) {
     if (typeSelect && targetField) {
       targetField.style.display = typeSelect.value === "wedding" ? "block" : "none";
     }
+    // Panggil initFinancialPage saat halaman financial ditampilkan
+    setTimeout(() => {
+      if (window.initFinancialPage) {
+        window.initFinancialPage();
+      }
+    }, 100);
   }
   
   // Refresh moment page when shown
@@ -376,6 +383,11 @@ function renderAll() {
   if (window.renderDashboard) window.renderDashboard();
   if (window.renderVisions) window.renderVisions();
   if (window.renderFinances) window.renderFinances();
+  
+  // Refresh financial targets saat renderAll dipanggil
+  if (window.loadSavingTargets) {
+    window.loadSavingTargets();
+  }
   
   const plansArray = masterData.plans ? Object.entries(masterData.plans) : [];
   if (window.renderBoardPlans) window.renderBoardPlans(plansArray);
@@ -483,6 +495,13 @@ window.renderBoardPlans = renderBoardPlans;
 window.togglePrivacy = togglePrivacy;
 window.showGlobalProgress = showGlobalProgress;
 window.hideGlobalProgress = hideGlobalProgress;
+
+// Financial functions exports
+window.initFinancialPage = initFinancialPage;
+window.addSavingTarget = addSavingTarget;
+window.editSavingTarget = editSavingTarget;
+window.deleteSavingTarget = deleteSavingTarget;
+window.loadSavingTargets = loadSavingTargets;
 
 // Moment functions exports
 window.initMomentPage = initMomentPage;
