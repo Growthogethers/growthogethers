@@ -224,42 +224,95 @@
 </section>
 
 <!-- FINANCIAL PAGE -->
+<!-- FINANCIAL PAGE - Fokus Tabungan Nikah -->
 <section id="financial-page" style="display:none">
   <div class="d-flex justify-content-between flex-wrap mb-3">
-    <h3 class="fw-bold">💰 Keuangan bersama</h3>
+    <h3 class="fw-bold">💰 Tabungan Nikah</h3>
     <button id="privacyToggleFinance" class="privacy-toggle-btn"><i class="bi bi-eye-slash"></i> Privasi</button>
   </div>
-  <div class="card p-4 mb-4">
-    <div class="row g-3">
-      <div class="col-md-2"><input type="date" id="fDate" class="form-control"></div>
-      <div class="col-md-3"><input type="text" id="fDesc" class="form-control" placeholder="Keterangan"></div>
-      <div class="col-md-2"><input type="number" id="fAmt" class="form-control" placeholder="Nominal"></div>
-      <div class="col-md-3"><select id="fType" class="form-select"><option value="in">📈 Pemasukan</option><option value="wedding">💍 Tabungan Nikah</option><option value="out">📉 Pengeluaran</option></select></div>
-      <div class="col-md-2"><button id="btnSaveFinance" onclick="saveFinance()" class="btn btn-success w-100">Catat</button></div>
+  
+  <!-- Target Bulanan Card -->
+  <div class="card p-4 mb-4 border-0 shadow-sm">
+    <h6 class="fw-bold mb-3"><i class="bi bi-target me-2"></i>Target Menabung Bulanan</h6>
+    <div id="monthlyTargetsList" class="mb-3">
+      <div class="text-muted text-center py-3">Belum ada target bulanan</div>
     </div>
-    <div id="targetWeddingField" style="display:none; margin-top: 16px;">
-      <div class="bg-light p-3 rounded-3 mt-2">
-        <div class="row align-items-center">
-          <div class="col-8"><label class="small fw-bold">🎯 Target tabungan pernikahan (total)</label><input type="number" id="weddingTargetInput" class="form-control mt-1" placeholder="contoh: 75000000"></div>
-          <div class="col-4"><button onclick="saveWeddingTarget()" class="btn btn-outline-primary mt-4 w-100">Set Target</button></div>
-        </div>
+    <div class="row g-3 align-items-end">
+      <div class="col-md-3">
+        <label class="form-label small fw-semibold">Bulan</label>
+        <input type="month" id="targetMonth" class="form-control">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label small fw-semibold">Target Tabungan (Rp)</label>
+        <input type="number" id="targetAmount" class="form-control" placeholder="contoh: 10000000">
+      </div>
+      <div class="col-md-3">
+        <button onclick="addMonthlyTarget()" class="btn btn-primary w-100">
+          <i class="bi bi-plus-circle me-2"></i>Tambah Target
+        </button>
+      </div>
+      <div class="col-md-3">
+        <button onclick="showTargetSummary()" class="btn btn-outline-info w-100">
+          <i class="bi bi-graph-up me-2"></i>Ringkasan Target
+        </button>
       </div>
     </div>
   </div>
+  
+  <!-- Catat Tabungan -->
+  <div class="card p-4 mb-4">
+    <h6 class="fw-bold mb-3"><i class="bi bi-piggy-bank me-2"></i>Catat Tabungan</h6>
+    <div class="row g-3">
+      <div class="col-md-3">
+        <input type="date" id="fDate" class="form-control">
+      </div>
+      <div class="col-md-4">
+        <input type="text" id="fDesc" class="form-control" placeholder="Keterangan (contoh: Gaji, Bonus, dll)">
+      </div>
+      <div class="col-md-3">
+        <input type="number" id="fAmt" class="form-control" placeholder="Nominal">
+      </div>
+      <div class="col-md-2">
+        <button id="btnSaveFinance" onclick="saveFinance()" class="btn btn-success w-100">
+          <i class="bi bi-save me-1"></i>Catat
+        </button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Target Total Pernikahan -->
+  <div class="card p-4 mb-4">
+    <div class="row align-items-center">
+      <div class="col-md-8">
+        <label class="fw-semibold small">🎯 Target Total Pernikahan</label>
+        <input type="number" id="weddingTargetInput" class="form-control mt-1" placeholder="contoh: 75000000">
+        <small class="text-muted">Target keseluruhan biaya pernikahan</small>
+      </div>
+      <div class="col-md-4">
+        <button onclick="saveWeddingTarget()" class="btn btn-outline-primary w-100 mt-4">
+          <i class="bi bi-check-circle me-2"></i>Set Target
+        </button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Filter & Riwayat Tabungan -->
   <div class="filter-bar d-flex gap-2 align-items-center bg-white p-2 rounded-3 mb-3">
     <i class="bi bi-funnel-fill"></i>
+    <span class="fw-semibold small">Filter:</span>
     <select id="financeFilter" class="form-select form-select-sm w-auto">
-      <option value="all">Semua transaksi</option>
-      <option value="in">Pemasukan</option>
-      <option value="out">Pengeluaran</option>
-      <option value="wedding">Tabungan Nikah</option>
+      <option value="all">Semua Riwayat</option>
+      <option value="thisMonth">Bulan Ini</option>
+      <option value="lastMonth">Bulan Lalu</option>
+      <option value="target">Target Tercapai</option>
     </select>
     <span class="text-muted small" id="filterInfo"></span>
   </div>
+  
   <div class="card overflow-auto">
     <table class="table table-sm align-middle">
       <thead class="table-light">
-        <tr><th>User</th><th>Tanggal</th><th>Rincian</th><th>Nominal</th><th></th></tr>
+        <tr><th>User</th><th>Tanggal</th><th>Keterangan</th><th>Nominal</th><th></th></tr>
       </thead>
       <tbody id="fTable"></tbody>
     </table>
