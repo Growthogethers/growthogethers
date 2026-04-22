@@ -6,6 +6,53 @@
   box-sizing: border-box;
 }
 
+/* Additional styles for financial page */
+#monthlyTargetsList .progress {
+  background-color: #e2e8f0;
+  border-radius: 10px;
+}
+
+#monthlyTargetsList .progress-bar {
+  border-radius: 10px;
+  transition: width 0.3s ease;
+}
+
+#financial-page .table-responsive {
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+#financial-page .table th {
+  font-weight: 600;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+#financial-page .card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+#financial-page .card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+}
+
+@media (max-width: 768px) {
+  #financial-page .card {
+    padding: 1rem !important;
+  }
+  
+  #financial-page .table td,
+  #financial-page .table th {
+    font-size: 0.75rem;
+    padding: 0.5rem;
+  }
+  
+  #financial-page .btn {
+    font-size: 0.8rem;
+  }
+}
 html {
   font-size: 16px;
   -webkit-text-size-adjust: 100%;
