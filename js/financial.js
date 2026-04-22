@@ -27,7 +27,7 @@ function renderMonthlyTargets() {
   const targets = Object.entries(monthlyTargets).sort((a, b) => a[0].localeCompare(b[0]));
   
   if (targets.length === 0) {
-    container.innerHTML = '<div class="text-muted text-center py-3">✨ Belum ada target bulanan. Tambah target di bawah!</div>';
+    container.innerHTML = '<div class="text-center py-4 text-muted"><i class="bi bi-inbox fs-1"></i><p class="mt-2 mb-0">✨ Belum ada target bulanan</p><small>Tambah target di bawah</small></div>';
     return;
   }
   
@@ -42,21 +42,23 @@ function renderMonthlyTargets() {
     }
   });
   
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+  
   container.innerHTML = targets.map(([month, target]) => {
     const saved = weddingSavings[month] || 0;
     const percent = target > 0 ? Math.min(100, (saved / target) * 100) : 0;
     const isAchieved = saved >= target;
     
-    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
     const [year, monthNum] = month.split('-');
     const monthName = monthNames[parseInt(monthNum) - 1];
     
     return `
-      <div class="mb-3 p-3 bg-light rounded-3">
+      <div class="target-item mb-3 p-3 bg-light rounded-3">
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
-          <div>
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-calendar-month fs-5 ${isAchieved ? 'text-success' : 'text-primary'}"></i>
             <span class="fw-bold">${monthName} ${year}</span>
-            <span class="badge ${isAchieved ? 'bg-success' : 'bg-warning'} ms-2">
+            <span class="badge ${isAchieved ? 'bg-success' : 'bg-warning'}">
               ${isAchieved ? '✓ Tercapai' : `${Math.round(percent)}%`}
             </span>
           </div>
@@ -69,13 +71,13 @@ function renderMonthlyTargets() {
             </button>
           </div>
         </div>
-        <div class="progress mb-2" style="height: 8px;">
-          <div class="progress-bar ${isAchieved ? 'bg-success' : 'bg-primary'}" style="width: ${percent}%"></div>
+        <div class="progress mb-2" style="height: 10px; border-radius: 10px;">
+          <div class="progress-bar ${isAchieved ? 'bg-success' : 'bg-primary'}" style="width: ${percent}%; border-radius: 10px;"></div>
         </div>
         <div class="d-flex justify-content-between small">
           <span>Target: ${formatNumberRp(target)}</span>
           <span>Terkumpul: ${formatNumberRp(saved)}</span>
-          <span class="${isAchieved ? 'text-success' : 'text-muted'}">
+          <span class="${isAchieved ? 'text-success fw-bold' : 'text-muted'}">
             ${isAchieved ? '🎉 Target tercapai!' : `Kurang ${formatNumberRp(target - saved)}`}
           </span>
         </div>
@@ -99,10 +101,20 @@ export async function addMonthlyTarget() {
   }
   
   const currentTargets = masterData?.settings?.monthlyTargets || {};
-  currentTargets[month] = amount;
+  
+  // Cek apakah target untuk bulan ini sudah ada
+  if (currentTargets[month]) {
+    if (confirm(`Target untuk bulan ${formatMonthDisplay(month)} sudah ada. Apakah Anda ingin menggantinya?`)) {
+      currentTargets[month] = amount;
+    } else {
+      return;
+    }
+  } else {
+    currentTargets[month] = amount;
+  }
   
   await update(ref(db, 'data/settings'), { monthlyTargets: currentTargets });
-  showNotif(`Target ${formatNumberRp(amount)} untuk bulan ${formatMonthDisplay(month)} ditambahkan!`);
+  showNotif(`✅ Target ${formatNumberRp(amount)} untuk bulan ${formatMonthDisplay(month)} ditambahkan!`);
   
   // Reset form
   document.getElementById('targetMonth').value = '';
@@ -122,7 +134,7 @@ export async function editMonthlyTarget(month) {
     const currentTargets = masterData?.settings?.monthlyTargets || {};
     currentTargets[month] = parseInt(newAmount);
     await update(ref(db, 'data/settings'), { monthlyTargets: currentTargets });
-    showNotif('Target berhasil diupdate!');
+    showNotif('✅ Target berhasil diupdate!');
     if (window.renderAll) window.renderAll();
     loadMonthlyTargets();
   }
@@ -134,7 +146,7 @@ export async function deleteMonthlyTarget(month) {
     const currentTargets = masterData?.settings?.monthlyTargets || {};
     delete currentTargets[month];
     await update(ref(db, 'data/settings'), { monthlyTargets: currentTargets });
-    showNotif('Target dihapus');
+    showNotif('🗑️ Target berhasil dihapus');
     if (window.renderAll) window.renderAll();
     loadMonthlyTargets();
   }
@@ -167,12 +179,17 @@ export function showTargetSummary() {
   
   const overallPercent = totalTarget > 0 ? (totalSaved / totalTarget) * 100 : 0;
   
-  alert(`📊 RINGKASAN TARGET BULANAN\n\n` +
-    `Total target: ${formatNumberRp(totalTarget)}\n` +
-    `Total terkumpul: ${formatNumberRp(totalSaved)}\n` +
-    `Persentase pencapaian: ${Math.round(overallPercent)}%\n` +
-    `Target tercapai: ${achievedCount} dari ${totalMonths} bulan\n\n` +
-    `${overallPercent >= 80 ? '🎉 Selamat! Progress sangat baik!' : '💪 Semangat terus menabung!'}`);
+  showNotif(`📊 Ringkasan: ${achievedCount}/${totalMonths} bulan tercapai (${Math.round(overallPercent)}% dari total target)`);
+  
+  // Tampilkan alert untuk detail
+  setTimeout(() => {
+    alert(`📊 RINGKASAN TARGET BULANAN\n\n` +
+      `Total target: ${formatNumberRp(totalTarget)}\n` +
+      `Total terkumpul: ${formatNumberRp(totalSaved)}\n` +
+      `Persentase pencapaian: ${Math.round(overallPercent)}%\n` +
+      `Target tercapai: ${achievedCount} dari ${totalMonths} bulan\n\n` +
+      `${overallPercent >= 80 ? '🎉 Selamat! Progress sangat baik!' : '💪 Semangat terus menabung!'}`);
+  }, 100);
 }
 
 // Update ringkasan tabungan
@@ -204,7 +221,9 @@ function formatDateDisplay(dateStr) {
   if (!dateStr) return '-';
   const parts = dateStr.split('-');
   if (parts.length === 3) {
-    return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+    const monthName = monthNames[parseInt(parts[1]) - 1];
+    return `${parts[2]} ${monthName} ${parts[0]}`;
   }
   return dateStr;
 }
@@ -234,13 +253,13 @@ export async function saveFinance() {
   
   if (window.editFinanceId) {
     await update(ref(db, `data/finances/${window.editFinanceId}`), { date, desc, amt, type: 'wedding' });
-    showNotif("Tabungan berhasil diupdate");
+    showNotif("✅ Tabungan berhasil diupdate");
     window.editFinanceId = null;
     const btnSaveFinance = document.getElementById("btnSaveFinance");
-    if (btnSaveFinance) btnSaveFinance.innerText = "Catat Tabungan";
+    if (btnSaveFinance) btnSaveFinance.innerText = "💾 Catat Tabungan";
   } else {
     await push(ref(db, "data/finances"), { user: currentUser, date, desc, amt, type: 'wedding' });
-    showNotif(`Tabungan Rp ${amt.toLocaleString()} berhasil dicatat! 💰`);
+    showNotif(`💰 Tabungan Rp ${amt.toLocaleString()} berhasil dicatat!`);
     
     // Cek apakah mencapai target bulanan
     if (targetForMonth) {
@@ -254,7 +273,7 @@ export async function saveFinance() {
       });
       
       if (totalThisMonth >= targetForMonth) {
-        showNotif(`🎉 Selamat! Target bulan ${formatMonthDisplay(selectedMonth)} telah tercapai!`);
+        showNotif(`🎉 Selamat! Target bulan ${formatMonthDisplay(selectedMonth)} telah tercapai! 🎉`);
       }
     }
   }
@@ -286,10 +305,19 @@ export function editFinance(id) {
   if (fDescEl) fDescEl.value = f.desc;
   if (fAmtEl) fAmtEl.value = f.amt;
   window.editFinanceId = id;
-  if (btnSaveFinance) btnSaveFinance.innerText = "Update Tabungan";
+  if (btnSaveFinance) btnSaveFinance.innerHTML = "<i class='bi bi-pencil me-1'></i>Update Tabungan";
   
   // Scroll ke form
   document.getElementById('financial-page')?.scrollIntoView({ behavior: 'smooth' });
+  
+  // Highlight form
+  const formCard = document.querySelector('#financial-page .card:nth-child(3)');
+  if (formCard) {
+    formCard.style.border = '2px solid #6366f1';
+    setTimeout(() => {
+      formCard.style.border = 'none';
+    }, 2000);
+  }
 }
 
 // Render riwayat tabungan
@@ -327,7 +355,10 @@ export function renderFinances() {
   if (filteredFinances.length === 0) {
     fTableEl.innerHTML = `
       <tr>
-        <td colspan="5" class="text-center text-muted py-4">Belum ada data tabungan</td>
+        <td colspan="5" class="text-center text-muted py-5">
+          <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+          Belum ada data tabungan
+        </td>
       </tr>
     `;
   } else {
@@ -336,12 +367,12 @@ export function renderFinances() {
       .map(([id, f]) => `
         <tr>
           <td><span class="badge ${f.user === "FACHMI" ? "badge-fachmi" : "badge-azizah"}">${escapeHtml(f.user)}</span></td>
-          <td>${formatDateDisplay(f.date)}</td>
+          <td class="text-nowrap">${formatDateDisplay(f.date)}</td>
           <td>${escapeHtml(f.desc)}</td>
-          <td class="fw-semibold text-success">${formatNumberRp(f.amt)}</td>
-          <td>
-            <i class="bi bi-pencil text-primary me-2" onclick="window.editFinance('${id}')" style="cursor: pointer;"></i>
-            <i class="bi bi-trash text-danger" onclick="window.deleteItem('finances','${id}')" style="cursor: pointer;"></i>
+          <td class="fw-semibold text-success text-nowrap">${formatNumberRp(f.amt)}</td>
+          <td class="text-nowrap">
+            <i class="bi bi-pencil-square text-primary me-2" onclick="window.editFinance('${id}')" style="cursor: pointer; font-size: 1.1rem;"></i>
+            <i class="bi bi-trash3 text-danger" onclick="window.deleteItem('finances','${id}')" style="cursor: pointer; font-size: 1.1rem;"></i>
           </td>
         </tr>
       `).join("");
@@ -350,14 +381,53 @@ export function renderFinances() {
   // Tampilkan informasi filter
   const filterInfoEl = document.getElementById("filterInfo");
   if (filterInfoEl) {
-    const filterText = filterVal === "all" ? "Menampilkan semua riwayat tabungan" : 
-                       (filterVal === "thisMonth" ? "Menampilkan tabungan bulan ini" : 
-                       (filterVal === "lastMonth" ? "Menampilkan tabungan bulan lalu" : "Menampilkan bulan yang mencapai target"));
-    filterInfoEl.innerText = filterText;
+    let filterText = "";
+    let filterIcon = "";
+    switch(filterVal) {
+      case "all":
+        filterText = "Semua riwayat tabungan";
+        filterIcon = "📋";
+        break;
+      case "thisMonth":
+        filterText = `Tabungan bulan ${formatDateDisplay(currentMonth + "-01")}`;
+        filterIcon = "📅";
+        break;
+      case "lastMonth":
+        filterText = `Tabungan bulan ${formatDateDisplay(lastMonthStr + "-01")}`;
+        filterIcon = "📆";
+        break;
+      case "target":
+        filterText = "Bulan yang mencapai target";
+        filterIcon = "🎯";
+        break;
+      default:
+        filterText = "Semua riwayat tabungan";
+        filterIcon = "📋";
+    }
+    filterInfoEl.innerHTML = `<i class="bi bi-info-circle"></i> ${filterIcon} ${filterText}`;
   }
   
   // Update total tabungan di card info
   updateSavingsSummary();
+}
+
+// Delete item dengan konfirmasi toast
+window.deleteFinanceItem = (path, id) => {
+  showNotif("Apakah Anda yakin ingin menghapus?", false);
+  // Trigger confirm modal
+  window.confirmDelete(path, id);
+};
+
+// Save target total pernikahan (untuk kompatibilitas dengan dashboard)
+export async function saveWeddingTarget() {
+  const val = parseInt(document.getElementById("weddingTargetInput")?.value);
+  if (isNaN(val) || val <= 0) { 
+    showNotif("Target harus angka >0", true); 
+    return; 
+  }
+  await update(ref(db, "data/settings"), { weddingTarget: val });
+  showNotif("✅ Target total pernikahan diperbarui!");
+  if (window.renderAll) window.renderAll();
 }
 
 // Export ke window
@@ -367,6 +437,7 @@ window.addMonthlyTarget = addMonthlyTarget;
 window.editMonthlyTarget = editMonthlyTarget;
 window.deleteMonthlyTarget = deleteMonthlyTarget;
 window.showTargetSummary = showTargetSummary;
+window.saveWeddingTarget = saveWeddingTarget;
 
 // Inisialisasi halaman keuangan
 export function initFinancialPage() {
