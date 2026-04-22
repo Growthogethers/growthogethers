@@ -9,6 +9,93 @@ function formatMonthDisplayDashboard(month) {
   return `${monthNames[parseInt(monthNum) - 1]} ${year}`;
 }
 
+// Helper untuk mendapatkan range bulan dari target awal ke target akhir
+function getMonthRangeFromTargets(savingTargets) {
+  if (!savingTargets || Object.keys(savingTargets).length === 0) {
+    return [];
+  }
+  
+  let earliestStart = null;
+  let latestEnd = null;
+  
+  Object.values(savingTargets).forEach(target => {
+    if (target.startDate && target.endDate) {
+      if (!earliestStart || target.startDate < earliestStart) {
+        earliestStart = target.startDate;
+      }
+      if (!latestEnd || target.endDate > latestEnd) {
+        latestEnd = target.endDate;
+      }
+    }
+  });
+  
+  if (!earliestStart || !latestEnd) {
+    return [];
+  }
+  
+  // Generate semua bulan dari earliestStart sampai latestEnd
+  const startDate = new Date(earliestStart + '-01');
+  const endDate = new Date(latestEnd + '-01');
+  const months = [];
+  const current = new Date(startDate);
+  
+  while (current <= endDate) {
+    const year = current.getFullYear();
+    const month = String(current.getMonth() + 1).padStart(2, '0');
+    months.push(`${year}-${month}`);
+    current.setMonth(current.getMonth() + 1);
+  }
+  
+  return months;
+}
+
+// Helper untuk mendapatkan target per bulan dari savingTargets
+function getMonthlyTargetsFromTargets(savingTargets, monthRange) {
+  const monthlyTargets = {};
+  
+  // Inisialisasi semua bulan dengan 0
+  monthRange.forEach(month => {
+    monthlyTargets[month] = 0;
+  });
+  
+  // Distribusikan target ke bulan-bulan yang termasuk dalam periode target
+  Object.values(savingTargets).forEach(target => {
+    const startDate = new Date(target.startDate);
+    const endDate = new Date(target.endDate);
+    const targetAmount = target.amount;
+    
+    // Hitung jumlah bulan dalam periode target
+    let currentDate = new Date(startDate);
+    let monthCount = 0;
+    
+    while (currentDate <= endDate) {
+      monthCount++;
+      currentDate.setMonth(currentDate.getMonth() + 1);
+    }
+    
+    if (monthCount === 0) return;
+    
+    // Bagi target per bulan (rata-rata)
+    const monthlyAmount = targetAmount / monthCount;
+    
+    // Distribusikan ke setiap bulan
+    currentDate = new Date(startDate);
+    while (currentDate <= endDate) {
+      const year = currentDate.getFullYear();
+      const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+      const monthKey = `${year}-${month}`;
+      
+      if (monthlyTargets[monthKey] !== undefined) {
+        monthlyTargets[monthKey] += monthlyAmount;
+      }
+      
+      currentDate.setMonth(currentDate.getMonth() + 1);
+    }
+  });
+  
+  return monthlyTargets;
+}
+
 export function renderDashboard() {
   if (!masterData) {
     console.log("masterData not available yet");
@@ -20,7 +107,7 @@ export function renderDashboard() {
   
   const settings = masterData.settings || { weddingTarget: 50000000 };
   const targetWed = settings.weddingTarget;
-  const monthlyTargets = settings.monthlyTargets || {};
+  const savingTargets = settings.savingTargets || {};
   
   let wA = 0, wB = 0;
   const finances = masterData.finances ? Object.entries(masterData.finances) : [];
@@ -35,12 +122,23 @@ export function renderDashboard() {
   const totalWed = wA + wB;
   const percent = targetWed > 0 ? Math.min(100, (totalWed / targetWed) * 100) : 0;
   
-  // Hitung target bulanan untuk bulan berjalan
+  // Hitung target dari savingTargets untuk bulan berjalan
   const now = new Date();
   const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  const currentMonthTarget = monthlyTargets[currentMonth] || 0;
   
+  // Dapatkan semua bulan dari range target
+  const monthRange = getMonthRangeFromTargets(savingTargets);
+  const monthlyTargets = getMonthlyTargetsFromTargets(savingTargets, monthRange);
+  
+  let currentMonthTarget = 0;
   let currentMonthSaved = 0;
+  
+  // Hitung target bulan ini dari savingTargets
+  if (monthlyTargets[currentMonth]) {
+    currentMonthTarget = monthlyTargets[currentMonth];
+  }
+  
+  // Hitung tabungan bulan ini
   finances.forEach(([id, f]) => {
     if (f.type === "wedding" && f.date?.substring(0, 7) === currentMonth) {
       currentMonthSaved += f.amt;
@@ -73,7 +171,6 @@ export function renderDashboard() {
   const plansArray = masterData.plans ? Object.entries(masterData.plans) : [];
   const totalP = plansArray.length;
   const doneP = plansArray.filter(p => p[1].progress >= 100).length;
-  const targetPlanCount = plansArray.filter(p => p[1].targetDate && p[1].targetDate !== "").length;
   const percentDone = totalP > 0 ? Math.round((doneP / totalP) * 100) : 0;
   
   // Update total shared card
@@ -164,40 +261,40 @@ export function renderDashboard() {
     }
   }
   
-  // Update target bulanan info di dashboard
-  const monthlyTargetInfo = document.getElementById("monthlyTargetInfo");
-  if (monthlyTargetInfo) {
-    // Cari target untuk bulan-bulan ke depan
-    const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  // Update target info di dashboard (3 kolom)
+  const targetInfoContainer = document.getElementById("targetInfo");
+  if (targetInfoContainer) {
+    // Cari target aktif (belum tercapai)
+    let activeTargets = [];
+    let totalTargetAmount = 0;
+    let totalSavedAmount = 0;
+    let completedTargets = 0;
     
-    const sortedTargets = Object.entries(monthlyTargets)
-      .sort((a, b) => a[0].localeCompare(b[0]))
-      .filter(([month, target]) => month >= currentMonthKey);
-    
-    let nextTarget = null;
-    let nextTargetMonth = null;
-    
-    for (const [month, target] of sortedTargets) {
-      let monthSaved = 0;
-      finances.forEach(([id, f]) => {
-        if (f.type === "wedding" && f.date?.substring(0, 7) === month) {
-          monthSaved += f.amt;
-        }
-      });
-      if (monthSaved < target) {
-        nextTarget = target;
-        nextTargetMonth = month;
-        break;
+    Object.entries(savingTargets).forEach(([id, target]) => {
+      const saved = calculateTotalInPeriod(target.startDate, target.endDate, finances);
+      totalTargetAmount += target.amount;
+      totalSavedAmount += saved;
+      
+      if (saved >= target.amount) {
+        completedTargets++;
+      } else {
+        activeTargets.push({ id, ...target, saved });
       }
-    }
+    });
     
-    monthlyTargetInfo.innerHTML = `
+    // Urutkan target aktif berdasarkan endDate terdekat
+    activeTargets.sort((a, b) => new Date(a.endDate) - new Date(b.endDate));
+    
+    const nextTarget = activeTargets.length > 0 ? activeTargets[0] : null;
+    const overallPercent = totalTargetAmount > 0 ? (totalSavedAmount / totalTargetAmount) * 100 : 0;
+    
+    targetInfoContainer.innerHTML = `
       <div class="col-md-4">
         <div class="card border-0 shadow-sm text-center p-3 h-100">
           <div class="rounded-circle bg-primary bg-opacity-10 d-inline-flex p-3 mb-2 mx-auto">
             <i class="bi bi-calendar-month fs-3 text-primary"></i>
           </div>
-          <h6 class="mt-1 mb-1 fw-semibold">Bulan Ini</h6>
+          <h6 class="mt-1 mb-1 fw-semibold">Target Bulan Ini</h6>
           <h4 class="fw-bold mb-0 text-primary">${formatNumberRp(currentMonthSaved)}</h4>
           <small class="text-muted">Target: ${formatNumberRp(currentMonthTarget)}</small>
           ${currentMonthTarget > 0 ? `
@@ -205,11 +302,12 @@ export function renderDashboard() {
               <div class="progress-bar bg-primary" style="width: ${monthPercent}%; border-radius: 10px;"></div>
             </div>
             <small class="mt-2 ${currentMonthSaved >= currentMonthTarget ? 'text-success fw-semibold' : 'text-warning'}">
-              ${currentMonthSaved >= currentMonthTarget ? '✓ Target Tercapai!' : `${Math.round(monthPercent)}% tercapai`}
+              ${currentMonthSaved >= currentMonthTarget ? '✓ Target Bulanan Tercapai!' : `${Math.round(monthPercent)}% tercapai`}
             </small>
-          ` : '<small class="text-muted mt-2">Belum ada target bulan ini</small>'}
+          ` : '<small class="text-muted mt-2">Belum ada target untuk bulan ini</small>'}
         </div>
       </div>
+      
       <div class="col-md-4">
         <div class="card border-0 shadow-sm text-center p-3 h-100">
           <div class="rounded-circle bg-success bg-opacity-10 d-inline-flex p-3 mb-2 mx-auto">
@@ -217,32 +315,37 @@ export function renderDashboard() {
           </div>
           <h6 class="mt-1 mb-1 fw-semibold">Total Tabungan</h6>
           <h4 class="fw-bold mb-0 text-success">${formatNumberRp(totalWed)}</h4>
-          <small class="text-muted">Target: ${formatNumberRp(targetWed)}</small>
+          <small class="text-muted">Target Keseluruhan: ${formatNumberRp(targetWed)}</small>
           <div class="progress mt-2" style="height: 6px; border-radius: 10px;">
             <div class="progress-bar bg-success" style="width: ${percent}%; border-radius: 10px;"></div>
           </div>
-          <small class="mt-2 fw-semibold">${Math.round(percent)}% tercapai</small>
+          <small class="mt-2 fw-semibold">${Math.round(percent)}% dari target utama</small>
         </div>
       </div>
+      
       <div class="col-md-4">
         <div class="card border-0 shadow-sm text-center p-3 h-100">
           ${nextTarget ? `
             <div class="rounded-circle bg-warning bg-opacity-10 d-inline-flex p-3 mb-2 mx-auto">
               <i class="bi bi-flag-checkered fs-3 text-warning"></i>
             </div>
-            <h6 class="mt-1 mb-1 fw-semibold">Target Selanjutnya</h6>
-            <h4 class="fw-bold mb-0 text-warning">${formatNumberRp(nextTarget)}</h4>
-            <small class="text-muted">${nextTargetMonth ? formatMonthDisplayDashboard(nextTargetMonth) : ''}</small>
-            <div class="mt-2">
-              <span class="badge bg-warning bg-opacity-10 text-warning">🎯 Belum tercapai</span>
+            <h6 class="mt-1 mb-1 fw-semibold">Target Aktif Terdekat</h6>
+            <h4 class="fw-bold mb-0 text-warning">${formatNumberRp(nextTarget.amount)}</h4>
+            <small class="text-muted">${formatMonthYearDisplay(nextTarget.startDate)} - ${formatMonthYearDisplay(nextTarget.endDate)}</small>
+            <div class="progress mt-2" style="height: 6px; border-radius: 10px;">
+              <div class="progress-bar bg-warning" style="width: ${(nextTarget.saved / nextTarget.amount) * 100}%; border-radius: 10px;"></div>
             </div>
-          ` : Object.keys(monthlyTargets).length > 0 ? `
+            <small class="mt-2 text-muted">Terkumpul: ${formatNumberRp(nextTarget.saved)}</small>
+            <div class="mt-2">
+              <span class="badge bg-warning bg-opacity-10 text-warning">🎯 ${Math.ceil((nextTarget.saved / nextTarget.amount) * 100)}% tercapai</span>
+            </div>
+          ` : Object.keys(savingTargets).length > 0 ? `
             <div class="rounded-circle bg-success bg-opacity-10 d-inline-flex p-3 mb-2 mx-auto">
               <i class="bi bi-trophy fs-3 text-success"></i>
             </div>
             <h6 class="mt-1 mb-1 fw-semibold">Semua Target</h6>
             <h4 class="fw-bold mb-0 text-success">✨ Tercapai!</h4>
-            <small class="text-muted">Selamat! Semua target tercapai 🎉</small>
+            <small class="text-muted">Selamat! ${completedTargets} target tabungan telah tercapai 🎉</small>
             <div class="mt-2">
               <span class="badge bg-success bg-opacity-10 text-success">🏆 Luar biasa!</span>
             </div>
@@ -250,7 +353,7 @@ export function renderDashboard() {
             <div class="rounded-circle bg-secondary bg-opacity-10 d-inline-flex p-3 mb-2 mx-auto">
               <i class="bi bi-plus-circle fs-3 text-secondary"></i>
             </div>
-            <h6 class="mt-1 mb-1 fw-semibold">Target Bulanan</h6>
+            <h6 class="mt-1 mb-1 fw-semibold">Target Tabungan</h6>
             <h4 class="fw-bold mb-0 text-secondary">Belum Ada</h4>
             <small class="text-muted">Buat target di menu Keuangan</small>
             <div class="mt-2">
@@ -265,6 +368,31 @@ export function renderDashboard() {
   console.log("Dashboard updated:", { totalWed: formatNumberRp(totalWed), percent: Math.round(percent) });
 }
 
+// Helper untuk menghitung total dalam periode
+function calculateTotalInPeriod(startDate, endDate, finances) {
+  let total = 0;
+  Object.values(finances).forEach(f => {
+    if (f.type === 'wedding' && f.date) {
+      if (f.date >= startDate && f.date <= endDate) {
+        total += f.amt;
+      }
+    }
+  });
+  return total;
+}
+
+// Helper format month year
+function formatMonthYearDisplay(dateStr) {
+  if (!dateStr) return '';
+  const parts = dateStr.split('-');
+  if (parts.length === 3) {
+    const monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+    const monthName = monthNames[parseInt(parts[1]) - 1];
+    return `${monthName} ${parts[0]}`;
+  }
+  return dateStr;
+}
+
 export function updateCharts(weddingHistory, totalPlansDone, totalPlansAll, weddingChart, plansChart) {
   const weddingChartEl = document.getElementById('weddingTrendChart');
   const plansChartEl = document.getElementById('plansProgressChart');
@@ -274,10 +402,10 @@ export function updateCharts(weddingHistory, totalPlansDone, totalPlansAll, wedd
     return { weddingChart, plansChart };
   }
   
-  // Get wedding target for percentage calculation
+  // Get wedding target and saving targets
   const settings = window.masterData?.settings || { weddingTarget: 50000000 };
   const weddingTarget = settings.weddingTarget;
-  const monthlyTargets = settings.monthlyTargets || {};
+  const savingTargets = settings.savingTargets || {};
   
   // Ambil data tabungan dari masterData
   const finances = window.masterData?.finances || {};
@@ -291,44 +419,88 @@ export function updateCharts(weddingHistory, totalPlansDone, totalPlansAll, wedd
     }
   });
   
-  // Tentukan range bulan dari awal menabung sampai bulan target terakhir
-  const allMonthsWithData = Object.keys(weddingSavings).sort();
-  const targetMonths = Object.keys(monthlyTargets).sort();
+  // Dapatkan range bulan dari target (dari awal target pertama sampai akhir target terakhir)
+  let monthRange = [];
+  let monthlyTargets = {};
   
-  // Gabungkan semua bulan yang ada (dari data tabungan dan target)
-  const allMonths = [...new Set([...allMonthsWithData, ...targetMonths])].sort();
-  
-  // Jika tidak ada data sama sekali, gunakan bulan saat ini
-  let startMonth, endMonth;
-  
-  if (allMonths.length > 0) {
-    startMonth = allMonths[0];
-    endMonth = allMonths[allMonths.length - 1];
-  } else {
-    const now = new Date();
-    startMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-    endMonth = startMonth;
+  if (savingTargets && Object.keys(savingTargets).length > 0) {
+    // Cari earliest start dan latest end dari semua target
+    let earliestStart = null;
+    let latestEnd = null;
+    
+    Object.values(savingTargets).forEach(target => {
+      if (target.startDate && target.endDate) {
+        if (!earliestStart || target.startDate < earliestStart) {
+          earliestStart = target.startDate;
+        }
+        if (!latestEnd || target.endDate > latestEnd) {
+          latestEnd = target.endDate;
+        }
+      }
+    });
+    
+    if (earliestStart && latestEnd) {
+      // Generate semua bulan dari earliestStart sampai latestEnd
+      const startDate = new Date(earliestStart + '-01');
+      const endDate = new Date(latestEnd + '-01');
+      const current = new Date(startDate);
+      
+      while (current <= endDate) {
+        const year = current.getFullYear();
+        const month = String(current.getMonth() + 1).padStart(2, '0');
+        monthRange.push(`${year}-${month}`);
+        current.setMonth(current.getMonth() + 1);
+      }
+      
+      // Hitung target per bulan (distribusi rata-rata dari setiap target)
+      Object.values(savingTargets).forEach(target => {
+        const targetStart = new Date(target.startDate);
+        const targetEnd = new Date(target.endDate);
+        const targetAmount = target.amount;
+        
+        // Hitung jumlah bulan dalam periode target
+        let currentDate = new Date(targetStart);
+        let monthCount = 0;
+        
+        while (currentDate <= targetEnd) {
+          monthCount++;
+          currentDate.setMonth(currentDate.getMonth() + 1);
+        }
+        
+        if (monthCount === 0) return;
+        
+        const monthlyAmount = targetAmount / monthCount;
+        
+        // Distribusikan ke setiap bulan
+        currentDate = new Date(targetStart);
+        while (currentDate <= targetEnd) {
+          const year = currentDate.getFullYear();
+          const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+          const monthKey = `${year}-${month}`;
+          
+          if (monthRange.includes(monthKey)) {
+            monthlyTargets[monthKey] = (monthlyTargets[monthKey] || 0) + monthlyAmount;
+          }
+          
+          currentDate.setMonth(currentDate.getMonth() + 1);
+        }
+      });
+    }
   }
   
-  // Generate semua bulan dari startMonth sampai endMonth
-  const generateMonthRange = (start, end) => {
-    const startDate = new Date(start + '-01');
-    const endDate = new Date(end + '-01');
-    const months = [];
-    const current = new Date(startDate);
-    
-    while (current <= endDate) {
-      const year = current.getFullYear();
-      const month = String(current.getMonth() + 1).padStart(2, '0');
-      months.push(`${year}-${month}`);
-      current.setMonth(current.getMonth() + 1);
+  // Jika tidak ada target, gunakan bulan dari data tabungan yang ada
+  if (monthRange.length === 0) {
+    const allMonthsWithData = Object.keys(weddingSavings).sort();
+    if (allMonthsWithData.length > 0) {
+      monthRange = allMonthsWithData;
+    } else {
+      const now = new Date();
+      const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+      monthRange = [currentMonth];
     }
-    return months;
-  };
+  }
   
-  const monthRange = generateMonthRange(startMonth, endMonth);
-  
-  // Nama bulan dalam Bahasa Indonesia
+  // Nama bulan dalam Bahasa Indonesia untuk label
   const monthNames = [
     'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
     'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'
@@ -344,17 +516,17 @@ export function updateCharts(weddingHistory, totalPlansDone, totalPlansAll, wedd
   let cumulative = 0;
   const cumulativeValues = [];
   const percentages = [];
+  const targetValues = [];
   
   monthRange.forEach(month => {
     cumulative += weddingSavings[month] || 0;
     cumulativeValues.push(cumulative);
     const percentage = weddingTarget > 0 ? Math.min(100, (cumulative / weddingTarget) * 100) : 0;
     percentages.push(Math.round(percentage * 10) / 10);
+    
+    // Target per bulan (dari savingTargets)
+    targetValues.push((monthlyTargets[month] || 0) / 1000000);
   });
-  
-  // Data untuk chart
-  const weddingPercentages = percentages;
-  const weddingCumulative = cumulativeValues;
   
   // Chart 1: Progres tabungan (dalam Persen terhadap target)
   if (weddingChart) {
@@ -375,13 +547,13 @@ export function updateCharts(weddingHistory, totalPlansDone, totalPlansAll, wedd
       datasets: [
         {
           label: 'Pencapaian Target Tabungan (%)',
-          data: weddingPercentages.length > 0 ? weddingPercentages : [0],
+          data: percentages.length > 0 ? percentages : [0],
           borderColor: '#6366f1',
           backgroundColor: 'rgba(99, 102, 241, 0.1)',
           tension: 0.3,
           fill: true,
           pointBackgroundColor: (context) => {
-            const value = weddingPercentages[context.dataIndex];
+            const value = percentages[context.dataIndex];
             if (value >= 100) return '#10b981';
             if (value >= 75) return '#f59e0b';
             if (value >= 50) return '#6366f1';
@@ -394,10 +566,7 @@ export function updateCharts(weddingHistory, totalPlansDone, totalPlansAll, wedd
         },
         {
           label: 'Target Bulanan (Rp Juta)',
-          data: monthRange.map(month => {
-            const target = monthlyTargets[month] || 0;
-            return target / 1000000;
-          }),
+          data: targetValues,
           borderColor: '#f59e0b',
           backgroundColor: 'rgba(245, 158, 11, 0.05)',
           borderWidth: 2,
@@ -437,7 +606,7 @@ export function updateCharts(weddingHistory, totalPlansDone, totalPlansAll, wedd
               
               if (datasetLabel.includes('Pencapaian')) {
                 const monthIndex = context.dataIndex;
-                const amountInJuta = weddingCumulative[monthIndex] / 1000000;
+                const amountInJuta = cumulativeValues[monthIndex] / 1000000;
                 return [
                   `${datasetLabel}: ${value}%`,
                   `(Total: Rp ${amountInJuta.toLocaleString()} Juta dari Rp ${(weddingTarget / 1000000).toLocaleString()} Juta)`
@@ -536,7 +705,7 @@ export function updateCharts(weddingHistory, totalPlansDone, totalPlansAll, wedd
   // Register plugin
   Chart.register(targetLinePlugin);
   
-  // Chart 2: Progress rencana
+  // Chart 2: Progress rencana (tetap sama seperti sebelumnya)
   if (plansChart) {
     try {
       plansChart.destroy();
@@ -669,10 +838,10 @@ export function updateCharts(weddingHistory, totalPlansDone, totalPlansAll, wedd
     }
   });
   
-  console.log("Charts updated:", {
+  console.log("Charts updated with target-based months:", {
     months: labels,
-    percentages: weddingPercentages,
-    cumulative: weddingCumulative.map(v => v / 1000000),
+    percentages: percentages,
+    targetValues: targetValues,
     plansDataPoints: finalLabels.length
   });
   
