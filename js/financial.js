@@ -6,7 +6,7 @@ import { showNotif, masterData, formatNumberRp, escapeHtml, setMasterData } from
 let financialDataListener = null;
 
 // Load saving targets from Firebase
-function loadSavingTargets() {
+export function loadSavingTargets() {
   console.log("=== loadSavingTargets called ===");
   
   // Ambil data dari window.masterData
@@ -279,9 +279,13 @@ export async function addSavingTarget() {
     showNotif(`✅ Target ${formatNumberRp(amount)} dari ${formatMonthYearDisplay(startDate)} sampai ${formatMonthYearDisplay(endDate)} ditambahkan!`);
     
     // Reset form
-    document.getElementById('targetStartDate').value = '';
-    document.getElementById('targetEndDate').value = '';
-    document.getElementById('targetAmount').value = '';
+    const startDateInput = document.getElementById('targetStartDate');
+    const endDateInput = document.getElementById('targetEndDate');
+    const amountInput = document.getElementById('targetAmount');
+    
+    if (startDateInput) startDateInput.value = '';
+    if (endDateInput) endDateInput.value = '';
+    if (amountInput) amountInput.value = '';
     
     // Refresh data dari Firebase
     await refreshDataFromFirebase();
@@ -676,31 +680,22 @@ export async function initFinancialPage() {
   }
 }
 
-// Override fungsi showPage untuk memanggil initFinancialPage
-const originalShowPage = window.showPage;
-if (originalShowPage) {
-  window.showPage = function(pageId) {
-    originalShowPage(pageId);
-    if (pageId === 'financial') {
-      setTimeout(() => {
-        initFinancialPage();
-      }, 100);
-    }
-  };
+// Export semua fungsi ke window
+export function setupFinancialExports() {
+  window.renderFinances = renderFinances;
+  window.editFinance = editFinance;
+  window.addSavingTarget = addSavingTarget;
+  window.editSavingTarget = editSavingTarget;
+  window.deleteSavingTarget = deleteSavingTarget;
+  window.saveWeddingTarget = saveWeddingTarget;
+  window.initFinancialPage = initFinancialPage;
+  window.loadSavingTargets = loadSavingTargets;
+  window.saveFinance = saveFinance;
 }
-
-// Export ke window
-window.renderFinances = renderFinances;
-window.editFinance = editFinance;
-window.addSavingTarget = addSavingTarget;
-window.editSavingTarget = editSavingTarget;
-window.deleteSavingTarget = deleteSavingTarget;
-window.saveWeddingTarget = saveWeddingTarget;
-window.initFinancialPage = initFinancialPage;
-window.loadSavingTargets = loadSavingTargets;
 
 // Start listener saat file dimuat
 if (typeof window !== 'undefined') {
+  setupFinancialExports();
   startFinancialDataListener();
 }
 
