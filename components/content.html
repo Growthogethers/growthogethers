@@ -223,99 +223,130 @@
   </div>
 </section>
 
-<!-- FINANCIAL PAGE -->
-<!-- FINANCIAL PAGE - Fokus Tabungan Nikah -->
+<!-- FINANCIAL PAGE - Fokus Tabungan Pernikahan -->
 <section id="financial-page" style="display:none">
   <div class="d-flex justify-content-between flex-wrap mb-3">
-    <h3 class="fw-bold">💰 Tabungan Nikah</h3>
+    <h3 class="fw-bold">💰 Tabungan Pernikahan</h3>
     <button id="privacyToggleFinance" class="privacy-toggle-btn"><i class="bi bi-eye-slash"></i> Privasi</button>
+  </div>
+  
+  <!-- Ringkasan Tabungan -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-4">
+      <div class="card p-3 text-center border-0 shadow-sm">
+        <i class="bi bi-piggy-bank-fill fs-2 text-primary"></i>
+        <h6 class="mt-2 mb-0">Total Tabungan</h6>
+        <h4 class="fw-bold text-success mb-0" id="totalWeddingSummary">Rp0</h4>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card p-3 text-center border-0 shadow-sm">
+        <i class="bi bi-person-circle fs-2 text-info"></i>
+        <h6 class="mt-2 mb-0">Tabungan Fachmi</h6>
+        <h5 class="fw-bold mb-0" id="fachmiTotal">Rp0</h5>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card p-3 text-center border-0 shadow-sm">
+        <i class="bi bi-person-circle fs-2 text-danger"></i>
+        <h6 class="mt-2 mb-0">Tabungan Azizah</h6>
+        <h5 class="fw-bold mb-0" id="azizahTotal">Rp0</h5>
+      </div>
+    </div>
   </div>
   
   <!-- Target Bulanan Card -->
   <div class="card p-4 mb-4 border-0 shadow-sm">
-    <h6 class="fw-bold mb-3"><i class="bi bi-target me-2"></i>Target Menabung Bulanan</h6>
+    <h6 class="fw-bold mb-3"><i class="bi bi-target me-2"></i>🎯 Target Tabungan per Bulan</h6>
+    <p class="small text-muted mb-3">Buat target tabungan per bulan, misalnya target Rp10.000.000 untuk bulan Agustus 2026</p>
     <div id="monthlyTargetsList" class="mb-3">
-      <div class="text-muted text-center py-3">Belum ada target bulanan</div>
+      <div class="text-muted text-center py-3">✨ Belum ada target bulanan. Tambah target di bawah!</div>
     </div>
     <div class="row g-3 align-items-end">
-      <div class="col-md-3">
-        <label class="form-label small fw-semibold">Bulan</label>
+      <div class="col-md-4">
+        <label class="form-label small fw-semibold">📅 Pilih Bulan Target</label>
         <input type="month" id="targetMonth" class="form-control">
+        <small class="text-muted">Contoh: 2026-08 untuk Agustus 2026</small>
       </div>
-      <div class="col-md-3">
-        <label class="form-label small fw-semibold">Target Tabungan (Rp)</label>
-        <input type="number" id="targetAmount" class="form-control" placeholder="contoh: 10000000">
+      <div class="col-md-4">
+        <label class="form-label small fw-semibold">🎯 Target Nominal (Rp)</label>
+        <input type="number" id="targetAmount" class="form-control" placeholder="Contoh: 10000000">
       </div>
-      <div class="col-md-3">
+      <div class="col-md-4">
         <button onclick="addMonthlyTarget()" class="btn btn-primary w-100">
-          <i class="bi bi-plus-circle me-2"></i>Tambah Target
+          <i class="bi bi-plus-circle me-2"></i>Tambah Target Bulanan
         </button>
       </div>
-      <div class="col-md-3">
-        <button onclick="showTargetSummary()" class="btn btn-outline-info w-100">
-          <i class="bi bi-graph-up me-2"></i>Ringkasan Target
-        </button>
-      </div>
+    </div>
+    <div class="mt-3">
+      <button onclick="showTargetSummary()" class="btn btn-outline-info btn-sm">
+        <i class="bi bi-graph-up me-2"></i>Lihat Ringkasan Semua Target
+      </button>
     </div>
   </div>
   
   <!-- Catat Tabungan -->
-  <div class="card p-4 mb-4">
-    <h6 class="fw-bold mb-3"><i class="bi bi-piggy-bank me-2"></i>Catat Tabungan</h6>
+  <div class="card p-4 mb-4 border-0 shadow-sm">
+    <h6 class="fw-bold mb-3"><i class="bi bi-pencil-square me-2"></i>📝 Catat Tabungan Baru</h6>
     <div class="row g-3">
       <div class="col-md-3">
+        <label class="form-label small fw-semibold">📅 Tanggal</label>
         <input type="date" id="fDate" class="form-control">
       </div>
       <div class="col-md-4">
-        <input type="text" id="fDesc" class="form-control" placeholder="Keterangan (contoh: Gaji, Bonus, dll)">
+        <label class="form-label small fw-semibold">📋 Keterangan</label>
+        <input type="text" id="fDesc" class="form-control" placeholder="Contoh: Gaji, Bonus, THR, dll">
       </div>
       <div class="col-md-3">
-        <input type="number" id="fAmt" class="form-control" placeholder="Nominal">
+        <label class="form-label small fw-semibold">💰 Nominal (Rp)</label>
+        <input type="number" id="fAmt" class="form-control" placeholder="Masukkan nominal">
       </div>
-      <div class="col-md-2">
+      <div class="col-md-2 d-flex align-items-end">
         <button id="btnSaveFinance" onclick="saveFinance()" class="btn btn-success w-100">
-          <i class="bi bi-save me-1"></i>Catat
+          <i class="bi bi-save me-1"></i>Catat Tabungan
         </button>
       </div>
     </div>
-  </div>
-  
-  <!-- Target Total Pernikahan -->
-  <div class="card p-4 mb-4">
-    <div class="row align-items-center">
-      <div class="col-md-8">
-        <label class="fw-semibold small">🎯 Target Total Pernikahan</label>
-        <input type="number" id="weddingTargetInput" class="form-control mt-1" placeholder="contoh: 75000000">
-        <small class="text-muted">Target keseluruhan biaya pernikahan</small>
-      </div>
-      <div class="col-md-4">
-        <button onclick="saveWeddingTarget()" class="btn btn-outline-primary w-100 mt-4">
-          <i class="bi bi-check-circle me-2"></i>Set Target
-        </button>
-      </div>
+    <div class="mt-3 small text-muted">
+      <i class="bi bi-info-circle"></i> Tabungan akan otomatis masuk ke bulan yang dipilih pada tanggal di atas
     </div>
   </div>
   
-  <!-- Filter & Riwayat Tabungan -->
-  <div class="filter-bar d-flex gap-2 align-items-center bg-white p-2 rounded-3 mb-3">
-    <i class="bi bi-funnel-fill"></i>
-    <span class="fw-semibold small">Filter:</span>
-    <select id="financeFilter" class="form-select form-select-sm w-auto">
-      <option value="all">Semua Riwayat</option>
-      <option value="thisMonth">Bulan Ini</option>
-      <option value="lastMonth">Bulan Lalu</option>
-      <option value="target">Target Tercapai</option>
-    </select>
-    <span class="text-muted small" id="filterInfo"></span>
-  </div>
-  
-  <div class="card overflow-auto">
-    <table class="table table-sm align-middle">
-      <thead class="table-light">
-        <tr><th>User</th><th>Tanggal</th><th>Keterangan</th><th>Nominal</th><th></th></tr>
-      </thead>
-      <tbody id="fTable"></tbody>
-    </table>
+  <!-- Riwayat Tabungan -->
+  <div class="card p-3 border-0 shadow-sm">
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+      <h6 class="fw-bold mb-0"><i class="bi bi-clock-history me-2"></i>📋 Riwayat Tabungan</h6>
+      <div class="d-flex gap-2 align-items-center">
+        <i class="bi bi-funnel-fill text-muted"></i>
+        <span class="fw-semibold small">Filter:</span>
+        <select id="financeFilter" class="form-select form-select-sm w-auto">
+          <option value="all">Semua Riwayat</option>
+          <option value="thisMonth">Bulan Ini</option>
+          <option value="lastMonth">Bulan Lalu</option>
+          <option value="target">Target Tercapai</option>
+        </select>
+        <span class="text-muted small" id="filterInfo"></span>
+      </div>
+    </div>
+    
+    <div class="table-responsive">
+      <table class="table table-sm align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>User</th>
+            <th>Tanggal</th>
+            <th>Keterangan</th>
+            <th>Nominal</th>
+            <th>Aksi</th>
+          </tr>
+        </thead>
+        <tbody id="fTable">
+          <tr>
+            <td colspan="5" class="text-center text-muted py-4">Belum ada data tabungan</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 </section>
 
