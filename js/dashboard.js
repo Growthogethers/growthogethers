@@ -1,6 +1,14 @@
 // js/dashboard.js
 import { masterData, formatNumberRp, privacyHidden } from './utils.js';
 
+// Helper function untuk format month display
+function formatMonthDisplayDashboard(month) {
+  if (!month) return '';
+  const monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+  const [year, monthNum] = month.split('-');
+  return `${monthNames[parseInt(monthNum) - 1]} ${year}`;
+}
+
 export function renderDashboard() {
   if (!masterData) {
     console.log("masterData not available yet");
@@ -60,114 +68,6 @@ export function renderDashboard() {
   const savingsBEl = document.getElementById("savingsB");
   if (savingsBEl) savingsBEl.innerHTML = formatNumberRp(wB);
   
-  const totalIncomeEl = document.getElementById("totalIncome");
-  if (totalIncomeEl) totalIncomeEl.innerHTML = formatNumberRp(totalWed);
-  
-  const totalExpenseEl = document.getElementById("totalExpense");
-  if (totalExpenseEl) totalExpenseEl.innerHTML = formatNumberRp(0);
-  
-  // Update target bulanan info di dashboard
-  const monthlyTargetInfo = document.getElementById("monthlyTargetInfo");
-  if (monthlyTargetInfo) {
-    // Cari target untuk bulan-bulan ke depan (prioritaskan bulan terdekat yang belum tercapai)
-    const sortedTargets = Object.entries(monthlyTargets)
-      .sort((a, b) => a[0].localeCompare(b[0]))
-      .filter(([month, target]) => month >= currentMonth);
-    
-    let nextTarget = null;
-    let nextTargetMonth = null;
-    
-    // Cari target berikutnya yang belum tercapai
-    for (const [month, target] of sortedTargets) {
-      let monthSaved = 0;
-      finances.forEach(([id, f]) => {
-        if (f.type === "wedding" && f.date?.substring(0, 7) === month) {
-          monthSaved += f.amt;
-        }
-      });
-      if (monthSaved < target) {
-        nextTarget = target;
-        nextTargetMonth = month;
-        break;
-      }
-    }
-    
-    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-    let targetDisplay = '';
-    
-    if (nextTarget && nextTargetMonth) {
-      const [year, monthNum] = nextTargetMonth.split('-');
-      const monthName = monthNames[parseInt(monthNum) - 1];
-      targetDisplay = `
-        <div class="col-md-4">
-          <div class="card p-3 text-center h-100">
-            <i class="bi bi-flag-checkered fs-2 text-warning"></i>
-            <h6 class="mt-2 mb-0">Target Selanjutnya</h6>
-            <h5 class="fw-bold mb-0">${formatNumberRp(nextTarget)}</h5>
-            <small class="text-muted">Bulan ${monthName} ${year}</small>
-            <div class="mt-2 small">
-              ${nextTarget === currentMonthTarget ? `Terkumpul: ${formatNumberRp(currentMonthSaved)} (${Math.round(monthPercent)}%)` : ''}
-            </div>
-          </div>
-        </div>
-      `;
-    } else if (Object.keys(monthlyTargets).length > 0) {
-      targetDisplay = `
-        <div class="col-md-4">
-          <div class="card p-3 text-center h-100">
-            <i class="bi bi-trophy fs-2 text-success"></i>
-            <h6 class="mt-2 mb-0">Semua Target</h6>
-            <h5 class="fw-bold mb-0">✨ Tercapai!</h5>
-            <small class="text-muted">Selamat! Semua target bulanan telah tercapai 🎉</small>
-          </div>
-        </div>
-      `;
-    } else {
-      targetDisplay = `
-        <div class="col-md-4">
-          <div class="card p-3 text-center h-100">
-            <i class="bi bi-plus-circle fs-2 text-secondary"></i>
-            <h6 class="mt-2 mb-0">Target Bulanan</h6>
-            <h5 class="fw-bold mb-0">Belum Ada</h5>
-            <small class="text-muted">Buat target di menu Keuangan</small>
-          </div>
-        </div>
-      `;
-    }
-    
-    monthlyTargetInfo.innerHTML = `
-      <div class="col-md-4">
-        <div class="card p-3 text-center h-100">
-          <i class="bi bi-calendar-month fs-2 text-primary"></i>
-          <h6 class="mt-2 mb-0">Bulan Ini</h6>
-          <h5 class="fw-bold mb-0">${formatNumberRp(currentMonthSaved)}</h5>
-          <small class="text-muted">dari target ${formatNumberRp(currentMonthTarget)}</small>
-          ${currentMonthTarget > 0 ? `
-            <div class="progress mt-2" style="height: 6px; width: 100%;">
-              <div class="progress-bar bg-primary" style="width: ${monthPercent}%"></div>
-            </div>
-            <small class="mt-1 ${currentMonthSaved >= currentMonthTarget ? 'text-success' : 'text-warning'}">
-              ${currentMonthSaved >= currentMonthTarget ? '✓ Target tercapai!' : `${Math.round(monthPercent)}% tercapai`}
-            </small>
-          ` : '<small class="text-muted mt-1">Belum ada target bulan ini</small>'}
-        </div>
-      </div>
-      <div class="col-md-4">
-        <div class="card p-3 text-center h-100">
-          <i class="bi bi-piggy-bank fs-2 text-success"></i>
-          <h6 class="mt-2 mb-0">Total Tabungan</h6>
-          <h5 class="fw-bold mb-0">${formatNumberRp(totalWed)}</h5>
-          <small class="text-muted">dari target ${formatNumberRp(targetWed)}</small>
-          <div class="progress mt-2" style="height: 6px; width: 100%;">
-            <div class="progress-bar bg-success" style="width: ${percent}%"></div>
-          </div>
-          <small class="mt-1">${Math.round(percent)}% tercapai</small>
-        </div>
-      </div>
-      ${targetDisplay}
-    `;
-  }
-  
   // Update statistik cards
   const visions = masterData.visions ? Object.entries(masterData.visions) : [];
   const plansArray = masterData.plans ? Object.entries(masterData.plans) : [];
@@ -175,6 +75,28 @@ export function renderDashboard() {
   const doneP = plansArray.filter(p => p[1].progress >= 100).length;
   const targetPlanCount = plansArray.filter(p => p[1].targetDate && p[1].targetDate !== "").length;
   const percentDone = totalP > 0 ? Math.round((doneP / totalP) * 100) : 0;
+  
+  // Update total shared card
+  const totalSharedEl = document.getElementById("totalShared");
+  if (totalSharedEl) totalSharedEl.innerHTML = visions.length;
+  
+  const totalPlansEl = document.getElementById("totalPlans");
+  if (totalPlansEl) totalPlansEl.innerHTML = totalP;
+  
+  const totalDoneEl = document.getElementById("totalDone");
+  if (totalDoneEl) {
+    totalDoneEl.innerHTML = `${percentDone}%`;
+    if (percentDone === 100 && totalP > 0) {
+      totalDoneEl.classList.add("text-success");
+      totalDoneEl.classList.remove("text-warning", "text-danger");
+    } else if (percentDone >= 50) {
+      totalDoneEl.classList.add("text-warning");
+      totalDoneEl.classList.remove("text-success", "text-danger");
+    } else if (percentDone > 0) {
+      totalDoneEl.classList.add("text-danger");
+      totalDoneEl.classList.remove("text-success", "text-warning");
+    }
+  }
   
   // Update ring chart progress
   const progressRingCircle = document.getElementById("progressRingCircle");
@@ -242,30 +164,103 @@ export function renderDashboard() {
     }
   }
   
-  // Update statistik cards
-  const totalSharedEl = document.getElementById("totalShared");
-  if (totalSharedEl) totalSharedEl.innerHTML = visions.length;
-  
-  const totalPlansEl = document.getElementById("totalPlans");
-  if (totalPlansEl) totalPlansEl.innerHTML = totalP;
-  
-  const totalDoneEl = document.getElementById("totalDone");
-  if (totalDoneEl) {
-    totalDoneEl.innerHTML = `${percentDone}%`;
-    if (percentDone === 100 && totalP > 0) {
-      totalDoneEl.classList.add("text-success");
-      totalDoneEl.classList.remove("text-warning", "text-danger");
-    } else if (percentDone >= 50) {
-      totalDoneEl.classList.add("text-warning");
-      totalDoneEl.classList.remove("text-success", "text-danger");
-    } else if (percentDone > 0) {
-      totalDoneEl.classList.add("text-danger");
-      totalDoneEl.classList.remove("text-success", "text-warning");
+  // Update target bulanan info di dashboard
+  const monthlyTargetInfo = document.getElementById("monthlyTargetInfo");
+  if (monthlyTargetInfo) {
+    // Cari target untuk bulan-bulan ke depan
+    const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    
+    const sortedTargets = Object.entries(monthlyTargets)
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .filter(([month, target]) => month >= currentMonthKey);
+    
+    let nextTarget = null;
+    let nextTargetMonth = null;
+    
+    for (const [month, target] of sortedTargets) {
+      let monthSaved = 0;
+      finances.forEach(([id, f]) => {
+        if (f.type === "wedding" && f.date?.substring(0, 7) === month) {
+          monthSaved += f.amt;
+        }
+      });
+      if (monthSaved < target) {
+        nextTarget = target;
+        nextTargetMonth = month;
+        break;
+      }
     }
+    
+    monthlyTargetInfo.innerHTML = `
+      <div class="col-md-4">
+        <div class="card border-0 shadow-sm text-center p-3 h-100">
+          <div class="rounded-circle bg-primary bg-opacity-10 d-inline-flex p-3 mb-2 mx-auto">
+            <i class="bi bi-calendar-month fs-3 text-primary"></i>
+          </div>
+          <h6 class="mt-1 mb-1 fw-semibold">Bulan Ini</h6>
+          <h4 class="fw-bold mb-0 text-primary">${formatNumberRp(currentMonthSaved)}</h4>
+          <small class="text-muted">Target: ${formatNumberRp(currentMonthTarget)}</small>
+          ${currentMonthTarget > 0 ? `
+            <div class="progress mt-2" style="height: 6px; border-radius: 10px;">
+              <div class="progress-bar bg-primary" style="width: ${monthPercent}%; border-radius: 10px;"></div>
+            </div>
+            <small class="mt-2 ${currentMonthSaved >= currentMonthTarget ? 'text-success fw-semibold' : 'text-warning'}">
+              ${currentMonthSaved >= currentMonthTarget ? '✓ Target Tercapai!' : `${Math.round(monthPercent)}% tercapai`}
+            </small>
+          ` : '<small class="text-muted mt-2">Belum ada target bulan ini</small>'}
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card border-0 shadow-sm text-center p-3 h-100">
+          <div class="rounded-circle bg-success bg-opacity-10 d-inline-flex p-3 mb-2 mx-auto">
+            <i class="bi bi-piggy-bank fs-3 text-success"></i>
+          </div>
+          <h6 class="mt-1 mb-1 fw-semibold">Total Tabungan</h6>
+          <h4 class="fw-bold mb-0 text-success">${formatNumberRp(totalWed)}</h4>
+          <small class="text-muted">Target: ${formatNumberRp(targetWed)}</small>
+          <div class="progress mt-2" style="height: 6px; border-radius: 10px;">
+            <div class="progress-bar bg-success" style="width: ${percent}%; border-radius: 10px;"></div>
+          </div>
+          <small class="mt-2 fw-semibold">${Math.round(percent)}% tercapai</small>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card border-0 shadow-sm text-center p-3 h-100">
+          ${nextTarget ? `
+            <div class="rounded-circle bg-warning bg-opacity-10 d-inline-flex p-3 mb-2 mx-auto">
+              <i class="bi bi-flag-checkered fs-3 text-warning"></i>
+            </div>
+            <h6 class="mt-1 mb-1 fw-semibold">Target Selanjutnya</h6>
+            <h4 class="fw-bold mb-0 text-warning">${formatNumberRp(nextTarget)}</h4>
+            <small class="text-muted">${nextTargetMonth ? formatMonthDisplayDashboard(nextTargetMonth) : ''}</small>
+            <div class="mt-2">
+              <span class="badge bg-warning bg-opacity-10 text-warning">🎯 Belum tercapai</span>
+            </div>
+          ` : Object.keys(monthlyTargets).length > 0 ? `
+            <div class="rounded-circle bg-success bg-opacity-10 d-inline-flex p-3 mb-2 mx-auto">
+              <i class="bi bi-trophy fs-3 text-success"></i>
+            </div>
+            <h6 class="mt-1 mb-1 fw-semibold">Semua Target</h6>
+            <h4 class="fw-bold mb-0 text-success">✨ Tercapai!</h4>
+            <small class="text-muted">Selamat! Semua target tercapai 🎉</small>
+            <div class="mt-2">
+              <span class="badge bg-success bg-opacity-10 text-success">🏆 Luar biasa!</span>
+            </div>
+          ` : `
+            <div class="rounded-circle bg-secondary bg-opacity-10 d-inline-flex p-3 mb-2 mx-auto">
+              <i class="bi bi-plus-circle fs-3 text-secondary"></i>
+            </div>
+            <h6 class="mt-1 mb-1 fw-semibold">Target Bulanan</h6>
+            <h4 class="fw-bold mb-0 text-secondary">Belum Ada</h4>
+            <small class="text-muted">Buat target di menu Keuangan</small>
+            <div class="mt-2">
+              <span class="badge bg-secondary bg-opacity-10 text-secondary">📝 Mulai buat target</span>
+            </div>
+          `}
+        </div>
+      </div>
+    `;
   }
-  
-  const targetPlanCountEl = document.getElementById("targetPlanCount");
-  if (targetPlanCountEl) targetPlanCountEl.innerHTML = targetPlanCount;
   
   console.log("Dashboard updated:", { totalWed: formatNumberRp(totalWed), percent: Math.round(percent) });
 }
@@ -429,6 +424,7 @@ export function updateCharts(weddingHistory, totalPlansDone, totalPlansAll, wedd
           labels: {
             usePointStyle: true,
             boxWidth: 10,
+            font: { size: 11 }
           }
         },
         tooltip: {
@@ -462,7 +458,7 @@ export function updateCharts(weddingHistory, totalPlansDone, totalPlansAll, wedd
           title: {
             display: true,
             text: 'Pencapaian Target (%)',
-            font: { weight: 'bold', size: 12 }
+            font: { weight: 'bold', size: 11 }
           },
           ticks: {
             callback: function(value) {
@@ -486,7 +482,7 @@ export function updateCharts(weddingHistory, totalPlansDone, totalPlansAll, wedd
           title: {
             display: true,
             text: 'Target Bulanan (Rp Juta)',
-            font: { weight: 'bold', size: 12 }
+            font: { weight: 'bold', size: 11 }
           },
           ticks: {
             callback: function(value) {
@@ -501,13 +497,14 @@ export function updateCharts(weddingHistory, totalPlansDone, totalPlansAll, wedd
           title: {
             display: true,
             text: 'Bulan',
-            font: { weight: 'bold', size: 12 }
+            font: { weight: 'bold', size: 11 }
           },
           ticks: {
             maxRotation: 45,
             minRotation: 45,
             autoSkip: true,
-            maxTicksLimit: 12
+            maxTicksLimit: 12,
+            font: { size: 10 }
           }
         }
       }
@@ -518,7 +515,7 @@ export function updateCharts(weddingHistory, totalPlansDone, totalPlansAll, wedd
   const targetLinePlugin = {
     id: 'targetLine',
     beforeDraw(chart) {
-      const { ctx, chartArea: { top, bottom, left, right }, scales } = chart;
+      const { ctx, chartArea: { left, right }, scales } = chart;
       ctx.save();
       ctx.beginPath();
       ctx.moveTo(left, scales.y.getPixelForValue(100));
@@ -621,6 +618,7 @@ export function updateCharts(weddingHistory, totalPlansDone, totalPlansAll, wedd
       plugins: {
         legend: {
           position: 'top',
+          labels: { font: { size: 11 } }
         },
         tooltip: {
           mode: 'index',
@@ -644,25 +642,27 @@ export function updateCharts(weddingHistory, totalPlansDone, totalPlansAll, wedd
           title: {
             display: true,
             text: 'Progress (%)',
-            font: { weight: 'bold', size: 12 }
+            font: { weight: 'bold', size: 11 }
           },
           ticks: {
             callback: function(value) {
               return value + '%';
-            }
+            },
+            font: { size: 10 }
           }
         },
         x: {
           title: {
             display: true,
             text: plansWithDate.length > 0 ? 'Rencana (berdasarkan target tanggal)' : 'Rencana',
-            font: { weight: 'bold', size: 12 }
+            font: { weight: 'bold', size: 11 }
           },
           ticks: {
             maxRotation: 45,
             minRotation: 45,
             autoSkip: true,
-            maxTicksLimit: 8
+            maxTicksLimit: 8,
+            font: { size: 10 }
           }
         }
       }
