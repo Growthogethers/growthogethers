@@ -69,33 +69,102 @@ export function renderDashboard() {
   // Update target bulanan info di dashboard
   const monthlyTargetInfo = document.getElementById("monthlyTargetInfo");
   if (monthlyTargetInfo) {
+    // Cari target untuk bulan-bulan ke depan (prioritaskan bulan terdekat yang belum tercapai)
+    const sortedTargets = Object.entries(monthlyTargets)
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .filter(([month, target]) => month >= currentMonth);
+    
+    let nextTarget = null;
+    let nextTargetMonth = null;
+    
+    // Cari target berikutnya yang belum tercapai
+    for (const [month, target] of sortedTargets) {
+      let monthSaved = 0;
+      finances.forEach(([id, f]) => {
+        if (f.type === "wedding" && f.date?.substring(0, 7) === month) {
+          monthSaved += f.amt;
+        }
+      });
+      if (monthSaved < target) {
+        nextTarget = target;
+        nextTargetMonth = month;
+        break;
+      }
+    }
+    
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+    let targetDisplay = '';
+    
+    if (nextTarget && nextTargetMonth) {
+      const [year, monthNum] = nextTargetMonth.split('-');
+      const monthName = monthNames[parseInt(monthNum) - 1];
+      targetDisplay = `
+        <div class="col-md-4">
+          <div class="card p-3 text-center h-100">
+            <i class="bi bi-flag-checkered fs-2 text-warning"></i>
+            <h6 class="mt-2 mb-0">Target Selanjutnya</h6>
+            <h5 class="fw-bold mb-0">${formatNumberRp(nextTarget)}</h5>
+            <small class="text-muted">Bulan ${monthName} ${year}</small>
+            <div class="mt-2 small">
+              ${nextTarget === currentMonthTarget ? `Terkumpul: ${formatNumberRp(currentMonthSaved)} (${Math.round(monthPercent)}%)` : ''}
+            </div>
+          </div>
+        </div>
+      `;
+    } else if (Object.keys(monthlyTargets).length > 0) {
+      targetDisplay = `
+        <div class="col-md-4">
+          <div class="card p-3 text-center h-100">
+            <i class="bi bi-trophy fs-2 text-success"></i>
+            <h6 class="mt-2 mb-0">Semua Target</h6>
+            <h5 class="fw-bold mb-0">✨ Tercapai!</h5>
+            <small class="text-muted">Selamat! Semua target bulanan telah tercapai 🎉</small>
+          </div>
+        </div>
+      `;
+    } else {
+      targetDisplay = `
+        <div class="col-md-4">
+          <div class="card p-3 text-center h-100">
+            <i class="bi bi-plus-circle fs-2 text-secondary"></i>
+            <h6 class="mt-2 mb-0">Target Bulanan</h6>
+            <h5 class="fw-bold mb-0">Belum Ada</h5>
+            <small class="text-muted">Buat target di menu Keuangan</small>
+          </div>
+        </div>
+      `;
+    }
+    
     monthlyTargetInfo.innerHTML = `
       <div class="col-md-4">
-        <div class="card p-3 text-center">
+        <div class="card p-3 text-center h-100">
           <i class="bi bi-calendar-month fs-2 text-primary"></i>
-          <h6 class="mt-2 mb-0">Target Bulan Ini</h6>
-          <h5 class="fw-bold mb-0">${formatNumberRp(currentMonthTarget)}</h5>
-          <small class="${currentMonthSaved >= currentMonthTarget ? 'text-success' : 'text-warning'}">
-            ${currentMonthSaved >= currentMonthTarget ? '✓ Tercapai!' : `Terkumpul: ${formatNumberRp(currentMonthSaved)} (${Math.round(monthPercent)}%)`}
-          </small>
+          <h6 class="mt-2 mb-0">Bulan Ini</h6>
+          <h5 class="fw-bold mb-0">${formatNumberRp(currentMonthSaved)}</h5>
+          <small class="text-muted">dari target ${formatNumberRp(currentMonthTarget)}</small>
+          ${currentMonthTarget > 0 ? `
+            <div class="progress mt-2" style="height: 6px; width: 100%;">
+              <div class="progress-bar bg-primary" style="width: ${monthPercent}%"></div>
+            </div>
+            <small class="mt-1 ${currentMonthSaved >= currentMonthTarget ? 'text-success' : 'text-warning'}">
+              ${currentMonthSaved >= currentMonthTarget ? '✓ Target tercapai!' : `${Math.round(monthPercent)}% tercapai`}
+            </small>
+          ` : '<small class="text-muted mt-1">Belum ada target bulan ini</small>'}
         </div>
       </div>
       <div class="col-md-4">
-        <div class="card p-3 text-center">
+        <div class="card p-3 text-center h-100">
           <i class="bi bi-piggy-bank fs-2 text-success"></i>
           <h6 class="mt-2 mb-0">Total Tabungan</h6>
           <h5 class="fw-bold mb-0">${formatNumberRp(totalWed)}</h5>
-          <small>dari target ${formatNumberRp(targetWed)}</small>
+          <small class="text-muted">dari target ${formatNumberRp(targetWed)}</small>
+          <div class="progress mt-2" style="height: 6px; width: 100%;">
+            <div class="progress-bar bg-success" style="width: ${percent}%"></div>
+          </div>
+          <small class="mt-1">${Math.round(percent)}% tercapai</small>
         </div>
       </div>
-      <div class="col-md-4">
-        <div class="card p-3 text-center">
-          <i class="bi bi-flag fs-2 text-warning"></i>
-          <h6 class="mt-2 mb-0">Sisa Target</h6>
-          <h5 class="fw-bold mb-0">${formatNumberRp(Math.max(0, targetWed - totalWed))}</h5>
-          <small>${Math.round(percent)}% tercapai</small>
-        </div>
-      </div>
+      ${targetDisplay}
     `;
   }
   
