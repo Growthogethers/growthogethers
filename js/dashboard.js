@@ -1,4 +1,4 @@
-// js/dashboard.js - Update bagian updateCharts function
+// js/dashboard.js
 import { masterData, formatNumberRp, privacyHidden } from './utils.js';
 
 export function renderDashboard() {
@@ -7,16 +7,14 @@ export function renderDashboard() {
     return;
   }
   
-  // Cek apakah elemen DOM sudah ada
   const totalWeddingEl = document.getElementById("totalWedding");
-  if (!totalWeddingEl) {
-    console.log("Dashboard elements not ready yet");
-    return;
-  }
+  if (!totalWeddingEl) return;
   
   const settings = masterData.settings || { weddingTarget: 50000000 };
   const targetWed = settings.weddingTarget;
-  let wA = 0, wB = 0, inc = 0, exp = 0;
+  const monthlyTargets = settings.monthlyTargets || {};
+  
+  let wA = 0, wB = 0;
   const finances = masterData.finances ? Object.entries(masterData.finances) : [];
   
   finances.forEach(([id, f]) => {
@@ -24,14 +22,26 @@ export function renderDashboard() {
       if (f.user === "FACHMI") wA += f.amt;
       else wB += f.amt;
     }
-    if (f.type === "in") inc += f.amt;
-    if (f.type === "out") exp += f.amt;
   });
   
   const totalWed = wA + wB;
   const percent = targetWed > 0 ? Math.min(100, (totalWed / targetWed) * 100) : 0;
   
-  // Update elemen Dashboard dengan pengecekan null
+  // Hitung target bulanan untuk bulan berjalan
+  const now = new Date();
+  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const currentMonthTarget = monthlyTargets[currentMonth] || 0;
+  
+  let currentMonthSaved = 0;
+  finances.forEach(([id, f]) => {
+    if (f.type === "wedding" && f.date?.substring(0, 7) === currentMonth) {
+      currentMonthSaved += f.amt;
+    }
+  });
+  
+  const monthPercent = currentMonthTarget > 0 ? Math.min(100, (currentMonthSaved / currentMonthTarget) * 100) : 0;
+  
+  // Update Dashboard elements
   const totalWeddingElement = document.getElementById("totalWedding");
   if (totalWeddingElement) totalWeddingElement.innerHTML = formatNumberRp(totalWed);
   
@@ -51,16 +61,45 @@ export function renderDashboard() {
   if (savingsBEl) savingsBEl.innerHTML = formatNumberRp(wB);
   
   const totalIncomeEl = document.getElementById("totalIncome");
-  if (totalIncomeEl) totalIncomeEl.innerHTML = formatNumberRp(inc);
+  if (totalIncomeEl) totalIncomeEl.innerHTML = formatNumberRp(totalWed);
   
   const totalExpenseEl = document.getElementById("totalExpense");
-  if (totalExpenseEl) totalExpenseEl.innerHTML = formatNumberRp(exp);
+  if (totalExpenseEl) totalExpenseEl.innerHTML = formatNumberRp(0);
   
-  // Update ring chart progress
-  const progressRingCircle = document.getElementById("progressRingCircle");
-  const ringPercentEl = document.getElementById("ringPercent");
+  // Update target bulanan info di dashboard
+  const monthlyTargetInfo = document.getElementById("monthlyTargetInfo");
+  if (monthlyTargetInfo) {
+    monthlyTargetInfo.innerHTML = `
+      <div class="col-md-4">
+        <div class="card p-3 text-center">
+          <i class="bi bi-calendar-month fs-2 text-primary"></i>
+          <h6 class="mt-2 mb-0">Target Bulan Ini</h6>
+          <h5 class="fw-bold mb-0">${formatNumberRp(currentMonthTarget)}</h5>
+          <small class="${currentMonthSaved >= currentMonthTarget ? 'text-success' : 'text-warning'}">
+            ${currentMonthSaved >= currentMonthTarget ? '✓ Tercapai!' : `Terkumpul: ${formatNumberRp(currentMonthSaved)} (${Math.round(monthPercent)}%)`}
+          </small>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card p-3 text-center">
+          <i class="bi bi-piggy-bank fs-2 text-success"></i>
+          <h6 class="mt-2 mb-0">Total Tabungan</h6>
+          <h5 class="fw-bold mb-0">${formatNumberRp(totalWed)}</h5>
+          <small>dari target ${formatNumberRp(targetWed)}</small>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card p-3 text-center">
+          <i class="bi bi-flag fs-2 text-warning"></i>
+          <h6 class="mt-2 mb-0">Sisa Target</h6>
+          <h5 class="fw-bold mb-0">${formatNumberRp(Math.max(0, targetWed - totalWed))}</h5>
+          <small>${Math.round(percent)}% tercapai</small>
+        </div>
+      </div>
+    `;
+  }
   
-  // Data untuk statistik
+  // Update statistik cards
   const visions = masterData.visions ? Object.entries(masterData.visions) : [];
   const plansArray = masterData.plans ? Object.entries(masterData.plans) : [];
   const totalP = plansArray.length;
@@ -68,7 +107,10 @@ export function renderDashboard() {
   const targetPlanCount = plansArray.filter(p => p[1].targetDate && p[1].targetDate !== "").length;
   const percentDone = totalP > 0 ? Math.round((doneP / totalP) * 100) : 0;
   
-  // Update ring chart
+  // Update ring chart progress
+  const progressRingCircle = document.getElementById("progressRingCircle");
+  const ringPercentEl = document.getElementById("ringPercent");
+  
   if (progressRingCircle && ringPercentEl) {
     const circumference = 2 * Math.PI * 26;
     const offset = circumference - (percentDone / 100) * circumference;
@@ -76,7 +118,6 @@ export function renderDashboard() {
     progressRingCircle.style.strokeDashoffset = offset;
     ringPercentEl.innerText = `${percentDone}%`;
     
-    // Change color based on percentage
     if (percentDone >= 75) {
       progressRingCircle.style.stroke = "#10b981";
     } else if (percentDone >= 50) {
@@ -91,13 +132,10 @@ export function renderDashboard() {
   // Update completed this month
   const completedThisMonthEl = document.getElementById("completedThisMonth");
   if (completedThisMonthEl) {
-    const now = new Date();
-    const currentMonth = now.getMonth();
-    const currentYear = now.getFullYear();
     const completedThisMonth = plansArray.filter(([id, p]) => {
       if (p.progress >= 100 && p.updatedAt) {
         const completedDate = new Date(p.updatedAt);
-        return completedDate.getMonth() === currentMonth && completedDate.getFullYear() === currentYear;
+        return completedDate.getMonth() === now.getMonth() && completedDate.getFullYear() === now.getFullYear();
       }
       return false;
     }).length;
@@ -107,7 +145,6 @@ export function renderDashboard() {
   // Update overdue count
   const overdueCountEl = document.getElementById("overdueCount");
   if (overdueCountEl) {
-    const now = new Date();
     const overdue = plansArray.filter(([id, p]) => {
       return p.targetDate && p.progress < 100 && new Date(p.targetDate) < now;
     }).length;
@@ -117,7 +154,6 @@ export function renderDashboard() {
   // Update achievement rate
   const achievementRateEl = document.getElementById("achievementRate");
   if (achievementRateEl) {
-    // Hitung achievement rate berdasarkan progress rata-rata semua rencana
     let totalProgress = 0;
     plansArray.forEach(([id, p]) => {
       totalProgress += p.progress || 0;
@@ -125,7 +161,6 @@ export function renderDashboard() {
     const avgProgress = totalP > 0 ? Math.round(totalProgress / totalP) : 0;
     achievementRateEl.innerHTML = `${avgProgress}%`;
     
-    // Change color
     if (avgProgress >= 75) {
       achievementRateEl.classList.add("text-success");
       achievementRateEl.classList.remove("text-warning", "text-danger");
@@ -163,7 +198,7 @@ export function renderDashboard() {
   const targetPlanCountEl = document.getElementById("targetPlanCount");
   if (targetPlanCountEl) targetPlanCountEl.innerHTML = targetPlanCount;
   
-  console.log("Dashboard updated:", { totalPlans: totalP, completedPlans: doneP, percentDone: percentDone });
+  console.log("Dashboard updated:", { totalWed: formatNumberRp(totalWed), percent: Math.round(percent) });
 }
 
 export function updateCharts(weddingHistory, totalPlansDone, totalPlansAll, weddingChart, plansChart) {
@@ -178,6 +213,84 @@ export function updateCharts(weddingHistory, totalPlansDone, totalPlansAll, wedd
   // Get wedding target for percentage calculation
   const settings = window.masterData?.settings || { weddingTarget: 50000000 };
   const weddingTarget = settings.weddingTarget;
+  const monthlyTargets = settings.monthlyTargets || {};
+  
+  // Ambil data tabungan dari masterData
+  const finances = window.masterData?.finances || {};
+  const weddingSavings = {};
+  
+  // Kumpulkan tabungan per bulan
+  Object.values(finances).forEach(f => {
+    if (f.type === "wedding" && f.date) {
+      const month = f.date.substring(0, 7);
+      weddingSavings[month] = (weddingSavings[month] || 0) + f.amt;
+    }
+  });
+  
+  // Tentukan range bulan dari awal menabung sampai bulan target terakhir
+  const allMonthsWithData = Object.keys(weddingSavings).sort();
+  const targetMonths = Object.keys(monthlyTargets).sort();
+  
+  // Gabungkan semua bulan yang ada (dari data tabungan dan target)
+  const allMonths = [...new Set([...allMonthsWithData, ...targetMonths])].sort();
+  
+  // Jika tidak ada data sama sekali, gunakan bulan saat ini
+  let startMonth, endMonth;
+  
+  if (allMonths.length > 0) {
+    startMonth = allMonths[0];
+    endMonth = allMonths[allMonths.length - 1];
+  } else {
+    const now = new Date();
+    startMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    endMonth = startMonth;
+  }
+  
+  // Generate semua bulan dari startMonth sampai endMonth
+  const generateMonthRange = (start, end) => {
+    const startDate = new Date(start + '-01');
+    const endDate = new Date(end + '-01');
+    const months = [];
+    const current = new Date(startDate);
+    
+    while (current <= endDate) {
+      const year = current.getFullYear();
+      const month = String(current.getMonth() + 1).padStart(2, '0');
+      months.push(`${year}-${month}`);
+      current.setMonth(current.getMonth() + 1);
+    }
+    return months;
+  };
+  
+  const monthRange = generateMonthRange(startMonth, endMonth);
+  
+  // Nama bulan dalam Bahasa Indonesia
+  const monthNames = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+    'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'
+  ];
+  
+  // Format label untuk sumbu X
+  const labels = monthRange.map(month => {
+    const [year, monthNum] = month.split('-');
+    return `${monthNames[parseInt(monthNum) - 1]} ${year}`;
+  });
+  
+  // Hitung cumulative savings dan persentase
+  let cumulative = 0;
+  const cumulativeValues = [];
+  const percentages = [];
+  
+  monthRange.forEach(month => {
+    cumulative += weddingSavings[month] || 0;
+    cumulativeValues.push(cumulative);
+    const percentage = weddingTarget > 0 ? Math.min(100, (cumulative / weddingTarget) * 100) : 0;
+    percentages.push(Math.round(percentage * 10) / 10);
+  });
+  
+  // Data untuk chart
+  const weddingPercentages = percentages;
+  const weddingCumulative = cumulativeValues;
   
   // Chart 1: Progres tabungan (dalam Persen terhadap target)
   if (weddingChart) {
@@ -187,62 +300,87 @@ export function updateCharts(weddingHistory, totalPlansDone, totalPlansAll, wedd
       console.log("Error destroying wedding chart:", e);
     }
   }
+  
   const ctx = weddingChartEl.getContext('2d');
   if (!ctx) return { weddingChart, plansChart };
-  
-  const weddingLabels = weddingHistory.labels || [];
-  const weddingValues = weddingHistory.values || [];
-  
-  // Convert ke persen terhadap target
-  const weddingPercentages = weddingValues.map(val => {
-    const amountInRupiah = val * 1000000; // Konversi dari Juta ke Rupiah
-    const percentage = (amountInRupiah / weddingTarget) * 100;
-    return Math.min(100, Math.round(percentage * 10) / 10); // 1 desimal, max 100%
-  });
   
   const newWeddingChart = new Chart(ctx, {
     type: 'line',
     data: {
-      labels: weddingLabels.length > 0 ? weddingLabels : ['Belum ada data'],
-      datasets: [{ 
-        label: 'Pencapaian Target Tabungan (%)', 
-        data: weddingPercentages.length > 0 ? weddingPercentages : [0], 
-        borderColor: '#6366f1', 
-        backgroundColor: 'rgba(99, 102, 241, 0.1)',
-        tension: 0.3, 
-        fill: true,
-        pointBackgroundColor: '#6366f1',
-        pointBorderColor: '#fff',
-        pointRadius: 4,
-        pointHoverRadius: 6,
-        pointBackgroundColor: (context) => {
-          const value = weddingPercentages[context.dataIndex];
-          if (value >= 100) return '#10b981';
-          if (value >= 75) return '#f59e0b';
-          if (value >= 50) return '#6366f1';
-          return '#ef4444';
+      labels: labels.length > 0 ? labels : ['Belum ada data'],
+      datasets: [
+        {
+          label: 'Pencapaian Target Tabungan (%)',
+          data: weddingPercentages.length > 0 ? weddingPercentages : [0],
+          borderColor: '#6366f1',
+          backgroundColor: 'rgba(99, 102, 241, 0.1)',
+          tension: 0.3,
+          fill: true,
+          pointBackgroundColor: (context) => {
+            const value = weddingPercentages[context.dataIndex];
+            if (value >= 100) return '#10b981';
+            if (value >= 75) return '#f59e0b';
+            if (value >= 50) return '#6366f1';
+            return '#ef4444';
+          },
+          pointBorderColor: '#fff',
+          pointRadius: 5,
+          pointHoverRadius: 7,
+          yAxisID: 'y',
+        },
+        {
+          label: 'Target Bulanan (Rp Juta)',
+          data: monthRange.map(month => {
+            const target = monthlyTargets[month] || 0;
+            return target / 1000000;
+          }),
+          borderColor: '#f59e0b',
+          backgroundColor: 'rgba(245, 158, 11, 0.05)',
+          borderWidth: 2,
+          borderDash: [5, 5],
+          fill: false,
+          pointRadius: 3,
+          pointBackgroundColor: '#f59e0b',
+          pointBorderColor: '#fff',
+          type: 'line',
+          yAxisID: 'y1',
         }
-      }]
+      ]
     },
-    options: { 
-      responsive: true, 
+    options: {
+      responsive: true,
       maintainAspectRatio: false,
+      interaction: {
+        mode: 'index',
+        intersect: false,
+      },
       plugins: {
         legend: {
           position: 'top',
+          labels: {
+            usePointStyle: true,
+            boxWidth: 10,
+          }
         },
         tooltip: {
           mode: 'index',
           intersect: false,
           callbacks: {
             label: function(context) {
-              const percentage = context.raw;
-              const monthIndex = context.dataIndex;
-              const amountInJuta = weddingValues[monthIndex] || 0;
-              return [
-                `Pencapaian: ${percentage}%`,
-                `(Rp ${amountInJuta.toLocaleString()} Juta dari Rp ${(weddingTarget / 1000000).toLocaleString()} Juta)`
-              ];
+              const datasetLabel = context.dataset.label;
+              const value = context.raw;
+              
+              if (datasetLabel.includes('Pencapaian')) {
+                const monthIndex = context.dataIndex;
+                const amountInJuta = weddingCumulative[monthIndex] / 1000000;
+                return [
+                  `${datasetLabel}: ${value}%`,
+                  `(Total: Rp ${amountInJuta.toLocaleString()} Juta dari Rp ${(weddingTarget / 1000000).toLocaleString()} Juta)`
+                ];
+              } else if (datasetLabel.includes('Target Bulanan')) {
+                return `${datasetLabel}: Rp ${value.toLocaleString()} Juta`;
+              }
+              return `${datasetLabel}: ${value}`;
             }
           }
         }
@@ -251,9 +389,11 @@ export function updateCharts(weddingHistory, totalPlansDone, totalPlansAll, wedd
         y: {
           beginAtZero: true,
           max: 100,
+          position: 'left',
           title: {
             display: true,
-            text: 'Pencapaian Target (%)'
+            text: 'Pencapaian Target (%)',
+            font: { weight: 'bold', size: 12 }
           },
           ticks: {
             callback: function(value) {
@@ -271,27 +411,41 @@ export function updateCharts(weddingHistory, totalPlansDone, totalPlansAll, wedd
             }
           }
         },
+        y1: {
+          beginAtZero: true,
+          position: 'right',
+          title: {
+            display: true,
+            text: 'Target Bulanan (Rp Juta)',
+            font: { weight: 'bold', size: 12 }
+          },
+          ticks: {
+            callback: function(value) {
+              return 'Rp ' + value.toLocaleString() + ' Jt';
+            }
+          },
+          grid: {
+            drawOnChartArea: false,
+          }
+        },
         x: {
           title: {
             display: true,
-            text: 'Bulan'
+            text: 'Bulan',
+            font: { weight: 'bold', size: 12 }
+          },
+          ticks: {
+            maxRotation: 45,
+            minRotation: 45,
+            autoSkip: true,
+            maxTicksLimit: 12
           }
-        }
-      },
-      // Add annotation-style target line
-      elements: {
-        line: {
-          borderWidth: 2
-        },
-        point: {
-          radius: 5,
-          hoverRadius: 7
         }
       }
     }
   });
   
-  // Add custom target line plugin
+  // Add custom target line plugin untuk garis 100%
   const targetLinePlugin = {
     id: 'targetLine',
     beforeDraw(chart) {
@@ -302,13 +456,12 @@ export function updateCharts(weddingHistory, totalPlansDone, totalPlansAll, wedd
       ctx.lineTo(right, scales.y.getPixelForValue(100));
       ctx.strokeStyle = '#10b981';
       ctx.lineWidth = 2;
-      ctx.setLineDash([5, 5]);
+      ctx.setLineDash([8, 6]);
       ctx.stroke();
       
-      // Add label "Target 100%"
       ctx.font = 'bold 10px Inter';
       ctx.fillStyle = '#10b981';
-      ctx.fillText('🎯 Target 100%', right - 70, scales.y.getPixelForValue(100) - 5);
+      ctx.fillText('🎯 Target 100%', right - 85, scales.y.getPixelForValue(100) - 5);
       
       ctx.restore();
     }
@@ -325,10 +478,11 @@ export function updateCharts(weddingHistory, totalPlansDone, totalPlansAll, wedd
       console.log("Error destroying plans chart:", e);
     }
   }
+  
   const ctx2 = plansChartEl.getContext('2d');
   if (!ctx2) return { weddingChart: newWeddingChart, plansChart };
   
-  // Ambil data plans dari window.masterData atau masterData
+  // Ambil data plans dari window.masterData
   const data = window.masterData || masterData;
   const plans = data?.plans || {};
   const plansArray = Object.entries(plans);
@@ -374,27 +528,26 @@ export function updateCharts(weddingHistory, totalPlansDone, totalPlansAll, wedd
     type: 'line',
     data: {
       labels: finalLabels,
-      datasets: [{ 
-        label: 'Progress Rencana (%)', 
-        data: finalData, 
-        borderColor: '#10b981', 
+      datasets: [{
+        label: 'Progress Rencana (%)',
+        data: finalData,
+        borderColor: '#10b981',
         backgroundColor: 'rgba(16, 185, 129, 0.1)',
-        tension: 0.3, 
+        tension: 0.3,
         fill: true,
-        pointBackgroundColor: '#10b981',
-        pointBorderColor: '#fff',
-        pointRadius: 4,
-        pointHoverRadius: 6,
         pointBackgroundColor: (context) => {
           const value = finalData[context.dataIndex];
           if (value >= 80) return '#10b981';
           if (value >= 50) return '#f59e0b';
           return '#ef4444';
-        }
+        },
+        pointBorderColor: '#fff',
+        pointRadius: 4,
+        pointHoverRadius: 6
       }]
     },
-    options: { 
-      responsive: true, 
+    options: {
+      responsive: true,
       maintainAspectRatio: false,
       plugins: {
         legend: {
@@ -421,7 +574,8 @@ export function updateCharts(weddingHistory, totalPlansDone, totalPlansAll, wedd
           max: Math.max(100, Math.max(...finalData) + 10),
           title: {
             display: true,
-            text: 'Progress (%)'
+            text: 'Progress (%)',
+            font: { weight: 'bold', size: 12 }
           },
           ticks: {
             callback: function(value) {
@@ -432,7 +586,8 @@ export function updateCharts(weddingHistory, totalPlansDone, totalPlansAll, wedd
         x: {
           title: {
             display: true,
-            text: plansWithDate.length > 0 ? 'Rencana (berdasarkan target tanggal)' : 'Rencana'
+            text: plansWithDate.length > 0 ? 'Rencana (berdasarkan target tanggal)' : 'Rencana',
+            font: { weight: 'bold', size: 12 }
           },
           ticks: {
             maxRotation: 45,
@@ -445,10 +600,11 @@ export function updateCharts(weddingHistory, totalPlansDone, totalPlansAll, wedd
     }
   });
   
-  console.log("Charts updated:", { 
-    weddingDataPoints: weddingLabels.length,
-    weddingPercentages: weddingPercentages,
-    plansDataPoints: finalLabels.length 
+  console.log("Charts updated:", {
+    months: labels,
+    percentages: weddingPercentages,
+    cumulative: weddingCumulative.map(v => v / 1000000),
+    plansDataPoints: finalLabels.length
   });
   
   return { weddingChart: newWeddingChart, plansChart: newPlansChart };
