@@ -6,8 +6,7 @@ import { renderDashboard, updateCharts } from './dashboard.js';
 import { savePlan, renderBoardPlans, updatePlan, deletePlanItem, addSubPlan, togglePlan, openEditPlan, deletePlanItemById, deleteSubPlan } from './planning.js';
 import { saveFinance, saveWeddingTarget, editFinance, renderFinances } from './financial.js';
 import { saveVision, renderVisions, toggleLike, addComment, openCommentModal, renderComments, initMoodSelector, setupFilterListeners, toggleBookmark, addReaction, shareToSocial, searchByTag, deleteVision } from './vision.js';
-import { initMomentPage, renderCalendar, renderMomentsList, saveMoment, viewMomentDetail, deleteMomentFromDetail, likeMoment, addMomentComment, changeMonth, exportMoments, selectMomentDate, openMomentModal, handleMultiplePhotos, removePhotoAtIndex } from './moment.js';
-
+import { initMomentPage, renderCalendar, renderMomentsList, saveMoment, viewMomentDetail, deleteMomentFromDetail, changeMonth, selectMomentDate, openMomentModal, handleMultiplePhotos, removePhotoAtIndex } from './moment.js';
 // Global variables
 let weddingChart = null;
 let plansChart = null;
@@ -496,7 +495,6 @@ window.deleteMomentFromDetail = deleteMomentFromDetail;
 window.likeMoment = likeMoment;
 window.addMomentComment = addMomentComment;
 window.changeMonth = changeMonth;
-window.exportMoments = exportMoments;
 window.selectMomentDate = selectMomentDate;
 window.openMomentModal = openMomentModal;
 window.handleMultiplePhotos = handleMultiplePhotos;
