@@ -1,4 +1,4 @@
-// js/dashboard.js
+// js/dashboard.js - Update bagian updateCharts function
 import { masterData, formatNumberRp, privacyHidden } from './utils.js';
 
 export function renderDashboard() {
@@ -175,7 +175,11 @@ export function updateCharts(weddingHistory, totalPlansDone, totalPlansAll, wedd
     return { weddingChart, plansChart };
   }
   
-  // Chart 1: Progres tabungan (line chart)
+  // Get wedding target for percentage calculation
+  const settings = window.masterData?.settings || { weddingTarget: 50000000 };
+  const weddingTarget = settings.weddingTarget;
+  
+  // Chart 1: Progres tabungan (dalam Persen terhadap target)
   if (weddingChart) {
     try {
       weddingChart.destroy();
@@ -189,13 +193,20 @@ export function updateCharts(weddingHistory, totalPlansDone, totalPlansAll, wedd
   const weddingLabels = weddingHistory.labels || [];
   const weddingValues = weddingHistory.values || [];
   
+  // Convert ke persen terhadap target
+  const weddingPercentages = weddingValues.map(val => {
+    const amountInRupiah = val * 1000000; // Konversi dari Juta ke Rupiah
+    const percentage = (amountInRupiah / weddingTarget) * 100;
+    return Math.min(100, Math.round(percentage * 10) / 10); // 1 desimal, max 100%
+  });
+  
   const newWeddingChart = new Chart(ctx, {
     type: 'line',
     data: {
       labels: weddingLabels.length > 0 ? weddingLabels : ['Belum ada data'],
       datasets: [{ 
-        label: 'Tabungan Nikah (Rp Juta)', 
-        data: weddingValues.length > 0 ? weddingValues : [0], 
+        label: 'Pencapaian Target Tabungan (%)', 
+        data: weddingPercentages.length > 0 ? weddingPercentages : [0], 
         borderColor: '#6366f1', 
         backgroundColor: 'rgba(99, 102, 241, 0.1)',
         tension: 0.3, 
@@ -203,7 +214,14 @@ export function updateCharts(weddingHistory, totalPlansDone, totalPlansAll, wedd
         pointBackgroundColor: '#6366f1',
         pointBorderColor: '#fff',
         pointRadius: 4,
-        pointHoverRadius: 6
+        pointHoverRadius: 6,
+        pointBackgroundColor: (context) => {
+          const value = weddingPercentages[context.dataIndex];
+          if (value >= 100) return '#10b981';
+          if (value >= 75) return '#f59e0b';
+          if (value >= 50) return '#6366f1';
+          return '#ef4444';
+        }
       }]
     },
     options: { 
@@ -218,7 +236,13 @@ export function updateCharts(weddingHistory, totalPlansDone, totalPlansAll, wedd
           intersect: false,
           callbacks: {
             label: function(context) {
-              return `Tabungan: ${context.raw} Juta`;
+              const percentage = context.raw;
+              const monthIndex = context.dataIndex;
+              const amountInJuta = weddingValues[monthIndex] || 0;
+              return [
+                `Pencapaian: ${percentage}%`,
+                `(Rp ${amountInJuta.toLocaleString()} Juta dari Rp ${(weddingTarget / 1000000).toLocaleString()} Juta)`
+              ];
             }
           }
         }
@@ -226,9 +250,25 @@ export function updateCharts(weddingHistory, totalPlansDone, totalPlansAll, wedd
       scales: {
         y: {
           beginAtZero: true,
+          max: 100,
           title: {
             display: true,
-            text: 'Juta Rupiah'
+            text: 'Pencapaian Target (%)'
+          },
+          ticks: {
+            callback: function(value) {
+              return value + '%';
+            },
+            stepSize: 20
+          },
+          grid: {
+            drawBorder: true,
+            color: (context) => {
+              if (context.tick.value === 100) return '#10b981';
+              if (context.tick.value === 75) return '#f59e0b';
+              if (context.tick.value === 50) return '#6366f1';
+              return '#e2e8f0';
+            }
           }
         },
         x: {
@@ -237,9 +277,45 @@ export function updateCharts(weddingHistory, totalPlansDone, totalPlansAll, wedd
             text: 'Bulan'
           }
         }
+      },
+      // Add annotation-style target line
+      elements: {
+        line: {
+          borderWidth: 2
+        },
+        point: {
+          radius: 5,
+          hoverRadius: 7
+        }
       }
     }
   });
+  
+  // Add custom target line plugin
+  const targetLinePlugin = {
+    id: 'targetLine',
+    beforeDraw(chart) {
+      const { ctx, chartArea: { top, bottom, left, right }, scales } = chart;
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(left, scales.y.getPixelForValue(100));
+      ctx.lineTo(right, scales.y.getPixelForValue(100));
+      ctx.strokeStyle = '#10b981';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([5, 5]);
+      ctx.stroke();
+      
+      // Add label "Target 100%"
+      ctx.font = 'bold 10px Inter';
+      ctx.fillStyle = '#10b981';
+      ctx.fillText('🎯 Target 100%', right - 70, scales.y.getPixelForValue(100) - 5);
+      
+      ctx.restore();
+    }
+  };
+  
+  // Register plugin
+  Chart.register(targetLinePlugin);
   
   // Chart 2: Progress rencana
   if (plansChart) {
@@ -308,7 +384,13 @@ export function updateCharts(weddingHistory, totalPlansDone, totalPlansAll, wedd
         pointBackgroundColor: '#10b981',
         pointBorderColor: '#fff',
         pointRadius: 4,
-        pointHoverRadius: 6
+        pointHoverRadius: 6,
+        pointBackgroundColor: (context) => {
+          const value = finalData[context.dataIndex];
+          if (value >= 80) return '#10b981';
+          if (value >= 50) return '#f59e0b';
+          return '#ef4444';
+        }
       }]
     },
     options: { 
@@ -323,7 +405,12 @@ export function updateCharts(weddingHistory, totalPlansDone, totalPlansAll, wedd
           intersect: false,
           callbacks: {
             label: function(context) {
-              return `Progress: ${context.raw}%`;
+              const progress = context.raw;
+              const planName = finalLabels[context.dataIndex];
+              return [
+                `${planName}: ${progress}%`,
+                progress >= 100 ? '✓ Selesai' : `${100 - progress}% lagi menuju selesai`
+              ];
             }
           }
         }
@@ -359,7 +446,8 @@ export function updateCharts(weddingHistory, totalPlansDone, totalPlansAll, wedd
   });
   
   console.log("Charts updated:", { 
-    weddingDataPoints: weddingLabels.length, 
+    weddingDataPoints: weddingLabels.length,
+    weddingPercentages: weddingPercentages,
     plansDataPoints: finalLabels.length 
   });
   
