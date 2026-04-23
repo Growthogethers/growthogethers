@@ -143,7 +143,7 @@
     </div>
   </div>
 </div>
-<!-- Modal Edit Rencana -->
+<!-- Modal Edit Rencana - Tanpa Progress Manual -->
 <div class="modal fade" id="planModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content rounded-4">
@@ -175,47 +175,51 @@
             <input type="date" id="editPlanTargetDate" class="form-control">
           </div>
           <div class="col-md-6">
-            <label class="form-label fw-semibold">Progress (%)</label>
-            <input type="number" id="editPlanProgress" class="form-control" min="0" max="100">
+            <label class="form-label fw-semibold">Estimasi Budget (Rp)</label>
+            <input type="number" id="editPlanBudget" class="form-control" placeholder="0">
           </div>
         </div>
         
         <div class="mb-3">
           <label class="form-label fw-semibold">Deskripsi</label>
-          <textarea id="editPlanDesc" class="form-control" rows="3"></textarea>
+          <textarea id="editPlanDesc" class="form-control" rows="2"></textarea>
         </div>
         
-        <div class="mb-3">
-          <label class="form-label fw-semibold">Anggaran (Rp)</label>
-          <input type="number" id="editPlanBudget" class="form-control">
-        </div>
-        
-        <div class="mb-3">
-          <label class="form-label fw-semibold">Prioritas</label>
-          <select id="editPlanPriority" class="form-select">
-            <option value="high">🔴 Tinggi</option>
-            <option value="medium">🟡 Sedang</option>
-            <option value="low">🟢 Rendah</option>
-          </select>
-        </div>
-        
-        <div class="form-check mb-3">
-          <input type="checkbox" id="editPlanIsUrgent" class="form-check-input">
-          <label class="form-check-label">⚠️ Urgent</label>
+        <div class="row g-3 mb-3">
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Prioritas</label>
+            <select id="editPlanPriority" class="form-select">
+              <option value="high">🔴 Tinggi</option>
+              <option value="medium">🟡 Sedang</option>
+              <option value="low">🟢 Rendah</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-check-label d-block mt-4">
+              <input type="checkbox" id="editPlanIsUrgent" class="form-check-input">
+              ⚠️ Tandai sebagai Urgent
+            </label>
+          </div>
         </div>
         
         <div class="bg-light p-3 rounded-3 mb-3">
           <label class="small fw-bold mb-2"><i class="bi bi-list-check me-1"></i>Sub Rencana / Checklist</label>
           <div class="input-group mb-2">
             <input id="newSubText" class="form-control form-control-sm" placeholder="Tambah subtugas...">
-            <button class="btn btn-sm btn-secondary" onclick="addSubPlan()">Tambah</button>
+            <button class="btn btn-sm btn-secondary" onclick="window.addSubPlan()">Tambah</button>
           </div>
           <div id="subPlansList" class="small"></div>
         </div>
+        
+        <!-- Info bahwa progress otomatis dari checklist -->
+        <div class="alert alert-info small py-2 mb-0">
+          <i class="bi bi-info-circle me-1"></i>
+          Progress akan terisi otomatis berdasarkan checklist yang dicentang
+        </div>
       </div>
       <div class="modal-footer border-0">
-        <button type="button" class="btn btn-danger" onclick="deletePlanItem()">Hapus Rencana</button>
-        <button type="button" class="btn btn-primary" onclick="updatePlan()">Simpan Perubahan</button>
+        <button type="button" class="btn btn-danger" onclick="window.deletePlanItem()">Hapus Rencana</button>
+        <button type="button" class="btn btn-primary" onclick="window.updatePlan()">Simpan Perubahan</button>
       </div>
     </div>
   </div>
