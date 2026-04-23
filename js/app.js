@@ -1,6 +1,6 @@
 // js/app.js
 import { db, ref, onValue, set, update, push, remove } from './firebase-config.js';
-import { masterData, setMasterData, showNotif, togglePrivacy, setCurrentUser } from './utils.js';
+import { masterData, setMasterData, showNotif, togglePrivacy, setCurrentUser, privacyHidden } from './utils.js';
 import { handleLogin, updateCloudPassword, resetPassword, confirmLogout, handleLogout } from './auth.js';
 import { renderDashboard, updateCharts } from './dashboard.js';
 import { savePlan, renderBoardPlans, updatePlan, deletePlanItem, addSubPlan, togglePlan, openEditPlan, deletePlanItemById, deleteSubPlan } from './planning.js';
@@ -60,7 +60,17 @@ async function loadComponents() {
   }
 }
 
-// ============ FUNGSI TAMBAHAN ============
+// Fungsi validasi global
+function validateRequiredFields(fields) {
+  for (const [fieldId, fieldName] of Object.entries(fields)) {
+    const element = document.getElementById(fieldId);
+    if (!element || !element.value || (element.value.trim && element.value.trim() === "")) {
+      showNotif(`❌ ${fieldName} harus diisi!`, true);
+      return false;
+    }
+  }
+  return true;
+}
 
 // Fungsi untuk couple chat
 function initCoupleChat() {
@@ -77,7 +87,6 @@ function initCoupleChat() {
 // Fungsi untuk backup & restore
 function initBackupRestore() {
   console.log("Backup & restore feature initialized");
-  // Backup data ke localStorage
   window.backupData = async () => {
     try {
       const snapshot = await get(ref(db, "data/"));
@@ -85,14 +94,14 @@ function initBackupRestore() {
       localStorage.setItem("growthogether_backup", JSON.stringify(data));
       showNotif("✅ Data berhasil di-backup ke browser");
     } catch (err) {
-      showNotif("Gagal backup: " + err.message, true);
+      showNotif("❌ Gagal backup: " + err.message, true);
     }
   };
   
   window.restoreData = async () => {
     const backup = localStorage.getItem("growthogether_backup");
     if (!backup) {
-      showNotif("Tidak ada backup ditemukan", true);
+      showNotif("❌ Tidak ada backup ditemukan", true);
       return;
     }
     try {
@@ -101,7 +110,7 @@ function initBackupRestore() {
       showNotif("✅ Data berhasil direstore");
       location.reload();
     } catch (err) {
-      showNotif("Gagal restore: " + err.message, true);
+      showNotif("❌ Gagal restore: " + err.message, true);
     }
   };
 }
@@ -117,7 +126,6 @@ function checkAchievements() {
     savingMilestone: false
   };
   
-  // Monitor achievements
   const checkInterval = setInterval(() => {
     if (!masterData) return;
     
@@ -126,7 +134,6 @@ function checkAchievements() {
     const visions = masterData.visions ? Object.keys(masterData.visions).length : 0;
     const completedPlans = masterData.plans ? Object.values(masterData.plans).filter(p => p.progress >= 100).length : 0;
     
-    // Hitung total tabungan
     let totalWedding = 0;
     if (masterData.finances) {
       Object.values(masterData.finances).forEach(f => {
@@ -161,12 +168,10 @@ function checkAchievements() {
 function initOfflineMode() {
   console.log("Offline mode initialized");
   
-  // Cache data ke localStorage
   if (masterData) {
     localStorage.setItem("growthogether_cache", JSON.stringify(masterData));
   }
   
-  // Detect online/offline
   window.addEventListener('online', () => {
     showNotif("📡 Kembali online, menyinkronkan data...");
     if (window.renderAll) window.renderAll();
@@ -206,8 +211,6 @@ function hideGlobalProgress() {
   }
 }
 
-// ============ END FUNGSI TAMBAHAN ============
-
 function attachEventListeners() {
   const darkFab = document.getElementById("darkModeFab");
   if (darkFab) {
@@ -244,11 +247,16 @@ function attachEventListeners() {
   if (privacyToggleDash) {
     privacyToggleDash.addEventListener("click", () => {
       togglePrivacy();
+      // Refresh financial page to hide/show targets
+      if (window.loadSavingTargets) window.loadSavingTargets();
+      if (window.renderFinances) window.renderFinances();
     });
   }
   if (privacyToggleFinance) {
     privacyToggleFinance.addEventListener("click", () => {
       togglePrivacy();
+      if (window.loadSavingTargets) window.loadSavingTargets();
+      if (window.renderFinances) window.renderFinances();
     });
   }
   
@@ -274,13 +282,23 @@ function attachEventListeners() {
       if (window.pendingDelete && window.pendingDelete.path && window.pendingDelete.id) {
         const { path, id } = window.pendingDelete;
         try {
-          const dbRef = ref(db, `data/${path}/${id}`);
-          await remove(dbRef);
-          showNotif("Data berhasil dihapus");
+          if (path === "settings/savingTargets") {
+            const settingsRef = ref(db, 'data/settings');
+            const snapshot = await get(settingsRef);
+            const settings = snapshot.val() || {};
+            const targets = settings.savingTargets || {};
+            delete targets[id];
+            await update(ref(db, 'data/settings'), { savingTargets: targets });
+          } else {
+            const dbRef = ref(db, `data/${path}/${id}`);
+            await remove(dbRef);
+          }
+          showNotif("🗑️ Data berhasil dihapus");
           if (window.renderAll) window.renderAll();
+          if (window.loadSavingTargets) window.loadSavingTargets();
         } catch (err) {
           console.error(err);
-          showNotif("Gagal hapus data: " + err.message, true);
+          showNotif("❌ Gagal hapus data: " + err.message, true);
         }
       }
       const modal = bootstrap.Modal.getInstance(document.getElementById("confirmDeleteModal"));
@@ -334,7 +352,6 @@ function showPage(pageId) {
     if (typeSelect && targetField) {
       targetField.style.display = typeSelect.value === "wedding" ? "block" : "none";
     }
-    // Panggil initFinancialPage saat halaman financial ditampilkan
     setTimeout(() => {
       if (window.initFinancialPage) {
         window.initFinancialPage();
@@ -342,7 +359,6 @@ function showPage(pageId) {
     }, 100);
   }
   
-  // Refresh moment page when shown
   if (pageId === "moment" && window.initMomentPage) {
     setTimeout(() => {
       window.initMomentPage();
@@ -384,7 +400,6 @@ function renderAll() {
   if (window.renderVisions) window.renderVisions();
   if (window.renderFinances) window.renderFinances();
   
-  // Refresh financial targets saat renderAll dipanggil
   if (window.loadSavingTargets) {
     window.loadSavingTargets();
   }
@@ -392,7 +407,6 @@ function renderAll() {
   const plansArray = masterData.plans ? Object.entries(masterData.plans) : [];
   if (window.renderBoardPlans) window.renderBoardPlans(plansArray);
   
-  // Refresh moment page if it's visible
   const momentPage = document.getElementById('moment-page');
   if (momentPage && momentPage.style.display !== 'none') {
     if (window.renderCalendar) window.renderCalendar();
@@ -516,16 +530,21 @@ window.openMomentModal = openMomentModal;
 window.handleMultiplePhotos = handleMultiplePhotos;
 window.removePhotoAtIndex = removePhotoAtIndex;
 
-window.backupData = null; // akan diisi di initBackupRestore
-window.restoreData = null;
-
 window.confirmDelete = (path, id) => {
   window.pendingDelete = { path, id };
   const modalEl = document.getElementById("confirmDeleteModal");
   if (modalEl) new bootstrap.Modal(modalEl).show();
 };
 
-window.deleteItem = (path, id) => window.confirmDelete(path, id);
+window.deleteItem = (path, id) => {
+  if (path === "settings/savingTargets") {
+    window.pendingDelete = { path: "settings/savingTargets", id: id };
+  } else {
+    window.pendingDelete = { path: path, id: id };
+  }
+  const modalEl = document.getElementById("confirmDeleteModal");
+  if (modalEl) new bootstrap.Modal(modalEl).show();
+};
 
 window.applyWeddingReco = async () => {
   showGlobalProgress();
@@ -534,7 +553,7 @@ window.applyWeddingReco = async () => {
     await push(ref(db, "data/plans"), { text: t, cat: "💍 Menikah", targetDate: "", progress: 0, done: false, sub: {} });
   }
   hideGlobalProgress();
-  showNotif("Rekomendasi wedding ditambahkan!");
+  showNotif("✅ Rekomendasi wedding ditambahkan!");
   if (window.renderAll) window.renderAll();
 };
 
@@ -545,7 +564,7 @@ window.applyTravelReco = async () => {
     await push(ref(db, "data/plans"), { text: t, cat: "✈️ Liburan", targetDate: "", progress: 0, done: false, sub: {} });
   }
   hideGlobalProgress();
-  showNotif("Rekomendasi liburan ditambahkan!");
+  showNotif("✅ Rekomendasi liburan ditambahkan!");
   if (window.renderAll) window.renderAll();
 };
 
@@ -553,6 +572,8 @@ window.hideToast = () => {
   const toast = document.getElementById("customToast");
   if (toast) toast.style.display = "none";
 };
+
+window.validateRequiredFields = validateRequiredFields;
 
 // Initialize
 document.addEventListener("DOMContentLoaded", () => {
