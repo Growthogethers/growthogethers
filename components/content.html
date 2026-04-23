@@ -223,7 +223,7 @@
   </div>
 </section>
 
-<!-- PLANNING PAGE - Clean & Modern UI -->
+<!-- PLANNING PAGE - Tanpa Search -->
 <section id="planning-page" style="display:none">
   <!-- Header Section -->
   <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
@@ -237,7 +237,27 @@
       <i class="bi bi-plus-lg me-2"></i>Buat Rencana
     </button>
   </div>
-  <!-- Planning Boards - Clean Card Layout -->
+
+  <!-- Filter Kategori Saja -->
+  <div class="card border-0 shadow-sm mb-4 p-3">
+    <div class="d-flex flex-wrap gap-2 align-items-center">
+      <span class="small text-muted me-2"><i class="bi bi-funnel-fill"></i> Filter:</span>
+      <button class="btn btn-sm btn-outline-secondary rounded-pill filter-cat active" data-cat="all">
+        <i class="bi bi-grid-3x3-gap-fill me-1"></i>Semua
+      </button>
+      <button class="btn btn-sm btn-outline-danger rounded-pill filter-cat" data-cat="menikah">
+        <i class="bi bi-heart-fill me-1"></i>Menikah
+      </button>
+      <button class="btn btn-sm btn-outline-info rounded-pill filter-cat" data-cat="lamaran">
+        <i class="bi bi-gem-fill me-1"></i>Lamaran
+      </button>
+      <button class="btn btn-sm btn-outline-warning rounded-pill filter-cat" data-cat="liburan">
+        <i class="bi bi-airplane-fill me-1"></i>Liburan
+      </button>
+    </div>
+  </div>
+
+  <!-- Planning Boards -->
   <div id="planBoardContainer">
     <!-- Menikah Section -->
     <div class="plan-category mb-4" data-category="menikah">
@@ -252,7 +272,7 @@
         <div class="col-12 text-center py-5 text-muted">
           <i class="bi bi-inbox fs-1"></i>
           <p class="mt-2 mb-0">Belum ada rencana</p>
-          <button class="btn btn-sm btn-outline-primary mt-2" onclick="window.confirmAddTemplate('💍 Menikah')">
+          <button class="btn btn-sm btn-outline-primary mt-2 rounded-pill" onclick="window.confirmAddTemplate('💍 Menikah')">
             <i class="bi bi-magic me-1"></i>Gunakan Template
           </button>
         </div>
@@ -272,7 +292,7 @@
         <div class="col-12 text-center py-5 text-muted">
           <i class="bi bi-inbox fs-1"></i>
           <p class="mt-2 mb-0">Belum ada rencana</p>
-          <button class="btn btn-sm btn-outline-primary mt-2" onclick="window.confirmAddTemplate('💍 Lamaran')">
+          <button class="btn btn-sm btn-outline-primary mt-2 rounded-pill" onclick="window.confirmAddTemplate('💍 Lamaran')">
             <i class="bi bi-magic me-1"></i>Gunakan Template
           </button>
         </div>
@@ -292,7 +312,7 @@
         <div class="col-12 text-center py-5 text-muted">
           <i class="bi bi-inbox fs-1"></i>
           <p class="mt-2 mb-0">Belum ada rencana</p>
-          <button class="btn btn-sm btn-outline-primary mt-2" onclick="window.confirmAddTemplate('✈️ Liburan')">
+          <button class="btn btn-sm btn-outline-primary mt-2 rounded-pill" onclick="window.confirmAddTemplate('✈️ Liburan')">
             <i class="bi bi-magic me-1"></i>Gunakan Template
           </button>
         </div>
@@ -300,7 +320,6 @@
     </div>
   </div>
 </section>
-
 <!-- Modal Tambah Rencana Baru - Simplified -->
 <div class="modal fade" id="addPlanModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered modal-md">
