@@ -19,30 +19,34 @@ export function initMoodSelector() {
     });
   });
   
-  // Set default active
   const defaultMood = document.querySelector('.mood-option[data-mood="✨"]');
   if (defaultMood) defaultMood.classList.add('active');
 }
 
-// Save Vision dengan semua fitur
+// Save Vision
 export async function saveVision() {
-  const t = document.getElementById("vTitle")?.value.trim();
-  if (!t) { showNotif("Judul wajib diisi", true); return; }
+  const title = document.getElementById("vTitle")?.value.trim();
+  if (!title) { showNotif("❌ Judul harus diisi!", true); return; }
   
   const mood = document.getElementById("visionMood")?.value || "✨";
-  const note = document.getElementById("vNote")?.value;
-  const vis = document.getElementById("vShare")?.value;
-  const tags = document.getElementById("visionTags")?.value;
+  const note = document.getElementById("vNote")?.value || "";
+  const visibility = document.getElementById("vShare")?.value || "Shared";
+  const tags = document.getElementById("visionTags")?.value || "";
   const isImportant = document.getElementById("visionImportant")?.checked || false;
   const currentUser = sessionStorage.getItem("progrowth_user");
   
+  if (!currentUser) {
+    showNotif("❌ Silakan login terlebih dahulu", true);
+    return;
+  }
+  
   await push(ref(db, "data/visions"), {
     author: currentUser,
-    title: t,
-    note: note || "",
+    title: title,
+    note: note,
     mood: mood,
-    visibility: vis,
-    tags: tags || "",
+    visibility: visibility,
+    tags: tags,
     isImportant: isImportant,
     createdAt: Date.now(),
     updatedAt: Date.now(),
@@ -50,18 +54,22 @@ export async function saveVision() {
     commentsCount: 0
   });
   
-  showNotif("Wawasan berhasil dibagikan! 🎉");
+  showNotif("✅ Wawasan berhasil dibagikan! 🎉");
   
-  // Reset form
-  document.getElementById("vTitle").value = "";
-  document.getElementById("vNote").value = "";
-  document.getElementById("visionTags").value = "";
-  document.getElementById("visionImportant").checked = false;
+  const titleInput = document.getElementById("vTitle");
+  const noteInput = document.getElementById("vNote");
+  const tagsInput = document.getElementById("visionTags");
+  const importantCheck = document.getElementById("visionImportant");
+  
+  if (titleInput) titleInput.value = "";
+  if (noteInput) noteInput.value = "";
+  if (tagsInput) tagsInput.value = "";
+  if (importantCheck) importantCheck.checked = false;
   
   if (window.renderAll) window.renderAll();
 }
 
-// Render Visions dengan filter, sort, search
+// Render Visions
 export function renderVisions() {
   const data = window.masterData || masterData;
   if (!data) return;
@@ -79,10 +87,8 @@ export function renderVisions() {
     const reactionsData = data.reactions || {};
     const currentUser = sessionStorage.getItem("progrowth_user");
     
-    // Load bookmarks
     loadBookmarks();
     
-    // Filter berdasarkan visibility dan user
     visions = visions.filter(([id, v]) => {
       if (currentFilter === 'my') return v.author === currentUser;
       if (currentFilter === 'shared') return v.visibility === "Shared";
@@ -91,7 +97,6 @@ export function renderVisions() {
       return v.author === currentUser || v.visibility === "Shared";
     });
     
-    // Search filter
     if (currentSearch) {
       const searchLower = currentSearch.toLowerCase();
       visions = visions.filter(([id, v]) => 
@@ -101,7 +106,6 @@ export function renderVisions() {
       );
     }
     
-    // Sorting
     visions.sort((a, b) => {
       const [idA, vA] = a;
       const [idB, vB] = b;
@@ -117,7 +121,7 @@ export function renderVisions() {
           const commentsA = Object.keys(commentsData[idA] || {}).length;
           const commentsB = Object.keys(commentsData[idB] || {}).length;
           return commentsB - commentsA;
-        default: // newest
+        default:
           return (vB.createdAt || 0) - (vA.createdAt || 0);
       }
     });
@@ -144,7 +148,6 @@ export function renderVisions() {
       const isBookmarked = bookmarks[id];
       const highlightClass = v.isImportant ? 'highlight' : '';
       
-      // Hitung reaksi untuk post ini
       const reactionCounts = {
         '❤️': Object.keys(reactions['❤️'] || {}).length,
         '👍': Object.keys(reactions['👍'] || {}).length,
@@ -158,12 +161,10 @@ export function renderVisions() {
         if (users[currentUser]) userReactions[reaction] = true;
       }
       
-      // Parse tags
       const tags = v.tags ? v.tags.split(',').map(tag => 
         `<span class="vision-tag" onclick="window.searchByTag('${tag.trim()}')">#${tag.trim()}</span>`
       ).join('') : '';
       
-      // Format date
       const date = v.createdAt ? new Date(v.createdAt).toLocaleDateString('id-ID', {
         day: 'numeric',
         month: 'long',
@@ -240,7 +241,6 @@ export function renderVisions() {
   }, 100);
 }
 
-// Helper: Time ago
 function getTimeAgo(timestamp) {
   const seconds = Math.floor((Date.now() - timestamp) / 1000);
   if (seconds < 60) return `${seconds} detik lalu`;
@@ -253,7 +253,6 @@ function getTimeAgo(timestamp) {
   return new Date(timestamp).toLocaleDateString();
 }
 
-// Load bookmarks dari Firebase
 async function loadBookmarks() {
   const currentUser = sessionStorage.getItem("progrowth_user");
   if (!currentUser) return;
@@ -263,7 +262,6 @@ async function loadBookmarks() {
   bookmarks = snapshot.val() || {};
 }
 
-// Toggle bookmark
 export async function toggleBookmark(vid) {
   const currentUser = sessionStorage.getItem("progrowth_user");
   const bookmarkRef = ref(db, `data/bookmarks/${currentUser}/${vid}`);
@@ -271,17 +269,16 @@ export async function toggleBookmark(vid) {
   
   if (snapshot.exists()) {
     await remove(bookmarkRef);
-    showNotif("Dihapus dari bookmark");
+    showNotif("🔖 Dihapus dari bookmark");
   } else {
     await set(bookmarkRef, true);
-    showNotif("Disimpan ke bookmark");
+    showNotif("📌 Disimpan ke bookmark");
   }
   
   await loadBookmarks();
   renderVisions();
 }
 
-// Add reaction
 export async function addReaction(vid, reaction) {
   const currentUser = sessionStorage.getItem("progrowth_user");
   const reactionRef = ref(db, `data/reactions/${vid}/${reaction}/${currentUser}`);
@@ -296,7 +293,6 @@ export async function addReaction(vid, reaction) {
   renderVisions();
 }
 
-// Share to social media
 export function shareToSocial(vid, title, note) {
   const url = `${window.location.origin}/vision/${vid}`;
   const text = `${title}\n\n${note.substring(0, 100)}...\n\nShared via Growthogether`;
@@ -309,31 +305,21 @@ export function shareToSocial(vid, title, note) {
     }).catch(() => {});
   } else {
     navigator.clipboard.writeText(`${text}\n${url}`);
-    showNotif("Link berhasil disalin! 📋");
+    showNotif("📋 Link berhasil disalin!");
   }
 }
 
-// Search by tag
 export function searchByTag(tag) {
   currentSearch = tag;
   document.getElementById("visionSearch").value = tag;
   renderVisions();
-  showNotif(`Menampilkan postingan dengan tag #${tag}`);
+  showNotif(`🔍 Menampilkan postingan dengan tag #${tag}`);
 }
 
-// Delete vision
 export async function deleteVision(vid) {
-  if (confirm("Yakin ingin menghapus postingan ini?")) {
-    await remove(ref(db, `data/visions/${vid}`));
-    await remove(ref(db, `data/comments/${vid}`));
-    await remove(ref(db, `data/likes/${vid}`));
-    await remove(ref(db, `data/reactions/${vid}`));
-    showNotif("Postingan dihapus");
-    renderVisions();
-  }
+  window.confirmDelete("visions", vid);
 }
 
-// Toggle like
 export async function toggleLike(vid) {
   const data = window.masterData || masterData;
   const likes = data?.likes?.[vid] || {};
@@ -348,10 +334,9 @@ export async function toggleLike(vid) {
   renderVisions();
 }
 
-// Add comment
 export async function addComment(parentId = null) {
   const text = document.getElementById("newCommentText")?.value.trim();
-  if (!text) { showNotif("Komentar tidak boleh kosong", true); return; }
+  if (!text) { showNotif("❌ Komentar tidak boleh kosong", true); return; }
   
   const vid = window.currentCommentVid;
   const commentData = {
@@ -368,18 +353,16 @@ export async function addComment(parentId = null) {
   
   document.getElementById("newCommentText").value = "";
   renderComments(vid);
-  showNotif("Komentar terkirim!");
+  showNotif("✅ Komentar terkirim!");
   
-  // Update comments count
   const comments = await get(ref(db, `data/comments/${vid}`));
   const commentCount = Object.keys(comments.val() || {}).length;
   await update(ref(db, `data/visions/${vid}`), { commentsCount: commentCount });
 }
 
-// Add reply
 export async function addReply(vid, parentId) {
   const text = document.getElementById(`replyText-${parentId}`)?.value.trim();
-  if (!text) { showNotif("Balasan tidak boleh kosong", true); return; }
+  if (!text) { showNotif("❌ Balasan tidak boleh kosong", true); return; }
   
   await push(ref(db, `data/comments/${vid}`), {
     user: sessionStorage.getItem("progrowth_user"),
@@ -391,10 +374,9 @@ export async function addReply(vid, parentId) {
   document.getElementById(`replyText-${parentId}`).value = "";
   document.getElementById(`replyForm-${parentId}`).style.display = "none";
   renderComments(vid);
-  showNotif("Balasan terkirim!");
+  showNotif("✅ Balasan terkirim!");
 }
 
-// Show reply form
 export function showReplyForm(parentId) {
   const form = document.getElementById(`replyForm-${parentId}`);
   if (form) {
@@ -402,14 +384,12 @@ export function showReplyForm(parentId) {
   }
 }
 
-// Render comments dengan thread
 export function renderComments(vid) {
   const data = window.masterData || masterData;
   const comments = data?.comments?.[vid] || {};
   const commentListEl = document.getElementById("commentList");
   if (!commentListEl) return;
   
-  // Group comments by parent
   const topComments = Object.entries(comments).filter(([id, cm]) => !cm.parentId);
   const replies = Object.entries(comments).filter(([id, cm]) => cm.parentId);
   
@@ -444,7 +424,6 @@ export function renderComments(vid) {
   commentListEl.innerHTML = list || "<p class='text-muted text-center py-3'>Belum ada komentar. Jadilah yang pertama!</p>";
 }
 
-// Open comment modal
 export function openCommentModal(vid) {
   window.currentCommentVid = vid;
   const commentVisionIdEl = document.getElementById("commentVisionId");
@@ -454,7 +433,6 @@ export function openCommentModal(vid) {
   if (modalEl) new bootstrap.Modal(modalEl).show();
 }
 
-// Setup filter listeners
 export function setupFilterListeners() {
   const filterSelect = document.getElementById("visionFilter");
   const sortSelect = document.getElementById("visionSort");
@@ -482,7 +460,6 @@ export function setupFilterListeners() {
   }
 }
 
-// Export ke window
 window.saveVision = saveVision;
 window.toggleLike = toggleLike;
 window.addComment = addComment;
