@@ -4,86 +4,55 @@ import { showNotif, masterData, escapeHtml } from './utils.js';
 
 export async function savePlan() {
   const text = document.getElementById("planText")?.value.trim();
-  if (!text) { showNotif("Nama rencana wajib", true); return; }
+  if (!text) { showNotif("❌ Nama rencana harus diisi!", true); return; }
   
   const cat = document.getElementById("planCat")?.value;
-  const targetDate = document.getElementById("planTargetDate")?.value;
-  let prog = parseInt(document.getElementById("planProgress")?.value);
-  const description = document.getElementById("planDesc")?.value;
-  const budget = parseInt(document.getElementById("planBudget")?.value);
-  const priority = document.getElementById("planPriority")?.value;
-  const isUrgent = document.getElementById("planIsUrgent")?.checked || false;
+  if (!cat) { showNotif("❌ Kategori harus dipilih!", true); return; }
   
+  const targetDate = document.getElementById("planTargetDate")?.value;
+  
+  let prog = parseInt(document.getElementById("planProgress")?.value);
   if (isNaN(prog)) prog = 0;
   prog = Math.min(100, Math.max(0, prog));
+  
+  const description = document.getElementById("planDesc")?.value || "";
+  const budget = parseInt(document.getElementById("planBudget")?.value) || 0;
+  const priority = document.getElementById("planPriority")?.value || "medium";
+  const isUrgent = document.getElementById("planIsUrgent")?.checked || false;
   
   await push(ref(db, "data/plans"), {
     text, cat, targetDate: targetDate || null,
     progress: prog, done: false, sub: {},
-    description: description || "",
-    budget: budget || 0,
-    priority: priority || "medium",
+    description: description,
+    budget: budget,
+    priority: priority,
     isUrgent: isUrgent,
     createdAt: Date.now(),
     updatedAt: Date.now()
   });
   
-  if (targetDate && Notification.permission === "granted") {
-    new Notification("✨ Rencana Baru", { body: `"${text}" ditambahkan dengan target ${targetDate}` });
-  }
+  showNotif("✅ Rencana berhasil ditambahkan!");
   
-  showNotif("Rencana ditambahkan!");
-  
-  // Reset form dan tutup modal
   const modal = bootstrap.Modal.getInstance(document.getElementById("addPlanModal"));
   if (modal) modal.hide();
   
-  // Reset form fields
   const planTextEl = document.getElementById("planText");
   const planTargetDateEl = document.getElementById("planTargetDate");
   const planProgressEl = document.getElementById("planProgress");
   const planDescEl = document.getElementById("planDesc");
   const planBudgetEl = document.getElementById("planBudget");
+  const planPriorityEl = document.getElementById("planPriority");
+  const planIsUrgentEl = document.getElementById("planIsUrgent");
   
   if (planTextEl) planTextEl.value = "";
   if (planTargetDateEl) planTargetDateEl.value = "";
   if (planProgressEl) planProgressEl.value = "";
   if (planDescEl) planDescEl.value = "";
   if (planBudgetEl) planBudgetEl.value = "";
+  if (planPriorityEl) planPriorityEl.value = "medium";
+  if (planIsUrgentEl) planIsUrgentEl.checked = false;
   
-  // PENTING: Refresh semua tampilan
-  if (window.renderAll) {
-    window.renderAll();
-  } else {
-    // Fallback: refresh dashboard dan board plans
-    if (window.renderDashboard) window.renderDashboard();
-    if (window.renderBoardPlans) {
-      const plansArray = window.masterData?.plans ? Object.entries(window.masterData.plans) : [];
-      window.renderBoardPlans(plansArray);
-    }
-    if (window.updateCharts) {
-      // Trigger chart update
-      const finances = window.masterData?.finances ? Object.entries(window.masterData.finances) : [];
-      let weddingHistoryMap = new Map();
-      finances.forEach(([id, f]) => {
-        if (f.type === "wedding" && f.date) {
-          let month = f.date.substring(0, 7);
-          weddingHistoryMap.set(month, (weddingHistoryMap.get(month) || 0) + f.amt);
-        }
-      });
-      const sortedMonths = Array.from(weddingHistoryMap.keys()).sort();
-      let cumulative = 0;
-      const labels = [], values = [];
-      sortedMonths.forEach(month => {
-        cumulative += weddingHistoryMap.get(month);
-        labels.push(month);
-        values.push(cumulative / 1e6);
-      });
-      const totalPlans = plansArray.length;
-      const totalPlansDone = plansArray.filter(p => p[1].progress >= 100).length;
-      window.updateCharts({ labels, values }, totalPlansDone, totalPlans, null, null);
-    }
-  }
+  if (window.renderAll) window.renderAll();
 }
 
 export function renderBoardPlans(plansMap) {
@@ -108,7 +77,6 @@ export function renderBoardPlans(plansMap) {
       continue;
     }
     
-    // Urutkan berdasarkan priority dan urgent
     catPlans.sort((a, b) => {
       const priorityOrder = { high: 0, medium: 1, low: 2 };
       const priorityA = priorityOrder[a[1].priority || "medium"];
@@ -208,7 +176,7 @@ export async function updatePlan() {
   const id = document.getElementById("editPlanId")?.value;
   const pid = document.getElementById("editPlanParentId")?.value;
   const text = document.getElementById("editPlanText")?.value.trim();
-  if (!text) { showNotif("Nama wajib", true); return; }
+  if (!text) { showNotif("❌ Nama rencana harus diisi!", true); return; }
   
   const cat = document.getElementById("editPlanCat")?.value;
   const targetDate = document.getElementById("editPlanTargetDate")?.value;
@@ -231,20 +199,11 @@ export async function updatePlan() {
     updatedAt: Date.now(),
     done: prog >= 100
   });
-  showNotif("Rencana diupdate");
+  showNotif("✅ Rencana berhasil diupdate");
   const modal = bootstrap.Modal.getInstance(document.getElementById("planModal"));
   if (modal) modal.hide();
   
-  // PENTING: Refresh semua tampilan
-  if (window.renderAll) {
-    window.renderAll();
-  } else {
-    if (window.renderDashboard) window.renderDashboard();
-    if (window.renderBoardPlans) {
-      const plansArray = window.masterData?.plans ? Object.entries(window.masterData.plans) : [];
-      window.renderBoardPlans(plansArray);
-    }
-  }
+  if (window.renderAll) window.renderAll();
 }
 
 export async function deletePlanItem() {
@@ -252,33 +211,23 @@ export async function deletePlanItem() {
   if (!id) return;
   const path = pid ? `data/plans/${pid}/sub/${id}` : `data/plans/${id}`;
   await remove(ref(db, path));
-  showNotif("Rencana dihapus");
+  showNotif("🗑️ Rencana berhasil dihapus");
   const modal = bootstrap.Modal.getInstance(document.getElementById("planModal"));
   if (modal) modal.hide();
   
-  // PENTING: Refresh semua tampilan
-  if (window.renderAll) {
-    window.renderAll();
-  } else {
-    if (window.renderDashboard) window.renderDashboard();
-    if (window.renderBoardPlans) {
-      const plansArray = window.masterData?.plans ? Object.entries(window.masterData.plans) : [];
-      window.renderBoardPlans(plansArray);
-    }
-  }
+  if (window.renderAll) window.renderAll();
 }
 
 export async function addSubPlan() {
   const pid = document.getElementById("editPlanId")?.value;
   const text = document.getElementById("newSubText")?.value.trim();
-  if (!text) { showNotif("Isi sub rencana", true); return; }
+  if (!text) { showNotif("❌ Isi sub rencana terlebih dahulu", true); return; }
   
   await push(ref(db, `data/plans/${pid}/sub`), { text, done: false, progress: 0, targetDate: null });
   const newSubTextEl = document.getElementById("newSubText");
   if (newSubTextEl) newSubTextEl.value = "";
-  showNotif("Checklist ditambahkan");
+  showNotif("✅ Checklist berhasil ditambahkan");
   
-  // Refresh sub plans list
   if (pid) {
     const data = window.masterData || masterData;
     const plan = data?.plans?.[pid];
@@ -287,10 +236,7 @@ export async function addSubPlan() {
     }
   }
   
-  // Refresh board plans
-  if (window.renderAll) {
-    window.renderAll();
-  }
+  if (window.renderAll) window.renderAll();
 }
 
 function renderSubPlansList(pid, subs) {
@@ -314,18 +260,9 @@ function renderSubPlansList(pid, subs) {
 export async function togglePlan(id, status, pid = null) {
   const path = pid ? `data/plans/${pid}/sub/${id}` : `data/plans/${id}`;
   await update(ref(db, path), { done: !status });
-  showNotif(!status ? "✅ Selesai" : "Dibatalkan");
+  showNotif(!status ? "✅ Checklist selesai!" : "⏸️ Checklist dibatalkan");
   
-  // PENTING: Refresh semua tampilan
-  if (window.renderAll) {
-    window.renderAll();
-  } else {
-    if (window.renderDashboard) window.renderDashboard();
-    if (window.renderBoardPlans) {
-      const plansArray = window.masterData?.plans ? Object.entries(window.masterData.plans) : [];
-      window.renderBoardPlans(plansArray);
-    }
-  }
+  if (window.renderAll) window.renderAll();
 }
 
 export function openEditPlan(id, pid = null) {
@@ -357,7 +294,6 @@ export function openEditPlan(id, pid = null) {
   
   window.currentDeletePlanId = { id, pid };
   
-  // Render sub plans jika ada
   if (!pid && plan.sub) {
     renderSubPlansList(id, plan.sub);
   } else {
@@ -375,11 +311,10 @@ export function deletePlanItemById(id) {
 
 export async function deleteSubPlan(pid, sid) {
   await remove(ref(db, `data/plans/${pid}/sub/${sid}`));
-  showNotif("Checklist dihapus");
+  showNotif("🗑️ Checklist berhasil dihapus");
   if (window.renderAll) window.renderAll();
 }
 
-// Export ke window
 window.renderBoardPlans = renderBoardPlans;
 window.deleteSubPlan = deleteSubPlan;
 window.savePlan = savePlan;
