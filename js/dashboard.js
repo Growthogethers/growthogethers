@@ -9,8 +9,8 @@ function formatMonthDisplayDashboard(month) {
   return `${monthNames[parseInt(monthNum) - 1]} ${year}`;
 }
 
-// Helper untuk mendapatkan range bulan dari target awal ke target akhir
-function getMonthRangeFromTargets(savingTargets) {
+// Helper untuk mendapatkan semua bulan dari range target
+function getAllMonthsFromTargets(savingTargets) {
   if (!savingTargets || Object.keys(savingTargets).length === 0) {
     return [];
   }
@@ -33,7 +33,6 @@ function getMonthRangeFromTargets(savingTargets) {
     return [];
   }
   
-  // Generate semua bulan dari earliestStart sampai latestEnd
   const startDate = new Date(earliestStart + '-01');
   const endDate = new Date(latestEnd + '-01');
   const months = [];
@@ -49,22 +48,19 @@ function getMonthRangeFromTargets(savingTargets) {
   return months;
 }
 
-// Helper untuk mendapatkan target per bulan dari savingTargets
+// Helper untuk mendapatkan target per bulan dari savingTargets (akumulasi)
 function getMonthlyTargetsFromTargets(savingTargets, monthRange) {
   const monthlyTargets = {};
   
-  // Inisialisasi semua bulan dengan 0
   monthRange.forEach(month => {
     monthlyTargets[month] = 0;
   });
   
-  // Distribusikan target ke bulan-bulan yang termasuk dalam periode target
   Object.values(savingTargets).forEach(target => {
     const startDate = new Date(target.startDate);
     const endDate = new Date(target.endDate);
     const targetAmount = target.amount;
     
-    // Hitung jumlah bulan dalam periode target
     let currentDate = new Date(startDate);
     let monthCount = 0;
     
@@ -75,10 +71,8 @@ function getMonthlyTargetsFromTargets(savingTargets, monthRange) {
     
     if (monthCount === 0) return;
     
-    // Bagi target per bulan (rata-rata)
     const monthlyAmount = targetAmount / monthCount;
     
-    // Distribusikan ke setiap bulan
     currentDate = new Date(startDate);
     while (currentDate <= endDate) {
       const year = currentDate.getFullYear();
@@ -94,6 +88,31 @@ function getMonthlyTargetsFromTargets(savingTargets, monthRange) {
   });
   
   return monthlyTargets;
+}
+
+// Helper untuk menghitung total dalam periode
+function calculateTotalInPeriod(startDate, endDate, finances) {
+  let total = 0;
+  Object.values(finances).forEach(f => {
+    if (f.type === 'wedding' && f.date) {
+      if (f.date >= startDate && f.date <= endDate) {
+        total += f.amt;
+      }
+    }
+  });
+  return total;
+}
+
+// Helper format month year
+function formatMonthYearDisplay(dateStr) {
+  if (!dateStr) return '';
+  const parts = dateStr.split('-');
+  if (parts.length === 3) {
+    const monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+    const monthName = monthNames[parseInt(parts[1]) - 1];
+    return `${monthName} ${parts[0]}`;
+  }
+  return dateStr;
 }
 
 export function renderDashboard() {
@@ -122,12 +141,12 @@ export function renderDashboard() {
   const totalWed = wA + wB;
   const percent = targetWed > 0 ? Math.min(100, (totalWed / targetWed) * 100) : 0;
   
-  // Hitung target dari savingTargets untuk bulan berjalan
+  // ============ PERHITUNGAN TARGET BULAN INI DARI SAVING TARGETS ============
   const now = new Date();
   const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   
   // Dapatkan semua bulan dari range target
-  const monthRange = getMonthRangeFromTargets(savingTargets);
+  const monthRange = getAllMonthsFromTargets(savingTargets);
   const monthlyTargets = getMonthlyTargetsFromTargets(savingTargets, monthRange);
   
   let currentMonthTarget = 0;
@@ -138,7 +157,7 @@ export function renderDashboard() {
     currentMonthTarget = monthlyTargets[currentMonth];
   }
   
-  // Hitung tabungan bulan ini
+  // Hitung tabungan bulan ini dari finances
   finances.forEach(([id, f]) => {
     if (f.type === "wedding" && f.date?.substring(0, 7) === currentMonth) {
       currentMonthSaved += f.amt;
@@ -173,7 +192,6 @@ export function renderDashboard() {
   const doneP = plansArray.filter(p => p[1].progress >= 100).length;
   const percentDone = totalP > 0 ? Math.round((doneP / totalP) * 100) : 0;
   
-  // Update total shared card
   const totalSharedEl = document.getElementById("totalShared");
   if (totalSharedEl) totalSharedEl.innerHTML = visions.length;
   
@@ -261,17 +279,16 @@ export function renderDashboard() {
     }
   }
   
-  // Update target info di dashboard (3 kolom)
+  // ============ UPDATE TARGET INFO DI DASHBOARD (3 KOLOM) ============
   const targetInfoContainer = document.getElementById("targetInfo");
   if (targetInfoContainer) {
-    // Cari target aktif (belum tercapai)
     let activeTargets = [];
     let totalTargetAmount = 0;
     let totalSavedAmount = 0;
     let completedTargets = 0;
     
     Object.entries(savingTargets).forEach(([id, target]) => {
-      const saved = calculateTotalInPeriod(target.startDate, target.endDate, finances);
+      const saved = calculateTotalInPeriod(target.startDate, target.endDate, masterData.finances || {});
       totalTargetAmount += target.amount;
       totalSavedAmount += saved;
       
@@ -282,11 +299,15 @@ export function renderDashboard() {
       }
     });
     
-    // Urutkan target aktif berdasarkan endDate terdekat
     activeTargets.sort((a, b) => new Date(a.endDate) - new Date(b.endDate));
     
     const nextTarget = activeTargets.length > 0 ? activeTargets[0] : null;
     const overallPercent = totalTargetAmount > 0 ? (totalSavedAmount / totalTargetAmount) * 100 : 0;
+    
+    const formatWithPrivacy = (value) => {
+      if (privacyHidden) return "●●● ●●●";
+      return formatNumberRp(value);
+    };
     
     targetInfoContainer.innerHTML = `
       <div class="col-md-4">
@@ -295,8 +316,8 @@ export function renderDashboard() {
             <i class="bi bi-calendar-month fs-3 text-primary"></i>
           </div>
           <h6 class="mt-1 mb-1 fw-semibold">Target Bulan Ini</h6>
-          <h4 class="fw-bold mb-0 text-primary">${formatNumberRp(currentMonthSaved)}</h4>
-          <small class="text-muted">Target: ${formatNumberRp(currentMonthTarget)}</small>
+          <h4 class="fw-bold mb-0 text-primary">${formatWithPrivacy(currentMonthSaved)}</h4>
+          <small class="text-muted">Target: ${formatWithPrivacy(currentMonthTarget)}</small>
           ${currentMonthTarget > 0 ? `
             <div class="progress mt-2" style="height: 6px; border-radius: 10px;">
               <div class="progress-bar bg-primary" style="width: ${monthPercent}%; border-radius: 10px;"></div>
@@ -304,7 +325,7 @@ export function renderDashboard() {
             <small class="mt-2 ${currentMonthSaved >= currentMonthTarget ? 'text-success fw-semibold' : 'text-warning'}">
               ${currentMonthSaved >= currentMonthTarget ? '✓ Target Bulanan Tercapai!' : `${Math.round(monthPercent)}% tercapai`}
             </small>
-          ` : '<small class="text-muted mt-2">Belum ada target untuk bulan ini</small>'}
+          ` : '<small class="text-muted mt-2">Belum ada target untuk bulan ${formatMonthDisplayDashboard(currentMonth)}</small>'}
         </div>
       </div>
       
@@ -314,8 +335,8 @@ export function renderDashboard() {
             <i class="bi bi-piggy-bank fs-3 text-success"></i>
           </div>
           <h6 class="mt-1 mb-1 fw-semibold">Total Tabungan</h6>
-          <h4 class="fw-bold mb-0 text-success">${formatNumberRp(totalWed)}</h4>
-          <small class="text-muted">Target Keseluruhan: ${formatNumberRp(targetWed)}</small>
+          <h4 class="fw-bold mb-0 text-success">${formatWithPrivacy(totalWed)}</h4>
+          <small class="text-muted">Target Keseluruhan: ${formatWithPrivacy(targetWed)}</small>
           <div class="progress mt-2" style="height: 6px; border-radius: 10px;">
             <div class="progress-bar bg-success" style="width: ${percent}%; border-radius: 10px;"></div>
           </div>
@@ -330,12 +351,12 @@ export function renderDashboard() {
               <i class="bi bi-flag-checkered fs-3 text-warning"></i>
             </div>
             <h6 class="mt-1 mb-1 fw-semibold">Target Aktif Terdekat</h6>
-            <h4 class="fw-bold mb-0 text-warning">${formatNumberRp(nextTarget.amount)}</h4>
+            <h4 class="fw-bold mb-0 text-warning">${formatWithPrivacy(nextTarget.amount)}</h4>
             <small class="text-muted">${formatMonthYearDisplay(nextTarget.startDate)} - ${formatMonthYearDisplay(nextTarget.endDate)}</small>
             <div class="progress mt-2" style="height: 6px; border-radius: 10px;">
               <div class="progress-bar bg-warning" style="width: ${(nextTarget.saved / nextTarget.amount) * 100}%; border-radius: 10px;"></div>
             </div>
-            <small class="mt-2 text-muted">Terkumpul: ${formatNumberRp(nextTarget.saved)}</small>
+            <small class="mt-2 text-muted">Terkumpul: ${formatWithPrivacy(nextTarget.saved)}</small>
             <div class="mt-2">
               <span class="badge bg-warning bg-opacity-10 text-warning">🎯 ${Math.ceil((nextTarget.saved / nextTarget.amount) * 100)}% tercapai</span>
             </div>
@@ -365,34 +386,10 @@ export function renderDashboard() {
     `;
   }
   
-  console.log("Dashboard updated:", { totalWed: formatNumberRp(totalWed), percent: Math.round(percent) });
+  console.log("Dashboard updated:", { totalWed: formatNumberRp(totalWed), percent: Math.round(percent), currentMonthTarget, currentMonthSaved });
 }
 
-// Helper untuk menghitung total dalam periode
-function calculateTotalInPeriod(startDate, endDate, finances) {
-  let total = 0;
-  Object.values(finances).forEach(f => {
-    if (f.type === 'wedding' && f.date) {
-      if (f.date >= startDate && f.date <= endDate) {
-        total += f.amt;
-      }
-    }
-  });
-  return total;
-}
-
-// Helper format month year
-function formatMonthYearDisplay(dateStr) {
-  if (!dateStr) return '';
-  const parts = dateStr.split('-');
-  if (parts.length === 3) {
-    const monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
-    const monthName = monthNames[parseInt(parts[1]) - 1];
-    return `${monthName} ${parts[0]}`;
-  }
-  return dateStr;
-}
-
+// ============ UPDATE CHARTS DENGAN SINKRONISASI TARGET ============
 export function updateCharts(weddingHistory, totalPlansDone, totalPlansAll, weddingChart, plansChart) {
   const weddingChartEl = document.getElementById('weddingTrendChart');
   const plansChartEl = document.getElementById('plansProgressChart');
@@ -402,12 +399,10 @@ export function updateCharts(weddingHistory, totalPlansDone, totalPlansAll, wedd
     return { weddingChart, plansChart };
   }
   
-  // Get wedding target and saving targets
   const settings = window.masterData?.settings || { weddingTarget: 50000000 };
   const weddingTarget = settings.weddingTarget;
   const savingTargets = settings.savingTargets || {};
   
-  // Ambil data tabungan dari masterData
   const finances = window.masterData?.finances || {};
   const weddingSavings = {};
   
@@ -419,12 +414,11 @@ export function updateCharts(weddingHistory, totalPlansDone, totalPlansAll, wedd
     }
   });
   
-  // Dapatkan range bulan dari target (dari awal target pertama sampai akhir target terakhir)
+  // ============ GENERATE BULAN DARI RANGE TARGET ============
   let monthRange = [];
   let monthlyTargets = {};
   
   if (savingTargets && Object.keys(savingTargets).length > 0) {
-    // Cari earliest start dan latest end dari semua target
     let earliestStart = null;
     let latestEnd = null;
     
@@ -440,7 +434,6 @@ export function updateCharts(weddingHistory, totalPlansDone, totalPlansAll, wedd
     });
     
     if (earliestStart && latestEnd) {
-      // Generate semua bulan dari earliestStart sampai latestEnd
       const startDate = new Date(earliestStart + '-01');
       const endDate = new Date(latestEnd + '-01');
       const current = new Date(startDate);
@@ -452,13 +445,12 @@ export function updateCharts(weddingHistory, totalPlansDone, totalPlansAll, wedd
         current.setMonth(current.getMonth() + 1);
       }
       
-      // Hitung target per bulan (distribusi rata-rata dari setiap target)
+      // Hitung target per bulan (akumulasi dari semua target)
       Object.values(savingTargets).forEach(target => {
         const targetStart = new Date(target.startDate);
         const targetEnd = new Date(target.endDate);
         const targetAmount = target.amount;
         
-        // Hitung jumlah bulan dalam periode target
         let currentDate = new Date(targetStart);
         let monthCount = 0;
         
@@ -471,7 +463,6 @@ export function updateCharts(weddingHistory, totalPlansDone, totalPlansAll, wedd
         
         const monthlyAmount = targetAmount / monthCount;
         
-        // Distribusikan ke setiap bulan
         currentDate = new Date(targetStart);
         while (currentDate <= targetEnd) {
           const year = currentDate.getFullYear();
@@ -512,11 +503,13 @@ export function updateCharts(weddingHistory, totalPlansDone, totalPlansAll, wedd
     return `${monthNames[parseInt(monthNum) - 1]} ${year}`;
   });
   
-  // Hitung cumulative savings dan persentase
+  // ============ HITUNG CUMULATIVE SAVINGS DAN PERSENTASE ============
   let cumulative = 0;
   const cumulativeValues = [];
   const percentages = [];
   const targetValues = [];
+  const cumulativeTargetValues = [];
+  let cumulativeTarget = 0;
   
   monthRange.forEach(month => {
     cumulative += weddingSavings[month] || 0;
@@ -525,10 +518,15 @@ export function updateCharts(weddingHistory, totalPlansDone, totalPlansAll, wedd
     percentages.push(Math.round(percentage * 10) / 10);
     
     // Target per bulan (dari savingTargets)
-    targetValues.push((monthlyTargets[month] || 0) / 1000000);
+    const monthlyTarget = monthlyTargets[month] || 0;
+    targetValues.push(monthlyTarget / 1000000);
+    
+    // Cumulative target untuk menunjukkan progress yang diharapkan
+    cumulativeTarget += monthlyTarget;
+    cumulativeTargetValues.push(cumulativeTarget / 1000000);
   });
   
-  // Chart 1: Progres tabungan (dalam Persen terhadap target)
+  // ============ CHART 1: Progres tabungan ============
   if (weddingChart) {
     try {
       weddingChart.destroy();
@@ -565,15 +563,28 @@ export function updateCharts(weddingHistory, totalPlansDone, totalPlansAll, wedd
           yAxisID: 'y',
         },
         {
-          label: 'Target Bulanan (Rp Juta)',
-          data: targetValues,
-          borderColor: '#f59e0b',
-          backgroundColor: 'rgba(245, 158, 11, 0.05)',
+          label: 'Target Tabungan Kumulatif (Rp Juta)',
+          data: cumulativeTargetValues,
+          borderColor: '#10b981',
+          backgroundColor: 'rgba(16, 185, 129, 0.05)',
           borderWidth: 2,
-          borderDash: [5, 5],
+          borderDash: [8, 4],
           fill: false,
           pointRadius: 3,
-          pointBackgroundColor: '#f59e0b',
+          pointBackgroundColor: '#10b981',
+          pointBorderColor: '#fff',
+          type: 'line',
+          yAxisID: 'y1',
+        },
+        {
+          label: 'Realisasi Tabungan (Rp Juta)',
+          data: cumulativeValues.map(v => v / 1000000),
+          borderColor: '#ef4444',
+          backgroundColor: 'rgba(239, 68, 68, 0.1)',
+          borderWidth: 2,
+          fill: false,
+          pointRadius: 4,
+          pointBackgroundColor: '#ef4444',
           pointBorderColor: '#fff',
           type: 'line',
           yAxisID: 'y1',
@@ -607,11 +618,17 @@ export function updateCharts(weddingHistory, totalPlansDone, totalPlansAll, wedd
               if (datasetLabel.includes('Pencapaian')) {
                 const monthIndex = context.dataIndex;
                 const amountInJuta = cumulativeValues[monthIndex] / 1000000;
+                const targetInJuta = cumulativeTargetValues[monthIndex];
+                const gap = targetInJuta - amountInJuta;
                 return [
                   `${datasetLabel}: ${value}%`,
-                  `(Total: Rp ${amountInJuta.toLocaleString()} Juta dari Rp ${(weddingTarget / 1000000).toLocaleString()} Juta)`
+                  `Realisasi: Rp ${amountInJuta.toLocaleString()} Juta`,
+                  `Target: Rp ${targetInJuta.toLocaleString()} Juta`,
+                  gap > 0 ? `Kekurangan: Rp ${gap.toLocaleString()} Juta` : `✅ Melebihi target: Rp ${Math.abs(gap).toLocaleString()} Juta`
                 ];
-              } else if (datasetLabel.includes('Target Bulanan')) {
+              } else if (datasetLabel.includes('Target Tabungan Kumulatif')) {
+                return `${datasetLabel}: Rp ${value.toLocaleString()} Juta`;
+              } else if (datasetLabel.includes('Realisasi Tabungan')) {
                 return `${datasetLabel}: Rp ${value.toLocaleString()} Juta`;
               }
               return `${datasetLabel}: ${value}`;
@@ -650,7 +667,7 @@ export function updateCharts(weddingHistory, totalPlansDone, totalPlansAll, wedd
           position: 'right',
           title: {
             display: true,
-            text: 'Target Bulanan (Rp Juta)',
+            text: 'Nominal (Rp Juta)',
             font: { weight: 'bold', size: 11 }
           },
           ticks: {
@@ -702,10 +719,9 @@ export function updateCharts(weddingHistory, totalPlansDone, totalPlansAll, wedd
     }
   };
   
-  // Register plugin
   Chart.register(targetLinePlugin);
   
-  // Chart 2: Progress rencana (tetap sama seperti sebelumnya)
+  // ============ CHART 2: Progress rencana ============
   if (plansChart) {
     try {
       plansChart.destroy();
@@ -717,12 +733,10 @@ export function updateCharts(weddingHistory, totalPlansDone, totalPlansAll, wedd
   const ctx2 = plansChartEl.getContext('2d');
   if (!ctx2) return { weddingChart: newWeddingChart, plansChart };
   
-  // Ambil data plans dari window.masterData
   const data = window.masterData || masterData;
   const plans = data?.plans || {};
   const plansArray = Object.entries(plans);
   
-  // Hitung progress kumulatif berdasarkan tanggal target
   const plansWithDate = plansArray.filter(p => p[1].targetDate && p[1].targetDate !== "");
   plansWithDate.sort((a, b) => new Date(a[1].targetDate) - new Date(b[1].targetDate));
   
@@ -758,6 +772,8 @@ export function updateCharts(weddingHistory, totalPlansDone, totalPlansAll, wedd
     finalLabels = ['Belum ada rencana'];
     finalData = [0];
   }
+  
+  const maxProgress = Math.max(100, Math.max(...finalData) + 10);
   
   const newPlansChart = new Chart(ctx2, {
     type: 'line',
@@ -807,7 +823,7 @@ export function updateCharts(weddingHistory, totalPlansDone, totalPlansAll, wedd
       scales: {
         y: {
           beginAtZero: true,
-          max: Math.max(100, Math.max(...finalData) + 10),
+          max: maxProgress,
           title: {
             display: true,
             text: 'Progress (%)',
@@ -842,12 +858,13 @@ export function updateCharts(weddingHistory, totalPlansDone, totalPlansAll, wedd
     months: labels,
     percentages: percentages,
     targetValues: targetValues,
+    cumulativeTargetValues: cumulativeTargetValues,
     plansDataPoints: finalLabels.length
   });
   
   return { weddingChart: newWeddingChart, plansChart: newPlansChart };
 }
 
-// Export ke window untuk akses global
+// Export ke window
 window.renderDashboard = renderDashboard;
 window.updateCharts = updateCharts;
