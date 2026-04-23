@@ -1,4 +1,4 @@
-// js/planning.js - Clean Card UI
+// js/planning.js - Tanpa Progress Manual
 import { db, ref, push, update, remove } from './firebase-config.js';
 import { showNotif, masterData, escapeHtml, formatNumberRp, privacyHidden } from './utils.js';
 
@@ -43,7 +43,7 @@ const categoryTemplates = {
 export async function addTemplateToCategory(category) {
   const templates = categoryTemplates[category];
   if (!templates) {
-    showNotif(`❌ Template tidak ditemukan`, true);
+    showNotif("❌ Template tidak ditemukan", true);
     return;
   }
   
@@ -168,10 +168,10 @@ export async function togglePlan(id, status, pid = null) {
   if (window.renderAll) window.renderAll();
 }
 
-export async function toggleSubPlanWithBudget(pid, sid, currentStatus) {
+export async function toggleSubPlanCheckbox(pid, sid, currentStatus) {
   await update(ref(db, `data/plans/${pid}/sub/${sid}`), { done: !currentStatus });
   const newProgress = await updateParentProgress(pid);
-  showNotif(!currentStatus ? `✅ Selesai! Progress: ${newProgress}%` : `⏸️ Dibatalkan`);
+  showNotif(!currentStatus ? `✅ Checklist selesai! Progress: ${newProgress}%` : `⏸️ Checklist dibatalkan`);
   if (window.renderAll) window.renderAll();
 }
 
@@ -227,7 +227,6 @@ export function renderBoardPlans(plansMap) {
         <div class="col-md-6 col-lg-4">
           <div class="plan-card card border-0 shadow-sm h-100 ${isDone ? 'border-start border-success border-3' : ''}">
             <div class="card-body p-3">
-              <!-- Header -->
               <div class="d-flex justify-content-between align-items-start mb-2">
                 <div class="flex-grow-1">
                   <div class="d-flex align-items-center gap-2 flex-wrap">
@@ -255,7 +254,6 @@ export function renderBoardPlans(plansMap) {
                 </div>
               </div>
               
-              <!-- Progress Bar -->
               <div class="mt-2">
                 <div class="d-flex justify-content-between small mb-1">
                   <span class="text-muted">Progress</span>
@@ -266,7 +264,6 @@ export function renderBoardPlans(plansMap) {
                 </div>
               </div>
               
-              <!-- Budget Info (if any) -->
               ${p.estimatedBudget > 0 ? `
                 <div class="mt-2 pt-2 border-top">
                   <div class="d-flex justify-content-between small">
@@ -285,14 +282,12 @@ export function renderBoardPlans(plansMap) {
                 </div>
               ` : ''}
               
-              <!-- Target Date -->
               ${p.targetDate ? `
                 <div class="mt-2 small text-muted">
                   <i class="bi bi-calendar"></i> Target: ${new Date(p.targetDate).toLocaleDateString('id-ID')}
                 </div>
               ` : ''}
               
-              <!-- Checklist Summary -->
               ${p.sub && Object.keys(p.sub).length > 0 ? `
                 <div class="mt-2">
                   <div class="d-flex justify-content-between small text-muted">
@@ -302,7 +297,6 @@ export function renderBoardPlans(plansMap) {
                 </div>
               ` : ''}
               
-              <!-- Action Buttons -->
               <div class="mt-3 d-flex gap-2">
                 <button class="btn btn-sm btn-outline-secondary flex-grow-1 rounded-pill" onclick="window.addSubPlanWithDetails('${id}')">
                   <i class="bi bi-plus-circle"></i> Checklist
@@ -319,7 +313,6 @@ export function renderBoardPlans(plansMap) {
   }
 }
 
-// Add sub plan dengan detail
 export async function addSubPlanWithDetails(pid) {
   const text = prompt("Nama item:", "");
   if (!text || !text.trim()) { showNotif("❌ Nama harus diisi", true); return; }
@@ -338,7 +331,6 @@ export async function addSubPlanWithDetails(pid) {
   
   await updateParentProgress(pid);
   
-  // Update parent budget
   const data = window.masterData || masterData;
   const plan = data?.plans?.[pid];
   if (plan && plan.sub) {
@@ -366,21 +358,35 @@ export async function addBudgetToPlan(pid, currentEstimated, currentActual) {
 export async function updatePlan() {
   const id = document.getElementById("editPlanId")?.value;
   const text = document.getElementById("editPlanText")?.value.trim();
-  if (!text) { showNotif("❌ Nama rencana harus diisi!", true); return; }
+  
+  if (!text) { 
+    showNotif("❌ Nama rencana harus diisi!", true); 
+    return; 
+  }
   
   const cat = document.getElementById("editPlanCat")?.value;
   const targetDate = document.getElementById("editPlanTargetDate")?.value;
   const description = document.getElementById("editPlanDesc")?.value;
+  const budget = parseInt(document.getElementById("editPlanBudget")?.value) || 0;
+  const priority = document.getElementById("editPlanPriority")?.value;
+  const isUrgent = document.getElementById("editPlanIsUrgent")?.checked || false;
   
   await update(ref(db, `data/plans/${id}`), { 
-    text, cat, targetDate, 
+    text, 
+    cat, 
+    targetDate: targetDate || null, 
     description: description || "",
+    estimatedBudget: budget,
+    priority: priority || "medium",
+    isUrgent: isUrgent,
     updatedAt: Date.now()
   });
+  
   showNotif("✅ Rencana berhasil diupdate");
   
   const modal = bootstrap.Modal.getInstance(document.getElementById("planModal"));
   if (modal) modal.hide();
+  
   if (window.renderAll) window.renderAll();
 }
 
@@ -401,11 +407,42 @@ export async function addSubPlan() {
   const text = document.getElementById("newSubText")?.value.trim();
   if (!text) { showNotif("❌ Isi checklist", true); return; }
   
-  await push(ref(db, `data/plans/${pid}/sub`), { text, done: false, estimatedCost: 0, actualCost: 0 });
+  await push(ref(db, `data/plans/${pid}/sub`), { 
+    text, 
+    done: false, 
+    estimatedCost: 0, 
+    actualCost: 0,
+    createdAt: Date.now()
+  });
   document.getElementById("newSubText").value = "";
   showNotif("✅ Checklist ditambahkan");
   if (pid) await updateParentProgress(pid);
   if (window.renderAll) window.renderAll();
+}
+
+function renderSubPlansList(pid, subs) {
+  const container = document.getElementById("subPlansList");
+  if (!container) return;
+  
+  if (!subs || Object.keys(subs).length === 0) {
+    container.innerHTML = '<p class="text-muted small mb-0">Belum ada subtugas</p>';
+    return;
+  }
+  
+  container.innerHTML = Object.entries(subs).map(([sid, s]) => `
+    <div class="d-flex justify-content-between align-items-center mb-2 p-2 bg-white rounded-3">
+      <div class="form-check flex-grow-1">
+        <input class="form-check-input" type="checkbox" ${s.done ? 'checked' : ''} 
+               onchange="window.toggleSubPlanCheckbox('${pid}', '${sid}', ${s.done})">
+        <label class="form-check-label ${s.done ? 'text-decoration-line-through text-muted' : ''}">
+          ${escapeHtml(s.text)}
+        </label>
+        ${s.estimatedCost > 0 ? `<span class="badge bg-secondary bg-opacity-10 ms-2">Rp ${s.estimatedCost.toLocaleString()}</span>` : ''}
+      </div>
+      <i class="bi bi-trash text-danger small" style="cursor: pointer;" 
+         onclick="window.deleteSubPlan('${pid}', '${sid}')"></i>
+    </div>
+  `).join('');
 }
 
 export function openEditPlan(id, pid = null) {
@@ -419,8 +456,18 @@ export function openEditPlan(id, pid = null) {
   document.getElementById("editPlanCat").value = plan.cat || "💍 Menikah";
   document.getElementById("editPlanTargetDate").value = plan.targetDate || "";
   document.getElementById("editPlanDesc").value = plan.description || "";
+  document.getElementById("editPlanBudget").value = plan.estimatedBudget || 0;
+  document.getElementById("editPlanPriority").value = plan.priority || "medium";
+  document.getElementById("editPlanIsUrgent").checked = plan.isUrgent || false;
   
   window.currentDeletePlanId = { id, pid };
+  
+  if (!pid && plan.sub && Object.keys(plan.sub).length > 0) {
+    renderSubPlansList(id, plan.sub);
+  } else {
+    const subPlansList = document.getElementById("subPlansList");
+    if (subPlansList) subPlansList.innerHTML = "";
+  }
   
   const modalEl = document.getElementById("planModal");
   if (modalEl) new bootstrap.Modal(modalEl).show();
@@ -437,7 +484,6 @@ export async function deleteSubPlan(pid, sid) {
   if (window.renderAll) window.renderAll();
 }
 
-// Filter functionality
 export function initPlanFilter() {
   const filterBtns = document.querySelectorAll('.filter-cat');
   const categories = document.querySelectorAll('.plan-category');
@@ -454,18 +500,14 @@ export function initPlanFilter() {
           category.style.display = 'block';
         } else {
           const categoryType = category.dataset.category;
-          if (categoryType === cat) {
-            category.style.display = 'block';
-          } else {
-            category.style.display = 'none';
-          }
+          category.style.display = categoryType === cat ? 'block' : 'none';
         }
       });
     });
   });
 }
 
-// Export
+// Export semua fungsi
 window.renderBoardPlans = renderBoardPlans;
 window.deleteSubPlan = deleteSubPlan;
 window.savePlan = savePlan;
@@ -473,11 +515,11 @@ window.updatePlan = updatePlan;
 window.deletePlanItem = deletePlanItem;
 window.addSubPlan = addSubPlan;
 window.togglePlan = togglePlan;
+window.toggleSubPlanCheckbox = toggleSubPlanCheckbox;
 window.openEditPlan = openEditPlan;
 window.deletePlanItemById = deletePlanItemById;
 window.addTemplateToCategory = addTemplateToCategory;
 window.confirmAddTemplate = confirmAddTemplate;
 window.addSubPlanWithDetails = addSubPlanWithDetails;
-window.toggleSubPlanWithBudget = toggleSubPlanWithBudget;
 window.addBudgetToPlan = addBudgetToPlan;
 window.initPlanFilter = initPlanFilter;
