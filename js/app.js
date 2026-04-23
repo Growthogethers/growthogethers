@@ -49,7 +49,8 @@ async function loadComponents() {
     // Inisialisasi semua fitur tambahan
     if (window.initMoodSelector) window.initMoodSelector();
     if (window.setupFilterListeners) window.setupFilterListeners();
-    if (window.initMomentPage) window.initMomentPage();
+    if (window.initMomentPage) window.initMomentPage
+    if (window.initPlanFilter) window.initPlanFilter();
     initCoupleChat();
     initBackupRestore();
     checkAchievements();
