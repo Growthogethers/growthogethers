@@ -71,7 +71,7 @@ export async function addTemplateToCategory(category) {
   if (window.renderAll) window.renderAll();
 }
 
-// Fungsi untuk menambahkan template via modal konfirmasi (pakai custom confirm)
+// Fungsi untuk menambahkan template via custom confirm
 export function confirmAddTemplate(category) {
   const categoryDisplay = {
     "💍 Lamaran": "Lamaran",
@@ -79,7 +79,6 @@ export function confirmAddTemplate(category) {
     "✈️ Liburan": "Liburan"
   }[category] || category;
   
-  // Gunakan custom confirm instead of browser confirm
   showCustomConfirm(
     `Tambahkan template checklist untuk ${categoryDisplay}?\n\nTemplate akan menambahkan ${categoryTemplates[category]?.length || 0} item rencana dengan estimasi budget.`,
     () => addTemplateToCategory(category)
@@ -94,7 +93,6 @@ function showCustomConfirm(message, onConfirm) {
   const titleEl = document.getElementById('customConfirmTitle');
   
   if (!modal || !messageEl || !okBtn) {
-    // Fallback ke confirm biasa jika modal tidak ada
     if (confirm(message)) onConfirm();
     return;
   }
@@ -141,7 +139,6 @@ export async function savePlan() {
   const modal = bootstrap.Modal.getInstance(document.getElementById("addPlanModal"));
   if (modal) modal.hide();
   
-  // Reset form fields
   const planTextEl = document.getElementById("planText");
   const planTargetDateEl = document.getElementById("planTargetDate");
   const planDescEl = document.getElementById("planDesc");
@@ -177,6 +174,42 @@ async function updateParentProgress(pid) {
     return newProgress;
   }
   return 0;
+}
+
+// Toggle plan (untuk main plan) - DIPERLUKAN UNTUK KOMPATIBILITAS
+export async function togglePlan(id, status, pid = null) {
+  const path = pid ? `data/plans/${pid}/sub/${id}` : `data/plans/${id}`;
+  await update(ref(db, path), { done: !status });
+  
+  if (!pid) {
+    // Jika toggle main plan, update progress ke 100 atau 0
+    const newProgress = !status ? 100 : 0;
+    await update(ref(db, `data/plans/${id}`), { 
+      progress: newProgress,
+      updatedAt: Date.now()
+    });
+  } else {
+    // Jika toggle sub plan, update parent progress
+    await updateParentProgress(pid);
+  }
+  
+  showNotif(!status ? "✅ Selesai!" : "⏸️ Dibatalkan");
+  if (window.renderAll) window.renderAll();
+}
+
+// Toggle sub plan dengan update budget otomatis
+export async function toggleSubPlanWithBudget(pid, sid, currentStatus) {
+  const data = window.masterData || masterData;
+  const subPlan = data?.plans?.[pid]?.sub?.[sid];
+  
+  if (!subPlan) return;
+  
+  await update(ref(db, `data/plans/${pid}/sub/${sid}`), { done: !currentStatus });
+  
+  const newProgress = await updateParentProgress(pid);
+  
+  showNotif(!currentStatus ? `✅ "${subPlan.text}" selesai! Progress: ${newProgress}%` : `⏸️ "${subPlan.text}" dibatalkan`);
+  if (window.renderAll) window.renderAll();
 }
 
 export function renderBoardPlans(plansMap) {
@@ -216,7 +249,6 @@ export function renderBoardPlans(plansMap) {
     }
     
     container.innerHTML = catPlans.map(([id, p]) => {
-      // Hitung progress dari checklist jika ada
       const currentProgress = p.sub && Object.keys(p.sub).length > 0 
         ? calculateProgressFromSubs(p.sub)
         : (p.progress || 0);
@@ -224,8 +256,6 @@ export function renderBoardPlans(plansMap) {
       const isDone = currentProgress >= 100;
       const remainingBudget = (p.estimatedBudget || 0) - (p.actualBudget || 0);
       const isFullyPaid = (p.actualBudget || 0) >= (p.estimatedBudget || 0) && p.estimatedBudget > 0;
-      
-      // Hitung progress keuangan
       const budgetProgress = p.estimatedBudget > 0 
         ? Math.min(100, ((p.actualBudget || 0) / p.estimatedBudget) * 100)
         : 0;
@@ -244,6 +274,9 @@ export function renderBoardPlans(plansMap) {
               <div class="dropdown">
                 <i class="bi bi-three-dots-vertical text-muted" data-bs-toggle="dropdown" style="cursor: pointer;"></i>
                 <ul class="dropdown-menu">
+                  <li><a class="dropdown-item" onclick="window.togglePlan('${id}', ${isDone})">
+                    <i class="bi bi-check-circle me-2"></i>${isDone ? 'Batal Selesai' : 'Tandai Selesai'}
+                  </a></li>
                   <li><a class="dropdown-item" onclick="window.openEditPlan('${id}')">
                     <i class="bi bi-pencil me-2"></i>Edit
                   </a></li>
@@ -360,26 +393,8 @@ export function renderBoardPlans(plansMap) {
   }
 }
 
-// Toggle sub plan dengan update budget otomatis
-export async function toggleSubPlanWithBudget(pid, sid, currentStatus) {
-  const data = window.masterData || masterData;
-  const subPlan = data?.plans?.[pid]?.sub?.[sid];
-  
-  if (!subPlan) return;
-  
-  // Update status done
-  await update(ref(db, `data/plans/${pid}/sub/${sid}`), { done: !currentStatus });
-  
-  // Update parent progress
-  const newProgress = await updateParentProgress(pid);
-  
-  showNotif(!currentStatus ? `✅ "${subPlan.text}" selesai! Progress: ${newProgress}%` : `⏸️ "${subPlan.text}" dibatalkan`);
-  if (window.renderAll) window.renderAll();
-}
-
-// Tambah sub plan dengan detail lengkap (budget, note, foto)
+// Tambah sub plan dengan detail lengkap
 export async function addSubPlanWithDetails(pid) {
-  // Gunakan modal atau prompt dengan custom dialog
   const text = prompt("Masukkan nama persiapan:", "");
   if (!text || !text.trim()) { showNotif("❌ Nama persiapan harus diisi", true); return; }
   
@@ -417,7 +432,6 @@ export async function addCostToSubPlan(pid, sid, currentEstimated, currentActual
       estimatedCost: currentEstimated
     });
     
-    // Update actual budget di parent plan
     const data = window.masterData || masterData;
     const plan = data?.plans?.[pid];
     if (plan && plan.sub) {
@@ -434,7 +448,7 @@ export async function addCostToSubPlan(pid, sid, currentEstimated, currentActual
       });
     }
     
-    showNotif(`✅ Biaya "${plan?.sub?.[sid]?.text || 'item'}" diupdate ke ${formatNumberRp(newActual)}`);
+    showNotif(`✅ Biaya diupdate ke ${formatNumberRp(newActual)}`);
     if (window.renderAll) window.renderAll();
   }
 }
@@ -505,10 +519,8 @@ async function saveSubPlanWithData(pid, text, note, estimatedCost, actualCost, p
     createdAt: Date.now()
   });
   
-  // Update parent progress
   await updateParentProgress(pid);
   
-  // Update parent budget
   const data = window.masterData || masterData;
   const plan = data?.plans?.[pid];
   if (plan && plan.sub) {
@@ -589,6 +601,23 @@ export async function deletePlanItem() {
   if (window.renderAll) window.renderAll();
 }
 
+export async function addSubPlan() {
+  const pid = document.getElementById("editPlanId")?.value;
+  const text = document.getElementById("newSubText")?.value.trim();
+  if (!text) { showNotif("❌ Isi sub rencana terlebih dahulu", true); return; }
+  
+  await push(ref(db, `data/plans/${pid}/sub`), { text, done: false, estimatedCost: 0, actualCost: 0 });
+  const newSubTextEl = document.getElementById("newSubText");
+  if (newSubTextEl) newSubTextEl.value = "";
+  showNotif("✅ Checklist berhasil ditambahkan");
+  
+  if (pid) {
+    await updateParentProgress(pid);
+  }
+  
+  if (window.renderAll) window.renderAll();
+}
+
 export function openEditPlan(id, pid = null) {
   const data = window.masterData || masterData;
   const plan = pid ? data?.plans?.[pid]?.sub?.[id] : data?.plans?.[id];
@@ -620,36 +649,19 @@ export function deletePlanItemById(id) {
 
 export async function deleteSubPlan(pid, sid) {
   await remove(ref(db, `data/plans/${pid}/sub/${sid}`));
-  
-  // Update parent progress
   await updateParentProgress(pid);
-  
-  // Update parent budget
-  const data = window.masterData || masterData;
-  const plan = data?.plans?.[pid];
-  if (plan && plan.sub) {
-    let totalEstimated = 0;
-    let totalActual = 0;
-    Object.values(plan.sub).forEach(sub => {
-      totalEstimated += sub.estimatedCost || 0;
-      totalActual += sub.actualCost || 0;
-    });
-    await update(ref(db, `data/plans/${pid}`), { 
-      estimatedBudget: totalEstimated,
-      actualBudget: totalActual
-    });
-  }
-  
   showNotif("🗑️ Item berhasil dihapus");
   if (window.renderAll) window.renderAll();
 }
 
-// Export ke window
+// Export semua fungsi ke window
 window.renderBoardPlans = renderBoardPlans;
 window.deleteSubPlan = deleteSubPlan;
 window.savePlan = savePlan;
 window.updatePlan = updatePlan;
 window.deletePlanItem = deletePlanItem;
+window.addSubPlan = addSubPlan;
+window.togglePlan = togglePlan;
 window.openEditPlan = openEditPlan;
 window.deletePlanItemById = deletePlanItemById;
 window.addTemplateToCategory = addTemplateToCategory;
