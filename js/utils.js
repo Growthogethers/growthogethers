@@ -34,9 +34,9 @@ export function escapeHtml(str) {
 export function togglePrivacy() { 
   privacyHidden = !privacyHidden; 
   showNotif(privacyHidden ? "🔒 Angka disembunyikan" : "👁️ Angka ditampilkan"); 
-  // Trigger re-render
   if (window.renderDashboard) window.renderDashboard();
   if (window.renderFinances) window.renderFinances();
+  if (window.loadSavingTargets) window.loadSavingTargets();
 }
 
 export function setCurrentUser(user) { 
@@ -45,10 +45,9 @@ export function setCurrentUser(user) {
 
 export function setMasterData(data) { 
   masterData = data; 
-  window.masterData = data; // Sync to window
+  window.masterData = data;
 }
 
-// Tambahkan di utils.js
 export function getTimeAgo(timestamp) {
   const seconds = Math.floor((Date.now() - timestamp) / 1000);
   if (seconds < 60) return `${seconds} detik lalu`;
