@@ -1146,4 +1146,45 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     transform: scale(1);
     opacity: 1;
   }
+
+  /* Checklist item styling */
+.checklist-item {
+  transition: all 0.2s ease;
+}
+
+.checklist-item:hover {
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+.checklist-photo-preview {
+  transition: transform 0.2s ease;
+}
+
+.checklist-photo-preview:hover {
+  transform: scale(1.05);
+}
+
+/* Quick action buttons */
+.btn-outline-success:hover,
+.btn-outline-warning:hover,
+.btn-outline-danger:hover {
+  transform: translateY(-1px);
+}
+
+/* Sub plan item styling */
+.sub-plan-item {
+  border-left: 3px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.sub-plan-item.completed {
+  border-left-color: #10b981;
+  background-color: rgba(16, 185, 129, 0.05);
+}
+
+.sub-plan-item .checklist-note {
+  font-size: 0.7rem;
+  color: #6c757d;
+  margin-top: 4px;
+}
 }
