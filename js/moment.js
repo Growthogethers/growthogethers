@@ -32,7 +32,6 @@ window.hideMomentToast = function() {
   if (toast) toast.style.display = 'none';
 };
 
-// Custom confirm dialog (bukan browser default)
 function showCustomConfirm(message, onConfirm) {
   const modal = document.getElementById('customConfirmModal');
   const messageEl = document.getElementById('customConfirmMessage');
@@ -57,7 +56,6 @@ window.hideCustomConfirm = function() {
   if (modal) modal.style.display = 'none';
 };
 
-// Kompresi foto
 async function compressImage(file, maxSizeMB = 2) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -128,21 +126,21 @@ export async function handleMultiplePhotos(input) {
   const remainingSlots = 5 - currentMomentPhotos.length;
   
   if (files.length > remainingSlots) {
-    showMomentToast(`Maksimal 5 foto, tersisa ${remainingSlots} slot`, true);
+    showMomentToast(`❌ Maksimal 5 foto, tersisa ${remainingSlots} slot`, true);
     input.value = '';
     return;
   }
   
-  showMomentToast('Memproses foto...', false);
+  showMomentToast('📸 Memproses foto...', false);
   
   for (const file of files) {
     if (file.size > 5 * 1024 * 1024) {
-      showMomentToast(`Foto ${file.name} terlalu besar (max 5MB)`, true);
+      showMomentToast(`❌ Foto ${file.name} terlalu besar (max 5MB)`, true);
       continue;
     }
     
     if (!file.type.startsWith('image/')) {
-      showMomentToast(`File ${file.name} bukan gambar`, true);
+      showMomentToast(`❌ File ${file.name} bukan gambar`, true);
       continue;
     }
     
@@ -157,7 +155,7 @@ export async function handleMultiplePhotos(input) {
   input.value = '';
   renderPhotoGrid();
   if (files.length > 0) {
-    showMomentToast(`${files.length} foto berhasil ditambahkan`);
+    showMomentToast(`✅ ${files.length} foto berhasil ditambahkan`);
   }
 }
 
@@ -337,7 +335,6 @@ export function selectMomentDate(dateKey) {
   if (existingEntry) {
     viewMomentDetail(existingEntry[0]);
   } else {
-    // Reset form untuk tambah momen baru
     document.getElementById('momentEditId').value = '';
     document.getElementById('momentDate').value = dateKey;
     document.getElementById('momentTitle').value = '';
@@ -363,7 +360,6 @@ export function selectMomentDate(dateKey) {
 
 export function openMomentModal(momentId) {
   if (!momentId) {
-    // Reset untuk tambah baru
     document.getElementById('momentEditId').value = '';
     if (!document.getElementById('momentDate').value) {
       document.getElementById('momentDate').value = new Date().toISOString().split('T')[0];
@@ -384,7 +380,6 @@ export function openMomentModal(momentId) {
     
     renderPhotoGrid();
   } else {
-    // Edit existing moment
     const data = masterData;
     const moment = data?.moments?.[momentId];
     if (moment) {
@@ -424,12 +419,12 @@ export async function saveMoment() {
   const currentUser = sessionStorage.getItem('progrowth_user');
   
   if (!date) {
-    showMomentToast('Tanggal harus diisi', true);
+    showMomentToast('❌ Tanggal harus diisi', true);
     return;
   }
   
   if (currentMomentPhotos.length === 0) {
-    showMomentToast('Minimal upload 1 foto', true);
+    showMomentToast('❌ Minimal upload 1 foto', true);
     return;
   }
   
@@ -450,14 +445,14 @@ export async function saveMoment() {
       momentData.likes = {};
       momentData.comments = {};
       await push(ref(db, 'data/moments'), momentData);
-      showMomentToast('Momen berhasil ditambahkan! 🎉');
+      showMomentToast('✅ Momen berhasil ditambahkan! 🎉');
     } else {
       const existing = masterData?.moments?.[editId];
       momentData.createdAt = existing?.createdAt || Date.now();
       momentData.likes = existing?.likes || {};
       momentData.comments = existing?.comments || {};
       await update(ref(db, `data/moments/${editId}`), momentData);
-      showMomentToast('Momen berhasil diupdate! ✨');
+      showMomentToast('✅ Momen berhasil diupdate! ✨');
     }
     
     const modal = bootstrap.Modal.getInstance(document.getElementById('momentModal'));
@@ -467,7 +462,7 @@ export async function saveMoment() {
     renderMomentsList();
   } catch (err) {
     console.error(err);
-    showMomentToast('Gagal menyimpan momen', true);
+    showMomentToast('❌ Gagal menyimpan momen', true);
   }
 }
 
@@ -528,11 +523,10 @@ export function editMomentFromDetail() {
 }
 
 export async function deleteMomentFromDetail() {
-  // Gunakan custom confirm, bukan browser default
   showCustomConfirm('Yakin ingin menghapus momen ini?', async () => {
     try {
       await remove(ref(db, `data/moments/${currentDetailMomentId}`));
-      showMomentToast('Momen berhasil dihapus');
+      showMomentToast('🗑️ Momen berhasil dihapus');
       
       const modal = bootstrap.Modal.getInstance(document.getElementById('momentDetailModal'));
       if (modal) modal.hide();
@@ -541,7 +535,7 @@ export async function deleteMomentFromDetail() {
       renderMomentsList();
     } catch (err) {
       console.error(err);
-      showMomentToast('Gagal menghapus momen', true);
+      showMomentToast('❌ Gagal menghapus momen', true);
     }
   });
 }
@@ -551,7 +545,6 @@ export function changeMonth(delta) {
   renderCalendar();
 }
 
-// Export ke window
 window.initMomentPage = initMomentPage;
 window.renderCalendar = renderCalendar;
 window.renderMomentsList = renderMomentsList;
