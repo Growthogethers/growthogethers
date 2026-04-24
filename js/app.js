@@ -16,6 +16,247 @@ window.currentCommentVid = null;
 window.editFinanceId = null;
 window.pendingDelete = { path: null, id: null };
 
+// ============ UI/UX IMPROVEMENTS ============
+
+// Loading overlay untuk operasi async
+let loadingOverlay = null;
+
+function showLoadingOverlay(message = "Memproses...") {
+  if (loadingOverlay) {
+    loadingOverlay.remove();
+  }
+  
+  loadingOverlay = document.createElement('div');
+  loadingOverlay.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+    z-index: 20000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+  `;
+  
+  const spinner = document.createElement('div');
+  spinner.className = 'loading-spinner';
+  spinner.style.width = '48px';
+  spinner.style.height = '48px';
+  spinner.style.border = '4px solid rgba(255,255,255,0.3)';
+  spinner.style.borderTop = '4px solid #6366f1';
+  
+  const text = document.createElement('p');
+  text.textContent = message;
+  text.style.color = 'white';
+  text.style.marginTop = '16px';
+  text.style.fontSize = '14px';
+  
+  loadingOverlay.appendChild(spinner);
+  loadingOverlay.appendChild(text);
+  document.body.appendChild(loadingOverlay);
+}
+
+function hideLoadingOverlay() {
+  if (loadingOverlay) {
+    loadingOverlay.remove();
+    loadingOverlay = null;
+  }
+}
+
+// Offline indicator
+let offlineIndicator = null;
+
+function showOfflineIndicator() {
+  if (offlineIndicator) return;
+  
+  offlineIndicator = document.createElement('div');
+  offlineIndicator.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: #ef4444;
+    color: white;
+    text-align: center;
+    padding: 8px;
+    font-size: 12px;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  `;
+  offlineIndicator.innerHTML = `
+    <i class="bi bi-wifi-off"></i>
+    <span>Mode Offline - Beberapa fitur mungkin tidak tersedia</span>
+  `;
+  document.body.appendChild(offlineIndicator);
+  
+  setTimeout(() => {
+    if (offlineIndicator) {
+      offlineIndicator.style.transition = 'transform 0.3s ease-out';
+      offlineIndicator.style.transform = 'translateY(-100%)';
+      setTimeout(() => {
+        if (offlineIndicator) offlineIndicator.remove();
+        offlineIndicator = null;
+      }, 300);
+    }
+  }, 5000);
+}
+
+function hideOfflineIndicator() {
+  if (offlineIndicator) {
+    offlineIndicator.remove();
+    offlineIndicator = null;
+  }
+}
+
+// Swipe gesture untuk sidebar (mobile)
+let touchStartX = 0;
+let touchEndX = 0;
+
+function initSwipeGesture() {
+  document.addEventListener('touchstart', (e) => {
+    touchStartX = e.changedTouches[0].screenX;
+  });
+  
+  document.addEventListener('touchend', (e) => {
+    touchEndX = e.changedTouches[0].screenX;
+    handleSwipe();
+  });
+}
+
+function handleSwipe() {
+  const swipeDistance = touchEndX - touchStartX;
+  const sidebar = document.getElementById('app-sidebar');
+  
+  if (!sidebar) return;
+  
+  if (swipeDistance > 50 && touchStartX < 50) {
+    sidebar.classList.add('open');
+  } else if (swipeDistance < -50 && sidebar.classList.contains('open')) {
+    sidebar.classList.remove('open');
+  }
+}
+
+// Double tap untuk back to top
+let lastTap = 0;
+
+function initDoubleTapBackToTop() {
+  document.addEventListener('touchend', (e) => {
+    const currentTime = new Date().getTime();
+    const tapLength = currentTime - lastTap;
+    
+    if (tapLength < 500 && tapLength > 0) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      showNotif("⬆️ Kembali ke atas", false);
+    }
+    
+    lastTap = currentTime;
+  });
+}
+
+// Pull to refresh (mobile)
+let pullStartY = 0;
+let pullEndY = 0;
+let isPulling = false;
+
+function initPullToRefresh() {
+  const container = document.querySelector('.main-content');
+  if (!container) return;
+  
+  let refreshIndicator = null;
+  
+  container.addEventListener('touchstart', (e) => {
+    if (window.scrollY === 0) {
+      pullStartY = e.touches[0].clientY;
+      isPulling = true;
+    }
+  });
+  
+  container.addEventListener('touchmove', (e) => {
+    if (isPulling && window.scrollY === 0) {
+      pullEndY = e.touches[0].clientY;
+      const pullDistance = pullEndY - pullStartY;
+      
+      if (pullDistance > 60 && !refreshIndicator) {
+        refreshIndicator = document.createElement('div');
+        refreshIndicator.style.cssText = `
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          background: #6366f1;
+          color: white;
+          text-align: center;
+          padding: 12px;
+          font-size: 12px;
+          z-index: 1000;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+        `;
+        refreshIndicator.innerHTML = `
+          <div class="loading-spinner" style="width: 16px; height: 16px; border-width: 2px;"></div>
+          <span>Menyegarkan...</span>
+        `;
+        document.body.appendChild(refreshIndicator);
+        
+        setTimeout(() => {
+          window.location.reload();
+        }, 500);
+      }
+    }
+  });
+  
+  container.addEventListener('touchend', () => {
+    isPulling = false;
+    pullStartY = 0;
+    pullEndY = 0;
+  });
+}
+
+// Initialize all UI/UX improvements
+function initUIUXImprovements() {
+  initSwipeGesture();
+  initDoubleTapBackToTop();
+  initPullToRefresh();
+  
+  // Online/offline detection
+  window.addEventListener('online', () => {
+    hideOfflineIndicator();
+    showNotif("📡 Kembali online", false);
+  });
+  
+  window.addEventListener('offline', () => {
+    showOfflineIndicator();
+  });
+  
+  // Close sidebar when clicking outside (mobile)
+  document.addEventListener('click', (e) => {
+    const sidebar = document.getElementById('app-sidebar');
+    const menuToggle = document.getElementById('menuToggleHp');
+    
+    if (window.innerWidth <= 768 && sidebar && sidebar.classList.contains('open')) {
+      if (!sidebar.contains(e.target) && !menuToggle?.contains(e.target)) {
+        sidebar.classList.remove('open');
+      }
+    }
+  });
+  
+  // Add touch feedback to all clickable elements
+  document.querySelectorAll('button, .nav-link, .bottom-nav-item, .calendar-day, .plan-card').forEach(el => {
+    el.style.touchAction = 'manipulation';
+  });
+}
+
+// ============ END UI/UX IMPROVEMENTS ============
+
 // Load components
 async function loadComponents() {
   try {
@@ -51,6 +292,8 @@ async function loadComponents() {
     if (window.setupFilterListeners) window.setupFilterListeners();
     if (window.initMomentPage) window.initMomentPage();
     if (window.initPlanFilter) window.initPlanFilter();
+    if (window.initUIUXImprovements) window.initUIUXImprovements();
+    
     initCoupleChat();
     initBackupRestore();
     checkAchievements();
@@ -513,6 +756,9 @@ window.renderBoardPlans = renderBoardPlans;
 window.togglePrivacy = togglePrivacy;
 window.showGlobalProgress = showGlobalProgress;
 window.hideGlobalProgress = hideGlobalProgress;
+window.showLoadingOverlay = showLoadingOverlay;
+window.hideLoadingOverlay = hideLoadingOverlay;
+window.initUIUXImprovements = initUIUXImprovements;
 
 // Financial functions exports
 window.initFinancialPage = initFinancialPage;
