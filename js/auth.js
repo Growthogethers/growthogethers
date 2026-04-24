@@ -2,6 +2,85 @@
 import { db, ref, get, update } from './firebase-config.js';
 import { showNotif, setCurrentUser } from './utils.js';
 
+// Variabel untuk session timeout
+let sessionTimeout = null;
+const SESSION_DURATION = 30 * 60 * 1000; // 30 menit dalam milidetik
+
+// Reset session timeout
+export function resetSessionTimeout() {
+  if (sessionTimeout) {
+    clearTimeout(sessionTimeout);
+  }
+  
+  sessionTimeout = setTimeout(() => {
+    autoLogout();
+  }, SESSION_DURATION);
+}
+
+// Auto logout karena session habis
+function autoLogout() {
+  const currentUser = sessionStorage.getItem("progrowth_user");
+  if (currentUser) {
+    showNotif("⏰ Session Anda telah berakhir. Silakan login kembali.", true);
+    handleLogout();
+  }
+}
+
+// Start session monitoring (listener untuk aktivitas user)
+export function startSessionMonitoring() {
+  const resetTimer = () => {
+    if (sessionStorage.getItem("progrowth_user")) {
+      resetSessionTimeout();
+    }
+  };
+  
+  // Event yang memicu reset timer
+  const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click', 'keydown'];
+  events.forEach(event => {
+    document.addEventListener(event, resetTimer);
+  });
+  
+  // Simpan events untuk cleanup nanti
+  window._sessionEvents = events;
+  window._resetTimer = resetTimer;
+}
+
+// Stop session monitoring (saat logout)
+export function stopSessionMonitoring() {
+  if (window._sessionEvents && window._resetTimer) {
+    window._sessionEvents.forEach(event => {
+      document.removeEventListener(event, window._resetTimer);
+    });
+  }
+  
+  if (sessionTimeout) {
+    clearTimeout(sessionTimeout);
+    sessionTimeout = null;
+  }
+}
+
+// Cek session saat load (untuk restore session yang masih valid)
+export function checkSessionOnLoad() {
+  const savedUser = sessionStorage.getItem("progrowth_user");
+  const loginTime = sessionStorage.getItem("progrowth_login_time");
+  
+  if (savedUser && loginTime) {
+    const elapsed = Date.now() - parseInt(loginTime);
+    if (elapsed < SESSION_DURATION) {
+      // Session masih valid, restart timer
+      startSessionMonitoring();
+      resetSessionTimeout();
+      return true;
+    } else {
+      // Session expired, logout
+      sessionStorage.removeItem("progrowth_user");
+      sessionStorage.removeItem("progrowth_login_time");
+      return false;
+    }
+  }
+  return false;
+}
+
 export async function handleLogin() {
   const u = document.getElementById("loginUser")?.value;
   const p = document.getElementById("loginPass")?.value;
@@ -24,6 +103,12 @@ export async function handleLogin() {
     if (snap.val() === p) {
       setCurrentUser(u);
       sessionStorage.setItem("progrowth_user", u);
+      sessionStorage.setItem("progrowth_login_time", Date.now().toString());
+      
+      // Start session monitoring
+      startSessionMonitoring();
+      resetSessionTimeout();
+      
       if (window.setupAppSession) {
         window.setupAppSession(u);
       }
@@ -63,6 +148,9 @@ export async function updateCloudPassword() {
   const confirmPass = document.getElementById("confirmPass");
   if (newPass) newPass.value = "";
   if (confirmPass) confirmPass.value = "";
+  
+  // Reset session timer setelah aktivitas
+  resetSessionTimeout();
 }
 
 export function resetPassword() {
@@ -83,8 +171,12 @@ export function confirmLogout() {
 }
 
 export function handleLogout() {
+  // Stop session monitoring
+  stopSessionMonitoring();
+  
   // Clear session
   sessionStorage.removeItem("progrowth_user");
+  sessionStorage.removeItem("progrowth_login_time");
   sessionStorage.clear();
   
   // Reset current user
