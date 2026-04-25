@@ -1,9 +1,9 @@
-// js/app.js
-import { db, ref, onValue, set, update, push, remove } from './firebase-config.js';
-import { masterData, setMasterData, showNotif, togglePrivacy, setCurrentUser, privacyHidden } from './utils.js';
+// js/app.js - Full Optimized Version
+import { db, ref, onValue, set, update, push, remove, get } from './firebase-config.js';
+import { masterData, setMasterData, showNotif, togglePrivacy, setCurrentUser, privacyHidden, debounce, throttle } from './utils.js';
 import { handleLogin, updateCloudPassword, resetPassword, confirmLogout, handleLogout, checkSessionOnLoad, startSessionMonitoring, resetSessionTimeout, stopSessionMonitoring } from './auth.js';
 import { renderDashboard, updateCharts } from './dashboard.js';
-import { savePlan, renderBoardPlans, updatePlan, deletePlanItem, addSubPlan, togglePlan, openEditPlan, deletePlanItemById, deleteSubPlan, initPlanFilter } from './planning.js';
+import { savePlan, renderBoardPlans, updatePlan, deletePlanItem, addSubPlan, togglePlan, openEditPlan, deletePlanItemById, deleteSubPlan, initPlanFilter, confirmAddTemplate } from './planning.js';
 import { saveFinance, editFinance, renderFinances, initFinancialPage, addSavingTarget, editSavingTarget, deleteSavingTarget, loadSavingTargets } from './financial.js';
 import { saveVision, renderVisions, toggleLike, addComment, openCommentModal, renderComments, initMoodSelector, setupFilterListeners, toggleBookmark, addReaction, shareToSocial, searchByTag, deleteVision } from './vision.js';
 import { initMomentPage, renderCalendar, renderMomentsList, saveMoment, viewMomentDetail, deleteMomentFromDetail, changeMonth, selectMomentDate, openMomentModal, handleMultiplePhotos, removePhotoAtIndex } from './moment.js';
@@ -288,11 +288,13 @@ async function loadComponents() {
     attachEventListeners();
     
     // Inisialisasi semua fitur tambahan
-    if (window.initMoodSelector) window.initMoodSelector();
-    if (window.setupFilterListeners) window.setupFilterListeners();
-    if (window.initMomentPage) window.initMomentPage();
-    if (window.initPlanFilter) window.initPlanFilter();
-    if (window.initUIUXImprovements) window.initUIUXImprovements();
+    setTimeout(() => {
+      if (window.initMoodSelector) window.initMoodSelector();
+      if (window.setupFilterListeners) window.setupFilterListeners();
+      if (window.initMomentPage) window.initMomentPage();
+      if (window.initPlanFilter) window.initPlanFilter();
+      if (window.initUIUXImprovements) window.initUIUXImprovements();
+    }, 100);
     
     initCoupleChat();
     initBackupRestore();
@@ -301,6 +303,7 @@ async function loadComponents() {
     
   } catch (error) {
     console.error('Error loading components:', error);
+    showNotif("❌ Gagal memuat aplikasi", true);
   }
 }
 
@@ -332,6 +335,7 @@ function initCoupleChat() {
 function initBackupRestore() {
   console.log("Backup & restore feature initialized");
   window.backupData = async () => {
+    showLoadingOverlay("Menyimpan backup...");
     try {
       const snapshot = await get(ref(db, "data/"));
       const data = snapshot.val();
@@ -339,6 +343,8 @@ function initBackupRestore() {
       showNotif("✅ Data berhasil di-backup ke browser");
     } catch (err) {
       showNotif("❌ Gagal backup: " + err.message, true);
+    } finally {
+      hideLoadingOverlay();
     }
   };
   
@@ -348,13 +354,16 @@ function initBackupRestore() {
       showNotif("❌ Tidak ada backup ditemukan", true);
       return;
     }
+    showLoadingOverlay("Merestore data...");
     try {
       const data = JSON.parse(backup);
       await set(ref(db, "data/"), data);
       showNotif("✅ Data berhasil direstore");
-      location.reload();
+      setTimeout(() => location.reload(), 1500);
     } catch (err) {
       showNotif("❌ Gagal restore: " + err.message, true);
+    } finally {
+      hideLoadingOverlay();
     }
   };
 }
@@ -759,6 +768,7 @@ window.hideGlobalProgress = hideGlobalProgress;
 window.showLoadingOverlay = showLoadingOverlay;
 window.hideLoadingOverlay = hideLoadingOverlay;
 window.initUIUXImprovements = initUIUXImprovements;
+window.confirmAddTemplate = confirmAddTemplate;
 
 // Financial functions exports
 window.initFinancialPage = initFinancialPage;
