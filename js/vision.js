@@ -1,8 +1,3 @@
-<!-- ganti file vision.js dengan kode di bawah -->
-
-// js/vision.js - Dream Board Version (Mimpi Bareng)
-// FULL REVISED VERSION - Tanpa prompt browser, dengan fitur uang terkumpul
-
 import { db, ref, push, update, remove, get } from './firebase-config.js';
 import { showNotif, masterData, formatNumberRp, escapeHtml, privacyHidden, setMasterData } from './utils.js';
 
