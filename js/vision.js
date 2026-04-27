@@ -200,7 +200,6 @@ export function openFundingModal(dreamId) {
   
   const amountInput = document.getElementById('fundingAmountInputNew');
   const progressBar = document.getElementById('fundingProgressBarNew');
-  const targetText = document.querySelector('#fundingModalNew .text-muted');
   
   if (amountInput) {
     amountInput.addEventListener('input', function(e) {
@@ -234,6 +233,16 @@ export function openFundingModal(dreamId) {
     const modalEl = document.getElementById('fundingModalNew');
     if (modalEl) modalEl.remove();
   });
+}
+
+// Export confirmUpdateFunding untuk kompatibilitas
+export function confirmUpdateFunding() {
+  // This function is kept for compatibility, but the functionality is now in openFundingModal
+  console.log('confirmUpdateFunding called - using new funding modal flow');
+  if (currentFundingModalDreamId) {
+    // Re-open the funding modal if needed
+    openFundingModal(currentFundingModalDreamId);
+  }
 }
 
 export async function deleteDreamFromCard(dreamId) {
@@ -680,6 +689,22 @@ window.deleteDreamFromDetail = deleteDreamFromDetail;
 window.deleteDreamFromCard = deleteDreamFromCard;
 window.renderDreamBoard = renderDreamBoard;
 window.openFundingModal = openFundingModal;
+window.confirmUpdateFunding = confirmUpdateFunding;
 window.updateDreamSavedAmount = updateDreamSavedAmount;
 window.initDreamBoard = initDreamBoard;
 window.previewDreamImage = window.previewDreamImage;
+
+// ============ EXPORTS ============
+export { 
+  saveDream, 
+  openDreamModal, 
+  viewDreamDetail, 
+  editDreamFromDetail, 
+  deleteDreamFromDetail, 
+  deleteDreamFromCard, 
+  renderDreamBoard, 
+  openFundingModal, 
+  confirmUpdateFunding, 
+  updateDreamSavedAmount, 
+  initDreamBoard 
+};
