@@ -71,7 +71,7 @@ function parseNumberInput(value) {
 }
 
 // ============ DREAM FUNCTIONS ============
-export async function saveDream() {
+async function saveDreamFunction() {
   const editId = document.getElementById('dreamEditId')?.value;
   const title = document.getElementById('dreamTitle')?.value.trim();
   const desc = document.getElementById('dreamDesc')?.value || '';
@@ -132,7 +132,7 @@ export async function saveDream() {
   }
 }
 
-export async function updateDreamSavedAmount(dreamId, newAmount) {
+async function updateDreamSavedAmountFunction(dreamId, newAmount) {
   const data = window.masterData || masterData;
   const dream = data?.dreams?.[dreamId];
   if (!dream) return;
@@ -151,7 +151,7 @@ export async function updateDreamSavedAmount(dreamId, newAmount) {
   showNotif(isAchieved ? '🎉 Selamat! Mimpi telah tercapai! 🎉' : '💰 Uang terkumpul diperbarui');
 }
 
-export function openFundingModal(dreamId) {
+function openFundingModalFunction(dreamId) {
   currentFundingModalDreamId = dreamId;
   const data = window.masterData || masterData;
   const dream = data?.dreams?.[dreamId];
@@ -220,7 +220,7 @@ export function openFundingModal(dreamId) {
     confirmBtn.onclick = () => {
       const amountValue = document.getElementById('fundingAmountInputNew')?.value || '0';
       const rawAmount = parseNumberInput(amountValue);
-      updateDreamSavedAmount(dreamId, rawAmount);
+      updateDreamSavedAmountFunction(dreamId, rawAmount);
       const modal = bootstrap.Modal.getInstance(document.getElementById('fundingModalNew'));
       if (modal) modal.hide();
     };
@@ -235,17 +235,14 @@ export function openFundingModal(dreamId) {
   });
 }
 
-// Export confirmUpdateFunding untuk kompatibilitas
-export function confirmUpdateFunding() {
-  // This function is kept for compatibility, but the functionality is now in openFundingModal
+function confirmUpdateFundingFunction() {
   console.log('confirmUpdateFunding called - using new funding modal flow');
   if (currentFundingModalDreamId) {
-    // Re-open the funding modal if needed
-    openFundingModal(currentFundingModalDreamId);
+    openFundingModalFunction(currentFundingModalDreamId);
   }
 }
 
-export async function deleteDreamFromCard(dreamId) {
+async function deleteDreamFromCardFunction(dreamId) {
   const modalHtml = `
     <div class="modal fade" id="confirmDeleteDreamModal" tabindex="-1" data-bs-backdrop="static">
       <div class="modal-dialog modal-dialog-centered modal-sm">
@@ -290,7 +287,7 @@ export async function deleteDreamFromCard(dreamId) {
   };
 }
 
-export function renderDreamBoard() {
+function renderDreamBoardFunction() {
   const data = window.masterData || masterData;
   if (!data) return;
   
@@ -422,7 +419,7 @@ export function renderDreamBoard() {
   }).join('');
 }
 
-export function viewDreamDetail(id) {
+function viewDreamDetailFunction(id) {
   currentDreamId = id;
   const data = window.masterData || masterData;
   const dream = data?.dreams?.[id];
@@ -481,23 +478,23 @@ export function viewDreamDetail(id) {
   });
 }
 
-export function editDreamFromDetail() {
+function editDreamFromDetailFunction() {
   if (currentDreamId) {
-    openDreamModal(currentDreamId);
+    openDreamModalFunction(currentDreamId);
     const modal = bootstrap.Modal.getInstance(document.getElementById('dreamDetailModalNew'));
     if (modal) modal.hide();
   }
 }
 
-export async function deleteDreamFromDetail() {
+async function deleteDreamFromDetailFunction() {
   if (currentDreamId) {
-    await deleteDreamFromCard(currentDreamId);
+    await deleteDreamFromCardFunction(currentDreamId);
     const modal = bootstrap.Modal.getInstance(document.getElementById('dreamDetailModalNew'));
     if (modal) modal.hide();
   }
 }
 
-export function openDreamModal(editId = null) {
+function openDreamModalFunction(editId = null) {
   const data = window.masterData || masterData;
   
   const existingModal = document.getElementById('dreamModalNew');
@@ -643,7 +640,7 @@ export function openDreamModal(editId = null) {
   const saveBtn = document.getElementById('saveDreamBtn');
   if (saveBtn) {
     saveBtn.onclick = () => {
-      saveDream();
+      saveDreamFunction();
     };
   }
   
@@ -661,6 +658,10 @@ function closeDreamModal() {
   if (modal) modal.hide();
 }
 
+function initDreamBoardFunction() {
+  renderDreamBoardFunction();
+}
+
 // Preview image function for window
 window.previewDreamImage = function(input) {
   const preview = document.getElementById('dreamImagePreview');
@@ -675,36 +676,28 @@ window.previewDreamImage = function(input) {
   }
 };
 
-// ============ INITIAL RENDER ============
-export function initDreamBoard() {
-  renderDreamBoard();
-}
+// ============ EXPOSE FUNCTIONS TO WINDOW ============
+window.saveDream = saveDreamFunction;
+window.openDreamModal = openDreamModalFunction;
+window.viewDreamDetail = viewDreamDetailFunction;
+window.editDreamFromDetail = editDreamFromDetailFunction;
+window.deleteDreamFromDetail = deleteDreamFromDetailFunction;
+window.deleteDreamFromCard = deleteDreamFromCardFunction;
+window.renderDreamBoard = renderDreamBoardFunction;
+window.openFundingModal = openFundingModalFunction;
+window.confirmUpdateFunding = confirmUpdateFundingFunction;
+window.updateDreamSavedAmount = updateDreamSavedAmountFunction;
+window.initDreamBoard = initDreamBoardFunction;
 
-// ============ EXPOSE TO WINDOW ============
-window.saveDream = saveDream;
-window.openDreamModal = openDreamModal;
-window.viewDreamDetail = viewDreamDetail;
-window.editDreamFromDetail = editDreamFromDetail;
-window.deleteDreamFromDetail = deleteDreamFromDetail;
-window.deleteDreamFromCard = deleteDreamFromCard;
-window.renderDreamBoard = renderDreamBoard;
-window.openFundingModal = openFundingModal;
-window.confirmUpdateFunding = confirmUpdateFunding;
-window.updateDreamSavedAmount = updateDreamSavedAmount;
-window.initDreamBoard = initDreamBoard;
-window.previewDreamImage = window.previewDreamImage;
-
-// ============ EXPORTS ============
-export { 
-  saveDream, 
-  openDreamModal, 
-  viewDreamDetail, 
-  editDreamFromDetail, 
-  deleteDreamFromDetail, 
-  deleteDreamFromCard, 
-  renderDreamBoard, 
-  openFundingModal, 
-  confirmUpdateFunding, 
-  updateDreamSavedAmount, 
-  initDreamBoard 
-};
+// ============ EXPORTS FOR MODULE ============
+export const saveDream = saveDreamFunction;
+export const openDreamModal = openDreamModalFunction;
+export const viewDreamDetail = viewDreamDetailFunction;
+export const editDreamFromDetail = editDreamFromDetailFunction;
+export const deleteDreamFromDetail = deleteDreamFromDetailFunction;
+export const deleteDreamFromCard = deleteDreamFromCardFunction;
+export const renderDreamBoard = renderDreamBoardFunction;
+export const openFundingModal = openFundingModalFunction;
+export const confirmUpdateFunding = confirmUpdateFundingFunction;
+export const updateDreamSavedAmount = updateDreamSavedAmountFunction;
+export const initDreamBoard = initDreamBoardFunction;
