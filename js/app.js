@@ -1,11 +1,16 @@
-// js/app.js - Full Optimized Version
+// js/app.js - Full Optimized Version with Dream Board
 import { db, ref, onValue, set, update, push, remove, get } from './firebase-config.js';
 import { masterData, setMasterData, showNotif, togglePrivacy, setCurrentUser, privacyHidden, debounce, throttle } from './utils.js';
 import { handleLogin, updateCloudPassword, resetPassword, confirmLogout, handleLogout, checkSessionOnLoad, startSessionMonitoring, resetSessionTimeout, stopSessionMonitoring } from './auth.js';
 import { renderDashboard, updateCharts } from './dashboard.js';
 import { savePlan, renderBoardPlans, updatePlan, deletePlanItem, addSubPlan, togglePlan, openEditPlan, deletePlanItemById, deleteSubPlan, initPlanFilter, confirmAddTemplate } from './planning.js';
 import { saveFinance, editFinance, renderFinances, initFinancialPage, addSavingTarget, editSavingTarget, deleteSavingTarget, loadSavingTargets } from './financial.js';
-import { saveVision, renderVisions, toggleLike, addComment, openCommentModal, renderComments, initMoodSelector, setupFilterListeners, toggleBookmark, addReaction, shareToSocial, searchByTag, deleteVision } from './vision.js';
+import { 
+  saveDream, openDreamModal, viewDreamDetail, editDreamFromDetail, deleteDreamFromDetail,
+  saveGoal, openGoalModal, toggleGoalDone, deleteGoal, renderTimelineGoals,
+  saveBucketItem, openBucketModal, toggleBucketDone, deleteBucketItem, renderBucketList,
+  initDreamBoard, renderDreamBoard
+} from './vision.js';
 import { initMomentPage, renderCalendar, renderMomentsList, saveMoment, viewMomentDetail, deleteMomentFromDetail, changeMonth, selectMomentDate, openMomentModal, handleMultiplePhotos, removePhotoAtIndex } from './moment.js';
 
 // Global variables
@@ -289,7 +294,7 @@ async function loadComponents() {
     
     // Inisialisasi semua fitur tambahan
     setTimeout(() => {
-      if (window.initMoodSelector) window.initMoodSelector();
+      if (window.initDreamBoard) window.initDreamBoard();
       if (window.setupFilterListeners) window.setupFilterListeners();
       if (window.initMomentPage) window.initMomentPage();
       if (window.initPlanFilter) window.initPlanFilter();
@@ -374,9 +379,11 @@ function checkAchievements() {
   window.achievements = {
     firstPlan: false,
     firstFinance: false,
-    firstVision: false,
+    firstDream: false,
     completePlan: false,
-    savingMilestone: false
+    savingMilestone: false,
+    firstGoal: false,
+    firstBucket: false
   };
   
   const checkInterval = setInterval(() => {
@@ -384,7 +391,9 @@ function checkAchievements() {
     
     const plans = masterData.plans ? Object.keys(masterData.plans).length : 0;
     const finances = masterData.finances ? Object.keys(masterData.finances).length : 0;
-    const visions = masterData.visions ? Object.keys(masterData.visions).length : 0;
+    const dreams = masterData.dreams ? Object.keys(masterData.dreams).length : 0;
+    const goals = masterData.goals ? Object.keys(masterData.goals).length : 0;
+    const buckets = masterData.buckets ? Object.keys(masterData.buckets).length : 0;
     const completedPlans = masterData.plans ? Object.values(masterData.plans).filter(p => p.progress >= 100).length : 0;
     
     let totalWedding = 0;
@@ -402,9 +411,17 @@ function checkAchievements() {
       window.achievements.firstFinance = true;
       showNotif("🏆 Pencapaian: Transaksi Pertama!");
     }
-    if (visions >= 1 && !window.achievements.firstVision) {
-      window.achievements.firstVision = true;
-      showNotif("🏆 Pencapaian: Sharing Pertama!");
+    if (dreams >= 1 && !window.achievements.firstDream) {
+      window.achievements.firstDream = true;
+      showNotif("🏆 Pencapaian: Mimpi Pertama! ✨");
+    }
+    if (goals >= 1 && !window.achievements.firstGoal) {
+      window.achievements.firstGoal = true;
+      showNotif("🏆 Pencapaian: Goal Pertama! 🎯");
+    }
+    if (buckets >= 1 && !window.achievements.firstBucket) {
+      window.achievements.firstBucket = true;
+      showNotif("🏆 Pencapaian: Bucket List Pertama! 📝");
     }
     if (completedPlans >= 1 && !window.achievements.completePlan) {
       window.achievements.completePlan = true;
@@ -502,6 +519,7 @@ function attachEventListeners() {
       togglePrivacy();
       if (window.loadSavingTargets) window.loadSavingTargets();
       if (window.renderFinances) window.renderFinances();
+      if (window.renderDreamBoard) window.renderDreamBoard();
     });
   }
   if (privacyToggleFinance) {
@@ -509,6 +527,7 @@ function attachEventListeners() {
       togglePrivacy();
       if (window.loadSavingTargets) window.loadSavingTargets();
       if (window.renderFinances) window.renderFinances();
+      if (window.renderDreamBoard) window.renderDreamBoard();
     });
   }
   
@@ -541,6 +560,12 @@ function attachEventListeners() {
             const targets = settings.savingTargets || {};
             delete targets[id];
             await update(ref(db, 'data/settings'), { savingTargets: targets });
+          } else if (path === "dreams") {
+            await remove(ref(db, `data/dreams/${id}`));
+          } else if (path === "goals") {
+            await remove(ref(db, `data/goals/${id}`));
+          } else if (path === "buckets") {
+            await remove(ref(db, `data/buckets/${id}`));
           } else {
             const dbRef = ref(db, `data/${path}/${id}`);
             await remove(dbRef);
@@ -611,6 +636,14 @@ function showPage(pageId) {
     }, 100);
   }
   
+  if (pageId === "vision") {
+    setTimeout(() => {
+      if (window.initDreamBoard) {
+        window.initDreamBoard();
+      }
+    }, 100);
+  }
+  
   if (pageId === "moment" && window.initMomentPage) {
     setTimeout(() => {
       window.initMomentPage();
@@ -653,7 +686,7 @@ function renderAll() {
   if (!masterData) return;
   
   if (window.renderDashboard) window.renderDashboard();
-  if (window.renderVisions) window.renderVisions();
+  if (window.renderDreamBoard) window.renderDreamBoard();  // Ganti renderVisions dengan renderDreamBoard
   if (window.renderFinances) window.renderFinances();
   
   if (window.loadSavingTargets) {
@@ -715,7 +748,18 @@ function checkPlanReminders() {
 
 // Firebase realtime listener
 onValue(ref(db, "data/"), (snapshot) => {
-  const data = snapshot.val() || { visions: {}, plans: {}, finances: {}, settings: {}, comments: {}, likes: {}, moments: {} };
+  const data = snapshot.val() || { 
+    dreams: {}, 
+    goals: {}, 
+    buckets: {},
+    visions: {}, 
+    plans: {}, 
+    finances: {}, 
+    settings: {}, 
+    comments: {}, 
+    likes: {}, 
+    moments: {} 
+  };
   setMasterData(data);
   
   if (!data.auth) {
@@ -733,7 +777,6 @@ onValue(ref(db, "data/"), (snapshot) => {
 // Global functions exposure
 window.setupAppSession = setupAppSession;
 window.handleLogin = handleLogin;
-window.saveVision = saveVision;
 window.savePlan = savePlan;
 window.saveFinance = saveFinance;
 window.updateCloudPassword = updateCloudPassword;
@@ -748,19 +791,10 @@ window.openEditPlan = openEditPlan;
 window.deletePlanItemById = deletePlanItemById;
 window.deleteSubPlan = deleteSubPlan;
 window.editFinance = editFinance;
-window.openCommentModal = openCommentModal;
-window.addComment = addComment;
-window.toggleLike = toggleLike;
-window.toggleBookmark = toggleBookmark;
-window.addReaction = addReaction;
-window.shareToSocial = shareToSocial;
-window.searchByTag = searchByTag;
-window.deleteVision = deleteVision;
 window.showPage = showPage;
 window.renderAll = renderAll;
 window.renderDashboard = renderDashboard;
 window.renderFinances = renderFinances;
-window.renderVisions = renderVisions;
 window.renderBoardPlans = renderBoardPlans;
 window.togglePrivacy = togglePrivacy;
 window.showGlobalProgress = showGlobalProgress;
@@ -769,6 +803,27 @@ window.showLoadingOverlay = showLoadingOverlay;
 window.hideLoadingOverlay = hideLoadingOverlay;
 window.initUIUXImprovements = initUIUXImprovements;
 window.confirmAddTemplate = confirmAddTemplate;
+
+// Dream Board functions exports
+window.saveDream = saveDream;
+window.openDreamModal = openDreamModal;
+window.viewDreamDetail = viewDreamDetail;
+window.editDreamFromDetail = editDreamFromDetail;
+window.deleteDreamFromDetail = deleteDreamFromDetail;
+window.renderDreamBoard = renderDreamBoard;
+
+window.saveGoal = saveGoal;
+window.openGoalModal = openGoalModal;
+window.toggleGoalDone = toggleGoalDone;
+window.deleteGoal = deleteGoal;
+window.renderTimelineGoals = renderTimelineGoals;
+
+window.saveBucketItem = saveBucketItem;
+window.openBucketModal = openBucketModal;
+window.toggleBucketDone = toggleBucketDone;
+window.deleteBucketItem = deleteBucketItem;
+window.renderBucketList = renderBucketList;
+window.initDreamBoard = initDreamBoard;
 
 // Financial functions exports
 window.initFinancialPage = initFinancialPage;
