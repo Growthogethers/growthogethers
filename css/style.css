@@ -1,4 +1,5 @@
-/* style.css - UI/UX Enhanced Version - FULL CSS */
+/* style.css - UI/UX Enhanced Version - FULL CSS (Tanpa Duplikasi) */
+
 * {
   margin: 0;
   padding: 0;
@@ -252,7 +253,7 @@ section {
   font-weight: 600;
 }
 
-/* ============ BUTTONS - Touch Friendly ============ */
+/* ============ BUTTONS ============ */
 .btn {
   padding: 12px 20px;
   border-radius: 40px;
@@ -319,7 +320,7 @@ section {
   color: white;
 }
 
-/* ============ FORM ELEMENTS - Touch Friendly ============ */
+/* ============ FORM ELEMENTS ============ */
 .form-control,
 .form-select {
   background-color: var(--input-bg);
@@ -372,7 +373,7 @@ section {
   box-shadow: none;
 }
 
-/* ============ BOTTOM NAVIGATION (MOBILE) ============ */
+/* ============ BOTTOM NAVIGATION ============ */
 .bottom-nav {
   position: fixed;
   bottom: 0;
@@ -517,7 +518,6 @@ section {
 
 .progress-bar {
   transition: width 0.5s ease;
-  height: 100%;
 }
 
 /* ============ CALENDAR ============ */
@@ -620,8 +620,6 @@ section {
 }
 
 /* ============ DREAM BOARD STYLES ============ */
-
-/* Dream Card */
 .dream-card {
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   overflow: hidden;
@@ -697,114 +695,13 @@ section {
   z-index: 2;
 }
 
-/* Progress Styling untuk Dream */
 .saving-progress {
   background: var(--bg-light);
   padding: 8px 12px;
   border-radius: 12px;
 }
 
-/* Dream Tabs */
-.dream-tabs {
-  border-bottom: 2px solid var(--border-light);
-  gap: 8px;
-}
-
-.dream-tabs .nav-link {
-  border: none;
-  color: var(--text-muted);
-  font-weight: 600;
-  padding: 12px 24px;
-  border-radius: 40px;
-  margin-right: 8px;
-  transition: all 0.2s;
-}
-
-.dream-tabs .nav-link:hover {
-  background: var(--border-light);
-  color: var(--text-primary);
-}
-
-.dream-tabs .nav-link.active {
-  background: linear-gradient(135deg, var(--primary), #8b5cf6);
-  color: white;
-}
-
-/* Timeline Styles */
-.timeline-years {
-  position: relative;
-  padding-bottom: 20px;
-}
-
-.year-marker {
-  text-align: center;
-  padding: 8px 16px;
-  background: var(--card-bg);
-  border-radius: 40px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--text-muted);
-  border: 1px solid var(--border-light);
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.year-marker:hover {
-  background: var(--primary);
-  color: white;
-}
-
-.timeline-goal-item {
-  transition: all 0.2s;
-}
-
-.timeline-goal-item:hover {
-  background: var(--border-light) !important;
-}
-
-.timeline-year-group {
-  animation: fadeInUp 0.3s ease-out;
-}
-
-/* Bucket List Styles */
-.bucket-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 16px;
-}
-
-.bucket-item {
-  background: var(--card-bg);
-  border-radius: 16px;
-  padding: 16px;
-  transition: all 0.2s;
-  border: 1px solid var(--border-light);
-}
-
-.bucket-item:hover {
-  transform: translateX(4px);
-}
-
-.bucket-item.done {
-  opacity: 0.7;
-  background: #e8f5e9;
-}
-
-body.dark .bucket-item.done {
-  background: #064e3b;
-}
-
-.bucket-category {
-  width: 44px;
-  height: 44px;
-  border-radius: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.4rem;
-}
-
-/* Photo Upload Grid untuk Moment */
+/* ============ PHOTO UPLOAD ============ */
 .photo-upload-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(80px, 80px));
@@ -878,7 +775,7 @@ body.dark .bucket-item.done {
   opacity: 1;
 }
 
-/* Moment Card */
+/* ============ MOMENT CARD ============ */
 .moment-card {
   transition: transform 0.2s ease;
   overflow: hidden;
@@ -947,7 +844,7 @@ body.dark .bucket-item.done {
   margin-bottom: 16px;
 }
 
-/* Modal Custom */
+/* ============ MODAL CUSTOM ============ */
 .modal-content.rounded-4 {
   border-radius: 24px !important;
 }
@@ -968,21 +865,21 @@ body.dark .bucket-item.done {
   background: linear-gradient(135deg, var(--info), #2563eb);
 }
 
-/* Target Period Card */
+/* ============ TARGET PERIOD CARD ============ */
 .target-period-card {
   background: var(--card-bg);
   border-radius: 20px;
   border: 1px solid var(--border-light);
 }
 
-/* Filter Buttons */
+/* ============ FILTER BUTTONS ============ */
 .filter-cat.active {
   background: var(--primary) !important;
   color: white !important;
   border-color: var(--primary) !important;
 }
 
-/* Scrollbar Styling */
+/* ============ SCROLLBAR ============ */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -1002,24 +899,7 @@ body.dark .bucket-item.done {
   background: var(--primary-dark);
 }
 
-/* Animation Keyframes */
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes scaleIn {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-/* Chat FAB */
+/* ============ CHAT FAB ============ */
 .chat-fab {
   position: fixed;
   bottom: 90px;
@@ -1055,7 +935,59 @@ body.dark .bucket-item.done {
   text-align: center;
 }
 
-/* ============ RESPONSIVE (MOBILE FIRST) ============ */
+/* ============ BADGES ============ */
+.badge-fachmi {
+  background: linear-gradient(135deg, var(--primary), #818cf8);
+  color: white;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.7rem;
+}
+
+.badge-azizah {
+  background: linear-gradient(135deg, #ec4899, #f472b6);
+  color: white;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.7rem;
+}
+
+/* ============ SKIP LINK ============ */
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: var(--primary);
+  color: white;
+  padding: 8px 16px;
+  z-index: 10000;
+  text-decoration: none;
+  border-radius: 0 0 8px 0;
+}
+
+.skip-link:focus {
+  top: 0;
+}
+
+/* ============ GLOBAL PROGRESS BAR ============ */
+#globalProgressBar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  z-index: 9999;
+  display: none;
+}
+
+#globalProgressBar div {
+  width: 0%;
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary), #8b5cf6, #a78bfa);
+  transition: width 0.3s ease;
+}
+
+/* ============ RESPONSIVE ============ */
 @media (min-width: 769px) {
   .main-content {
     padding: 1.5rem 2rem;
@@ -1142,25 +1074,6 @@ body.dark .bucket-item.done {
     min-width: 35px;
   }
   
-  .dream-tabs .nav-link {
-    padding: 8px 16px;
-    font-size: 0.8rem;
-  }
-  
-  .bucket-grid {
-    grid-template-columns: 1fr;
-  }
-  
-  .timeline-years {
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-  
-  .year-marker {
-    font-size: 0.7rem;
-    padding: 6px 12px;
-  }
-  
   .dream-card-img-wrapper,
   .dream-card-placeholder {
     height: 140px;
@@ -1211,11 +1124,6 @@ body.dark .bucket-item.done {
     padding: 6px 10px;
     font-size: 0.7rem;
   }
-  
-  .dream-tabs .nav-link {
-    padding: 6px 12px;
-    font-size: 0.7rem;
-  }
 }
 
 /* ============ ACCESSIBILITY ============ */
@@ -1241,65 +1149,11 @@ body.dark .bucket-item.done {
   border-width: 0;
 }
 
-/* ============ FOCUS VISIBLE ============ */
 *:focus-visible {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
 }
 
-/* ============ SMOOTH SCROLL ============ */
 html {
   scroll-behavior: smooth;
-}
-
-/* ============ BADGES ============ */
-.badge-fachmi {
-  background: linear-gradient(135deg, var(--primary), #818cf8);
-  color: white;
-  padding: 4px 12px;
-  border-radius: 20px;
-  font-size: 0.7rem;
-}
-
-.badge-azizah {
-  background: linear-gradient(135deg, #ec4899, #f472b6);
-  color: white;
-  padding: 4px 12px;
-  border-radius: 20px;
-  font-size: 0.7rem;
-}
-
-/* Skip Link */
-.skip-link {
-  position: absolute;
-  top: -40px;
-  left: 0;
-  background: var(--primary);
-  color: white;
-  padding: 8px 16px;
-  z-index: 10000;
-  text-decoration: none;
-  border-radius: 0 0 8px 0;
-}
-
-.skip-link:focus {
-  top: 0;
-}
-
-/* Global Progress Bar */
-#globalProgressBar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 3px;
-  z-index: 9999;
-  display: none;
-}
-
-#globalProgressBar div {
-  width: 0%;
-  height: 100%;
-  background: linear-gradient(90deg, var(--primary), #8b5cf6, #a78bfa);
-  transition: width 0.3s ease;
 }
