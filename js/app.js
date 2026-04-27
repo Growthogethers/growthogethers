@@ -1,4 +1,5 @@
-// js/app.js - Full Optimized Version with Dream Board
+// js/app.js - Full Optimized Version (Tanpa Goals & Bucket List)
+
 import { db, ref, onValue, set, update, push, remove, get } from './firebase-config.js';
 import { masterData, setMasterData, showNotif, togglePrivacy, setCurrentUser, privacyHidden, debounce, throttle } from './utils.js';
 import { handleLogin, updateCloudPassword, resetPassword, confirmLogout, handleLogout, checkSessionOnLoad, startSessionMonitoring, resetSessionTimeout, stopSessionMonitoring } from './auth.js';
@@ -6,9 +7,8 @@ import { renderDashboard, updateCharts } from './dashboard.js';
 import { savePlan, renderBoardPlans, updatePlan, deletePlanItem, addSubPlan, togglePlan, openEditPlan, deletePlanItemById, deleteSubPlan, initPlanFilter, confirmAddTemplate } from './planning.js';
 import { saveFinance, editFinance, renderFinances, initFinancialPage, addSavingTarget, editSavingTarget, deleteSavingTarget, loadSavingTargets } from './financial.js';
 import { 
-  saveDream, openDreamModal, viewDreamDetail, editDreamFromDetail, deleteDreamFromDetail,
-  saveGoal, openGoalModal, toggleGoalDone, deleteGoal, renderTimelineGoals,
-  saveBucketItem, openBucketModal, toggleBucketDone, deleteBucketItem, renderBucketList,
+  saveDream, openDreamModal, viewDreamDetail, editDreamFromDetail, deleteDreamFromDetail, deleteDreamFromCard,
+  openFundingModal, confirmUpdateFunding, updateDreamSavedAmount,
   initDreamBoard, renderDreamBoard
 } from './vision.js';
 import { initMomentPage, renderCalendar, renderMomentsList, saveMoment, viewMomentDetail, deleteMomentFromDetail, changeMonth, selectMomentDate, openMomentModal, handleMultiplePhotos, removePhotoAtIndex } from './moment.js';
@@ -23,7 +23,6 @@ window.pendingDelete = { path: null, id: null };
 
 // ============ UI/UX IMPROVEMENTS ============
 
-// Loading overlay untuk operasi async
 let loadingOverlay = null;
 
 function showLoadingOverlay(message = "Memproses...") {
@@ -72,7 +71,6 @@ function hideLoadingOverlay() {
   }
 }
 
-// Offline indicator
 let offlineIndicator = null;
 
 function showOfflineIndicator() {
@@ -120,7 +118,6 @@ function hideOfflineIndicator() {
   }
 }
 
-// Swipe gesture untuk sidebar (mobile)
 let touchStartX = 0;
 let touchEndX = 0;
 
@@ -148,7 +145,6 @@ function handleSwipe() {
   }
 }
 
-// Double tap untuk back to top
 let lastTap = 0;
 
 function initDoubleTapBackToTop() {
@@ -165,7 +161,6 @@ function initDoubleTapBackToTop() {
   });
 }
 
-// Pull to refresh (mobile)
 let pullStartY = 0;
 let pullEndY = 0;
 let isPulling = false;
@@ -226,13 +221,11 @@ function initPullToRefresh() {
   });
 }
 
-// Initialize all UI/UX improvements
 function initUIUXImprovements() {
   initSwipeGesture();
   initDoubleTapBackToTop();
   initPullToRefresh();
   
-  // Online/offline detection
   window.addEventListener('online', () => {
     hideOfflineIndicator();
     showNotif("📡 Kembali online", false);
@@ -242,7 +235,6 @@ function initUIUXImprovements() {
     showOfflineIndicator();
   });
   
-  // Close sidebar when clicking outside (mobile)
   document.addEventListener('click', (e) => {
     const sidebar = document.getElementById('app-sidebar');
     const menuToggle = document.getElementById('menuToggleHp');
@@ -254,7 +246,6 @@ function initUIUXImprovements() {
     }
   });
   
-  // Add touch feedback to all clickable elements
   document.querySelectorAll('button, .nav-link, .bottom-nav-item, .calendar-day, .plan-card').forEach(el => {
     el.style.touchAction = 'manipulation';
   });
@@ -262,7 +253,6 @@ function initUIUXImprovements() {
 
 // ============ END UI/UX IMPROVEMENTS ============
 
-// Load components
 async function loadComponents() {
   try {
     const sidebarResp = await fetch('components/sidebar.html');
@@ -292,7 +282,6 @@ async function loadComponents() {
     
     attachEventListeners();
     
-    // Inisialisasi semua fitur tambahan
     setTimeout(() => {
       if (window.initDreamBoard) window.initDreamBoard();
       if (window.setupFilterListeners) window.setupFilterListeners();
@@ -312,7 +301,6 @@ async function loadComponents() {
   }
 }
 
-// Fungsi validasi global
 function validateRequiredFields(fields) {
   for (const [fieldId, fieldName] of Object.entries(fields)) {
     const element = document.getElementById(fieldId);
@@ -324,7 +312,6 @@ function validateRequiredFields(fields) {
   return true;
 }
 
-// Fungsi untuk couple chat
 function initCoupleChat() {
   console.log("Couple chat initialized");
   const chatFab = document.getElementById("chatFab");
@@ -336,7 +323,6 @@ function initCoupleChat() {
   }
 }
 
-// Fungsi untuk backup & restore
 function initBackupRestore() {
   console.log("Backup & restore feature initialized");
   window.backupData = async () => {
@@ -373,7 +359,6 @@ function initBackupRestore() {
   };
 }
 
-// Fungsi untuk cek pencapaian
 function checkAchievements() {
   console.log("Achievements checker initialized");
   window.achievements = {
@@ -381,9 +366,7 @@ function checkAchievements() {
     firstFinance: false,
     firstDream: false,
     completePlan: false,
-    savingMilestone: false,
-    firstGoal: false,
-    firstBucket: false
+    savingMilestone: false
   };
   
   const checkInterval = setInterval(() => {
@@ -392,8 +375,6 @@ function checkAchievements() {
     const plans = masterData.plans ? Object.keys(masterData.plans).length : 0;
     const finances = masterData.finances ? Object.keys(masterData.finances).length : 0;
     const dreams = masterData.dreams ? Object.keys(masterData.dreams).length : 0;
-    const goals = masterData.goals ? Object.keys(masterData.goals).length : 0;
-    const buckets = masterData.buckets ? Object.keys(masterData.buckets).length : 0;
     const completedPlans = masterData.plans ? Object.values(masterData.plans).filter(p => p.progress >= 100).length : 0;
     
     let totalWedding = 0;
@@ -415,14 +396,6 @@ function checkAchievements() {
       window.achievements.firstDream = true;
       showNotif("🏆 Pencapaian: Mimpi Pertama! ✨");
     }
-    if (goals >= 1 && !window.achievements.firstGoal) {
-      window.achievements.firstGoal = true;
-      showNotif("🏆 Pencapaian: Goal Pertama! 🎯");
-    }
-    if (buckets >= 1 && !window.achievements.firstBucket) {
-      window.achievements.firstBucket = true;
-      showNotif("🏆 Pencapaian: Bucket List Pertama! 📝");
-    }
     if (completedPlans >= 1 && !window.achievements.completePlan) {
       window.achievements.completePlan = true;
       showNotif("🏆 Pencapaian: Rencana Selesai! 🎉");
@@ -434,7 +407,6 @@ function checkAchievements() {
   }, 5000);
 }
 
-// Fungsi untuk offline mode
 function initOfflineMode() {
   console.log("Offline mode initialized");
   
@@ -452,7 +424,6 @@ function initOfflineMode() {
   });
 }
 
-// Fungsi untuk menunjukkan progress bar global
 function showGlobalProgress() {
   const progressBar = document.getElementById("globalProgressBar");
   if (progressBar) {
@@ -562,10 +533,6 @@ function attachEventListeners() {
             await update(ref(db, 'data/settings'), { savingTargets: targets });
           } else if (path === "dreams") {
             await remove(ref(db, `data/dreams/${id}`));
-          } else if (path === "goals") {
-            await remove(ref(db, `data/goals/${id}`));
-          } else if (path === "buckets") {
-            await remove(ref(db, `data/buckets/${id}`));
           } else {
             const dbRef = ref(db, `data/${path}/${id}`);
             await remove(dbRef);
@@ -674,7 +641,6 @@ export function setupAppSession(u) {
   initCoupleChat();
   checkAchievements();
   
-  // Start session monitoring setelah login
   startSessionMonitoring();
   resetSessionTimeout();
   
@@ -686,7 +652,7 @@ function renderAll() {
   if (!masterData) return;
   
   if (window.renderDashboard) window.renderDashboard();
-  if (window.renderDreamBoard) window.renderDreamBoard();  // Ganti renderVisions dengan renderDreamBoard
+  if (window.renderDreamBoard) window.renderDreamBoard();
   if (window.renderFinances) window.renderFinances();
   
   if (window.loadSavingTargets) {
@@ -746,13 +712,9 @@ function checkPlanReminders() {
   });
 }
 
-// Firebase realtime listener
 onValue(ref(db, "data/"), (snapshot) => {
   const data = snapshot.val() || { 
     dreams: {}, 
-    goals: {}, 
-    buckets: {},
-    visions: {}, 
     plans: {}, 
     finances: {}, 
     settings: {}, 
@@ -774,7 +736,6 @@ onValue(ref(db, "data/"), (snapshot) => {
   }
 });
 
-// Global functions exposure
 window.setupAppSession = setupAppSession;
 window.handleLogin = handleLogin;
 window.savePlan = savePlan;
@@ -804,35 +765,24 @@ window.hideLoadingOverlay = hideLoadingOverlay;
 window.initUIUXImprovements = initUIUXImprovements;
 window.confirmAddTemplate = confirmAddTemplate;
 
-// Dream Board functions exports
 window.saveDream = saveDream;
 window.openDreamModal = openDreamModal;
 window.viewDreamDetail = viewDreamDetail;
 window.editDreamFromDetail = editDreamFromDetail;
 window.deleteDreamFromDetail = deleteDreamFromDetail;
+window.deleteDreamFromCard = deleteDreamFromCard;
 window.renderDreamBoard = renderDreamBoard;
-
-window.saveGoal = saveGoal;
-window.openGoalModal = openGoalModal;
-window.toggleGoalDone = toggleGoalDone;
-window.deleteGoal = deleteGoal;
-window.renderTimelineGoals = renderTimelineGoals;
-
-window.saveBucketItem = saveBucketItem;
-window.openBucketModal = openBucketModal;
-window.toggleBucketDone = toggleBucketDone;
-window.deleteBucketItem = deleteBucketItem;
-window.renderBucketList = renderBucketList;
+window.openFundingModal = openFundingModal;
+window.confirmUpdateFunding = confirmUpdateFunding;
+window.updateDreamSavedAmount = updateDreamSavedAmount;
 window.initDreamBoard = initDreamBoard;
 
-// Financial functions exports
 window.initFinancialPage = initFinancialPage;
 window.addSavingTarget = addSavingTarget;
 window.editSavingTarget = editSavingTarget;
 window.deleteSavingTarget = deleteSavingTarget;
 window.loadSavingTargets = loadSavingTargets;
 
-// Moment functions exports
 window.initMomentPage = initMomentPage;
 window.renderCalendar = renderCalendar;
 window.renderMomentsList = renderMomentsList;
@@ -890,10 +840,8 @@ window.hideToast = () => {
 
 window.validateRequiredFields = validateRequiredFields;
 
-// Initialize
 document.addEventListener("DOMContentLoaded", () => {
   loadComponents().then(() => {
-    // Cek session terlebih dahulu sebelum restore
     if (checkSessionOnLoad()) {
       const savedUser = sessionStorage.getItem("progrowth_user");
       if (savedUser) {
