@@ -143,7 +143,7 @@
   </div>
 </section>
 
-<!-- DREAM BOARD PAGE - Mimpi Bareng (Pengganti Sharing) -->
+<!-- DREAM BOARD PAGE - Mimpi Bareng (Hanya Vision Board) -->
 <section id="vision-page" style="display:none">
   <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
     <div>
@@ -157,116 +157,28 @@
     </button>
   </div>
 
-  <!-- Tab Navigation -->
-  <ul class="nav nav-tabs dream-tabs mb-4" id="dreamTab" role="tablist">
-    <li class="nav-item" role="presentation">
-      <button class="nav-link active" id="vision-tab" data-bs-toggle="tab" data-bs-target="#visionBoard" type="button" role="tab">
-        <i class="bi bi-grid-3x3-gap-fill me-2"></i>Vision Board 🎯
-      </button>
-    </li>
-    <li class="nav-item" role="presentation">
-      <button class="nav-link" id="goals-tab" data-bs-toggle="tab" data-bs-target="#goalsBoard" type="button" role="tab">
-        <i class="bi bi-calendar-range me-2"></i>Goals 5 Tahun 📅
-      </button>
-    </li>
-    <li class="nav-item" role="presentation">
-      <button class="nav-link" id="bucket-tab" data-bs-toggle="tab" data-bs-target="#bucketList" type="button" role="tab">
-        <i class="bi bi-check2-square me-2"></i>Bucket List ✅
-      </button>
-    </li>
-  </ul>
-
-  <!-- Tab Content -->
-  <div class="tab-content">
-    
-    <!-- TAB 1: Vision Board -->
-    <div class="tab-pane fade show active" id="visionBoard" role="tabpanel">
-      <div class="row mb-3">
-        <div class="col-12">
-          <div class="d-flex gap-3 mb-3">
-            <div class="bg-primary bg-opacity-10 rounded-pill px-3 py-2">
-              <i class="bi bi-images text-primary me-1"></i> <span id="visionCount">0</span> Visi
-            </div>
-            <div class="bg-success bg-opacity-10 rounded-pill px-3 py-2">
-              <i class="bi bi-check-circle text-success me-1"></i> <span id="visionAchievedCount">0</span> Tercapai
-            </div>
-          </div>
+  <!-- Statistik -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex gap-3 mb-3">
+        <div class="bg-primary bg-opacity-10 rounded-pill px-3 py-2">
+          <i class="bi bi-images text-primary me-1"></i> <span id="visionCount">0</span> Mimpi
         </div>
-      </div>
-      
-      <div id="visionBoardGrid" class="row g-3">
-        <div class="col-12 text-center py-5 text-muted">
-          <i class="bi bi-images fs-1"></i>
-          <p class="mt-2">Belum ada visi. Mulai impian kalian!</p>
-          <button class="btn btn-outline-primary rounded-pill" onclick="openDreamModal()">
-            <i class="bi bi-plus-circle me-2"></i>Tambah Visi
-          </button>
+        <div class="bg-success bg-opacity-10 rounded-pill px-3 py-2">
+          <i class="bi bi-check-circle text-success me-1"></i> <span id="visionAchievedCount">0</span> Tercapai
         </div>
       </div>
     </div>
-
-    <!-- TAB 2: Goals 5 Tahun -->
-    <div class="tab-pane fade" id="goalsBoard" role="tabpanel">
-      <div class="timeline-container">
-        <div class="timeline-years d-flex justify-content-between mb-4 flex-wrap">
-          <div class="year-marker" data-year="1">Tahun 1</div>
-          <div class="year-marker" data-year="2">Tahun 2</div>
-          <div class="year-marker" data-year="3">Tahun 3</div>
-          <div class="year-marker" data-year="4">Tahun 4</div>
-          <div class="year-marker" data-year="5">Tahun 5 🎯</div>
-        </div>
-        
-        <div class="timeline-progress mb-4">
-          <div class="d-flex justify-content-between mb-1">
-            <small>Progress Masa Depan</small>
-            <small id="goalsProgressPercent">0%</small>
-          </div>
-          <div class="progress" style="height: 8px; border-radius: 10px;">
-            <div id="goalsProgressBar" class="progress-bar bg-warning" style="width: 0%; border-radius: 10px;"></div>
-          </div>
-        </div>
-        
-        <div id="timelineGoals" class="timeline-items">
-          <div class="text-center py-5 text-muted">
-            <i class="bi bi-calendar fs-1"></i>
-            <p class="mt-2">Tambahkan target untuk 5 tahun ke depan</p>
-            <button class="btn btn-outline-primary rounded-pill" onclick="openGoalModal()">
-              <i class="bi bi-plus-circle me-2"></i>Tambah Goal
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- TAB 3: Bucket List -->
-    <div class="tab-pane fade" id="bucketList" role="tabpanel">
-      <div class="row mb-3">
-        <div class="col-12">
-          <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-            <div>
-              <span class="badge bg-secondary rounded-pill me-2">
-                <i class="bi bi-list-check"></i> <span id="bucketTotal">0</span> Total
-              </span>
-              <span class="badge bg-success rounded-pill">
-                <i class="bi bi-check-circle"></i> <span id="bucketDone">0</span> Selesai
-              </span>
-            </div>
-            <button class="btn btn-sm btn-outline-primary rounded-pill" onclick="openBucketModal()">
-              <i class="bi bi-plus me-1"></i>Tambah Item
-            </button>
-          </div>
-        </div>
-      </div>
-      
-      <div id="bucketListContainer" class="bucket-grid">
-        <div class="text-center py-5 text-muted" style="grid-column: 1/-1;">
-          <i class="bi bi-bucket fs-1"></i>
-          <p class="mt-2">Buat daftar keinginan yang ingin dilakukan bersama!</p>
-          <button class="btn btn-outline-primary rounded-pill" onclick="openBucketModal()">
-            <i class="bi bi-plus-circle me-2"></i>Tambah Item
-          </button>
-        </div>
-      </div>
+  </div>
+  
+  <!-- Vision Board Grid -->
+  <div id="visionBoardGrid" class="row g-3">
+    <div class="col-12 text-center py-5 text-muted">
+      <i class="bi bi-images fs-1"></i>
+      <p class="mt-2">Belum ada mimpi. Mulai impian kalian!</p>
+      <button class="btn btn-outline-primary rounded-pill" onclick="openDreamModal()">
+        <i class="bi bi-plus-circle me-2"></i>Tambah Mimpi
+      </button>
     </div>
   </div>
 </section>
@@ -276,45 +188,62 @@
   <div class="modal-dialog modal-dialog-centered modal-md">
     <div class="modal-content rounded-4">
       <div class="modal-header border-0 bg-gradient bg-primary text-white py-3">
-        <h5 class="fw-bold mb-0"><i class="bi bi-star-fill me-2"></i>Tambah Visi/Mimpi</h5>
+        <h5 class="fw-bold mb-0"><i class="bi bi-star-fill me-2"></i>Tambah Mimpi Baru</h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body p-4">
         <input type="hidden" id="dreamEditId">
         
         <div class="mb-3">
-          <label class="form-label fw-semibold">🎯 Judul Visi <span class="text-danger">*</span></label>
+          <label class="form-label fw-semibold">🎯 Judul Mimpi <span class="text-danger">*</span></label>
           <input type="text" id="dreamTitle" class="form-control" placeholder="Contoh: Punya Rumah Impian">
         </div>
         
         <div class="mb-3">
-          <label class="form-label fw-semibold">📝 Deskripsi</label>
+          <label class="form-label fw-semibold">📝 Cerita / Rincian</label>
           <textarea id="dreamDesc" class="form-control" rows="2" placeholder="Ceritakan mimpi ini..."></textarea>
         </div>
         
         <div class="row g-3 mb-3">
           <div class="col-md-6">
-            <label class="form-label fw-semibold">📅 Target Tahun</label>
+            <label class="form-label fw-semibold">📅 Target (tahun lagi)</label>
             <select id="dreamYear" class="form-select">
-              <option value="1">Tahun 1</option>
-              <option value="2">Tahun 2</option>
-              <option value="3">Tahun 3</option>
-              <option value="4">Tahun 4</option>
-              <option value="5">Tahun 5+</option>
+              <option value="1">1 tahun lagi</option>
+              <option value="2">2 tahun lagi</option>
+              <option value="3">3 tahun lagi</option>
+              <option value="4">4 tahun lagi</option>
+              <option value="5">5 tahun lagi</option>
+              <option value="6">6 tahun lagi</option>
+              <option value="7">7 tahun lagi</option>
+              <option value="8">8 tahun lagi</option>
+              <option value="9">9 tahun lagi</option>
+              <option value="10">10 tahun lagi</option>
             </select>
           </div>
           <div class="col-md-6">
             <label class="form-label fw-semibold">💰 Estimasi Budget</label>
-            <input type="number" id="dreamBudget" class="form-control" placeholder="Rp">
+            <div class="input-group">
+              <span class="input-group-text">Rp</span>
+              <input type="text" id="dreamBudget" class="form-control" placeholder="0" inputmode="numeric">
+            </div>
           </div>
         </div>
         
         <div class="mb-3">
-          <label class="form-label fw-semibold">🖼️ Gambar Visi (opsional)</label>
+          <label class="form-label fw-semibold">💵 Uang yang Sudah Terkumpul</label>
+          <div class="input-group">
+            <span class="input-group-text">Rp</span>
+            <input type="text" id="dreamSavedAmount" class="form-control" placeholder="0" inputmode="numeric">
+          </div>
+          <small class="text-muted">Catat tabungan yang sudah disiapkan untuk mimpi ini</small>
+        </div>
+        
+        <div class="mb-3">
+          <label class="form-label fw-semibold">🖼️ Gambar (opsional)</label>
           <input type="file" id="dreamImage" accept="image/*" class="form-control" onchange="previewDreamImage(this)">
-          <small class="text-muted">Upload gambar representasi mimpi kalian (max 1MB)</small>
+          <small class="text-muted">Upload gambar representasi mimpi (max 1MB)</small>
           <div id="dreamImagePreview" class="mt-2" style="display:none">
-            <img id="dreamImagePreviewImg" style="max-width: 100%; max-height: 150px; border-radius: 12px;">
+            <img id="dreamImagePreviewImg" style="max-width: 100%; max-height: 120px; border-radius: 12px;">
           </div>
         </div>
         
@@ -328,80 +257,6 @@
         <button type="button" onclick="saveDream()" class="btn btn-primary rounded-pill px-4">
           <i class="bi bi-save me-2"></i>Simpan Mimpi
         </button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- MODAL: Goal -->
-<div class="modal fade" id="goalModal" tabindex="-1">
-  <div class="modal-dialog modal-dialog-centered modal-sm">
-    <div class="modal-content rounded-4">
-      <div class="modal-header border-0 bg-gradient bg-success text-white py-3">
-        <h5 class="fw-bold mb-0"><i class="bi bi-calendar-check me-2"></i>Tambah Goal</h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body p-4">
-        <input type="hidden" id="goalEditId">
-        <div class="mb-3">
-          <label class="form-label fw-semibold">🎯 Goal <span class="text-danger">*</span></label>
-          <input type="text" id="goalText" class="form-control" placeholder="Contoh: Beli rumah pertama">
-        </div>
-        <div class="mb-3">
-          <label class="form-label fw-semibold">📅 Target Tahun ke-</label>
-          <select id="goalYear" class="form-select">
-            <option value="1">Tahun 1</option>
-            <option value="2">Tahun 2</option>
-            <option value="3">Tahun 3</option>
-            <option value="4">Tahun 4</option>
-            <option value="5">Tahun 5</option>
-          </select>
-        </div>
-        <div class="form-check">
-          <input type="checkbox" id="goalDone" class="form-check-input">
-          <label class="form-check-label">✅ Sudah tercapai</label>
-        </div>
-      </div>
-      <div class="modal-footer border-0 pt-0 pb-4">
-        <button class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Batal</button>
-        <button onclick="saveGoal()" class="btn btn-success rounded-pill px-4">Simpan</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- MODAL: Bucket List -->
-<div class="modal fade" id="bucketModal" tabindex="-1">
-  <div class="modal-dialog modal-dialog-centered modal-sm">
-    <div class="modal-content rounded-4">
-      <div class="modal-header border-0 bg-gradient bg-info text-white py-3">
-        <h5 class="fw-bold mb-0"><i class="bi bi-bucket me-2"></i>Tambah Bucket List</h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body p-4">
-        <input type="hidden" id="bucketEditId">
-        <div class="mb-3">
-          <label class="form-label fw-semibold">✨ Yang ingin dilakukan <span class="text-danger">*</span></label>
-          <input type="text" id="bucketText" class="form-control" placeholder="Contoh: Liburan ke Jepang">
-        </div>
-        <div class="mb-3">
-          <label class="form-label fw-semibold">🏷️ Kategori</label>
-          <select id="bucketCategory" class="form-select">
-            <option value="travel">✈️ Travel</option>
-            <option value="adventure">🧗 Adventure</option>
-            <option value="romance">💕 Romance</option>
-            <option value="milestone">🏆 Milestone</option>
-            <option value="fun">🎉 Fun</option>
-          </select>
-        </div>
-        <div class="form-check">
-          <input type="checkbox" id="bucketDone" class="form-check-input">
-          <label class="form-check-label">✅ Sudah terlaksana</label>
-        </div>
-      </div>
-      <div class="modal-footer border-0 pt-0 pb-4">
-        <button class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Batal</button>
-        <button onclick="saveBucketItem()" class="btn btn-info rounded-pill px-4 text-white">Simpan</button>
       </div>
     </div>
   </div>
@@ -434,9 +289,43 @@
   </div>
 </div>
 
-<!-- PLANNING PAGE - Tanpa Search -->
+<!-- MODAL: Funding / Update Tabungan -->
+<div class="modal fade" id="fundingModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content rounded-4">
+      <div class="modal-header border-0 bg-gradient bg-success text-white py-3">
+        <h5 class="fw-bold mb-0"><i class="bi bi-cash-stack me-2"></i>Update Tabungan</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-4">
+        <div class="text-center mb-3">
+          <i class="bi bi-piggy-bank-fill fs-1 text-success"></i>
+          <h6 class="mt-2" id="fundingDreamTitle"></h6>
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold">💰 Uang yang sudah terkumpul</label>
+          <div class="input-group">
+            <span class="input-group-text">Rp</span>
+            <input type="text" id="fundingAmountInput" class="form-control" placeholder="Masukkan nominal" inputmode="numeric">
+          </div>
+          <small class="text-muted" id="fundingTargetText"></small>
+        </div>
+        <div class="progress mb-3" style="height: 8px;">
+          <div id="fundingProgressBar" class="progress-bar bg-success" style="width: 0%"></div>
+        </div>
+      </div>
+      <div class="modal-footer border-0 pt-0 pb-4">
+        <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Batal</button>
+        <button type="button" onclick="confirmUpdateFunding()" class="btn btn-success rounded-pill px-4">
+          <i class="bi bi-save me-2"></i>Simpan
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PLANNING PAGE -->
 <section id="planning-page" style="display:none">
-  <!-- Header Section -->
   <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
     <div>
       <h3 class="fw-bold mb-1">
@@ -449,7 +338,6 @@
     </button>
   </div>
 
-  <!-- Filter Kategori Saja -->
   <div class="card border-0 shadow-sm mb-4 p-3">
     <div class="d-flex flex-wrap gap-2 align-items-center">
       <span class="small text-muted me-2"><i class="bi bi-funnel-fill"></i> Filter:</span>
@@ -468,9 +356,7 @@
     </div>
   </div>
 
-  <!-- Planning Boards -->
   <div id="planBoardContainer">
-    <!-- Menikah Section -->
     <div class="plan-category mb-4" data-category="menikah">
       <div class="d-flex align-items-center gap-2 mb-3">
         <div class="category-icon bg-danger bg-opacity-10 rounded-circle p-2">
@@ -490,7 +376,6 @@
       </div>
     </div>
 
-    <!-- Lamaran Section -->
     <div class="plan-category mb-4" data-category="lamaran">
       <div class="d-flex align-items-center gap-2 mb-3">
         <div class="category-icon bg-info bg-opacity-10 rounded-circle p-2">
@@ -510,7 +395,6 @@
       </div>
     </div>
 
-    <!-- Liburan Section -->
     <div class="plan-category mb-4" data-category="liburan">
       <div class="d-flex align-items-center gap-2 mb-3">
         <div class="category-icon bg-warning bg-opacity-10 rounded-circle p-2">
@@ -531,7 +415,8 @@
     </div>
   </div>
 </section>
-<!-- Modal Tambah Rencana Baru - Simplified -->
+
+<!-- Modal Tambah Rencana Baru -->
 <div class="modal fade" id="addPlanModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered modal-md">
     <div class="modal-content rounded-4">
@@ -540,7 +425,6 @@
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body p-4">
-        <!-- Template Quick Picks -->
         <div class="mb-4">
           <label class="form-label fw-semibold small text-muted">Atau gunakan template</label>
           <div class="d-flex gap-2 flex-wrap">
@@ -598,7 +482,7 @@
   </div>
 </div>
 
-<!-- FINANCIAL PAGE - Fokus Tabungan Pernikahan dengan Target Periode -->
+<!-- FINANCIAL PAGE -->
 <section id="financial-page" style="display:none">
   <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
     <h3 class="fw-bold mb-0"><i class="bi bi-piggy-bank-fill text-primary me-2"></i>Tabungan Pernikahan</h3>
@@ -607,7 +491,6 @@
     </button>
   </div>
   
-  <!-- Ringkasan Tabungan - 3 Column Grid -->
   <div class="row g-3 mb-4">
     <div class="col-md-4">
       <div class="card border-0 shadow-sm h-100">
@@ -644,7 +527,6 @@
     </div>
   </div>
   
-  <!-- Target Tabungan Card -->
   <div class="card border-0 shadow-sm mb-4">
     <div class="card-header bg-white border-0 pt-4 px-4">
       <h6 class="fw-bold mb-0"><i class="bi bi-target me-2 text-primary"></i>🎯 Target Tabungan</h6>
@@ -663,12 +545,10 @@
         <div class="col-md-3">
           <label class="form-label small fw-semibold mb-1">📅 Tanggal Mulai</label>
           <input type="date" id="targetStartDate" class="form-control">
-          <small class="text-muted">Kapan mulai nabung?</small>
         </div>
         <div class="col-md-3">
           <label class="form-label small fw-semibold mb-1">🎯 Target Selesai</label>
           <input type="date" id="targetEndDate" class="form-control">
-          <small class="text-muted">Target tercapai pada?</small>
         </div>
         <div class="col-md-4">
           <label class="form-label small fw-semibold mb-1">💰 Target Nominal (Rp)</label>
@@ -683,11 +563,9 @@
     </div>
   </div>
   
-  <!-- Catat Tabungan Card -->
   <div class="card border-0 shadow-sm mb-4">
     <div class="card-header bg-white border-0 pt-4 px-4">
       <h6 class="fw-bold mb-0"><i class="bi bi-pencil-square me-2 text-success"></i>📝 Catat Tabungan Baru</h6>
-      <p class="small text-muted mt-1 mb-0">Tabungan akan otomatis masuk ke target periode yang sesuai dengan tanggal</p>
     </div>
     <div class="card-body p-4">
       <div class="row g-3">
@@ -712,7 +590,6 @@
     </div>
   </div>
   
-  <!-- Riwayat Tabungan Card -->
   <div class="card border-0 shadow-sm">
     <div class="card-header bg-white border-0 pt-4 px-4">
       <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
@@ -732,21 +609,9 @@
       <div class="table-responsive">
         <table class="table table-hover align-middle mb-0">
           <thead class="table-light">
-            <tr>
-              <th class="ps-4">User</th>
-              <th>Tanggal</th>
-              <th>Keterangan</th>
-              <th>Nominal</th>
-              <th class="pe-4">Aksi</th>
-            </tr>
+            <tr><th class="ps-4">User</th><th>Tanggal</th><th>Keterangan</th><th>Nominal</th><th class="pe-4">Aksi</th></tr>
           </thead>
-          <tbody id="fTable">
-            <tr>
-              <td colspan="5" class="text-center text-muted py-5">
-                <i class="bi bi-inbox fs-1 d-block mb-2"></i>
-                Belum ada data tabungan
-              </td>
-            </tr>
+          <tbody id="fTable"><tr><td colspan="5" class="text-center text-muted py-5"><i class="bi bi-inbox fs-1 d-block mb-2"></i>Belum ada data tabungan</td></tr>
           </tbody>
         </table>
       </div>
