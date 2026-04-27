@@ -143,85 +143,296 @@
   </div>
 </section>
 
-<!-- VISION PAGE -->
+<!-- DREAM BOARD PAGE - Mimpi Bareng (Pengganti Sharing) -->
 <section id="vision-page" style="display:none">
-  <div class="card p-4 mb-4 shadow-sm">
-    <h5 class="fw-bold mb-3"><i class="bi bi-pencil-square me-2"></i>Bagikan Wawasan & Mimpi</h5>
-    
-    <div class="mb-3">
-      <label class="form-label fw-semibold small">Bagaimana perasaanmu?</label>
-      <div class="mood-selector" id="moodSelector">
-        <span class="mood-option" data-mood="🎉">🎉 Semangat</span>
-        <span class="mood-option" data-mood="💭">💭 Merenung</span>
-        <span class="mood-option" data-mood="❤️">❤️ Bahagia</span>
-        <span class="mood-option" data-mood="🤔">🤔 Berpikir</span>
-        <span class="mood-option" data-mood="✨">✨ Inspirasi</span>
-        <span class="mood-option" data-mood="📚">📚 Belajar</span>
-        <span class="mood-option" data-mood="🙏">🙏 Bersyukur</span>
-      </div>
-      <input type="hidden" id="visionMood" value="✨">
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+    <div>
+      <h3 class="fw-bold mb-1">
+        <i class="bi bi-stars text-warning me-2"></i>Mimpi Bareng
+      </h3>
+      <p class="text-muted small mb-0">Rencanakan mimpi besar bersama pasangan ✨</p>
     </div>
+    <button class="btn btn-primary rounded-pill px-4" onclick="openDreamModal()">
+      <i class="bi bi-plus-lg me-2"></i>Tambah Mimpi Baru
+    </button>
+  </div>
+
+  <!-- Tab Navigation -->
+  <ul class="nav nav-tabs dream-tabs mb-4" id="dreamTab" role="tablist">
+    <li class="nav-item" role="presentation">
+      <button class="nav-link active" id="vision-tab" data-bs-toggle="tab" data-bs-target="#visionBoard" type="button" role="tab">
+        <i class="bi bi-grid-3x3-gap-fill me-2"></i>Vision Board 🎯
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="goals-tab" data-bs-toggle="tab" data-bs-target="#goalsBoard" type="button" role="tab">
+        <i class="bi bi-calendar-range me-2"></i>Goals 5 Tahun 📅
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="bucket-tab" data-bs-toggle="tab" data-bs-target="#bucketList" type="button" role="tab">
+        <i class="bi bi-check2-square me-2"></i>Bucket List ✅
+      </button>
+    </li>
+  </ul>
+
+  <!-- Tab Content -->
+  <div class="tab-content">
     
-    <div class="row g-3">
-      <div class="col-md-12">
-        <input type="text" id="vTitle" class="form-control" placeholder="Judul ide atau pelajaran *">
-      </div>
-      <div class="col-md-6">
-        <textarea id="vNote" class="form-control" rows="3" placeholder="Tulis wawasan atau mimpi kalian di sini..."></textarea>
-      </div>
-      <div class="col-md-3">
-        <input type="text" id="visionTags" class="form-control" placeholder="Tag (pisahkan koma)">
-        <small class="text-muted">contoh: inspirasi, mimpi, pelajaran</small>
-      </div>
-      <div class="col-md-3">
-        <select id="vShare" class="form-select">
-          <option value="Shared">🤝 Untuk pasangan (Publik)</option>
-          <option value="Private">🔒 Catatan pribadi (Private)</option>
-        </select>
-      </div>
-    </div>
-    
-    <div class="row mt-3">
-      <div class="col-md-6">
-        <div class="form-check">
-          <input type="checkbox" id="visionImportant" class="form-check-input">
-          <label class="form-check-label">⭐ Jadikan sebagai momen penting (Highlight)</label>
+    <!-- TAB 1: Vision Board -->
+    <div class="tab-pane fade show active" id="visionBoard" role="tabpanel">
+      <div class="row mb-3">
+        <div class="col-12">
+          <div class="d-flex gap-3 mb-3">
+            <div class="bg-primary bg-opacity-10 rounded-pill px-3 py-2">
+              <i class="bi bi-images text-primary me-1"></i> <span id="visionCount">0</span> Visi
+            </div>
+            <div class="bg-success bg-opacity-10 rounded-pill px-3 py-2">
+              <i class="bi bi-check-circle text-success me-1"></i> <span id="visionAchievedCount">0</span> Tercapai
+            </div>
+          </div>
         </div>
       </div>
-      <div class="col-md-6 text-end">
-        <button onclick="saveVision()" class="btn btn-primary px-5"><i class="bi bi-send me-2"></i>Bagikan</button>
+      
+      <div id="visionBoardGrid" class="row g-3">
+        <div class="col-12 text-center py-5 text-muted">
+          <i class="bi bi-images fs-1"></i>
+          <p class="mt-2">Belum ada visi. Mulai impian kalian!</p>
+          <button class="btn btn-outline-primary rounded-pill" onclick="openDreamModal()">
+            <i class="bi bi-plus-circle me-2"></i>Tambah Visi
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 2: Goals 5 Tahun -->
+    <div class="tab-pane fade" id="goalsBoard" role="tabpanel">
+      <div class="timeline-container">
+        <div class="timeline-years d-flex justify-content-between mb-4 flex-wrap">
+          <div class="year-marker" data-year="1">Tahun 1</div>
+          <div class="year-marker" data-year="2">Tahun 2</div>
+          <div class="year-marker" data-year="3">Tahun 3</div>
+          <div class="year-marker" data-year="4">Tahun 4</div>
+          <div class="year-marker" data-year="5">Tahun 5 🎯</div>
+        </div>
+        
+        <div class="timeline-progress mb-4">
+          <div class="d-flex justify-content-between mb-1">
+            <small>Progress Masa Depan</small>
+            <small id="goalsProgressPercent">0%</small>
+          </div>
+          <div class="progress" style="height: 8px; border-radius: 10px;">
+            <div id="goalsProgressBar" class="progress-bar bg-warning" style="width: 0%; border-radius: 10px;"></div>
+          </div>
+        </div>
+        
+        <div id="timelineGoals" class="timeline-items">
+          <div class="text-center py-5 text-muted">
+            <i class="bi bi-calendar fs-1"></i>
+            <p class="mt-2">Tambahkan target untuk 5 tahun ke depan</p>
+            <button class="btn btn-outline-primary rounded-pill" onclick="openGoalModal()">
+              <i class="bi bi-plus-circle me-2"></i>Tambah Goal
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: Bucket List -->
+    <div class="tab-pane fade" id="bucketList" role="tabpanel">
+      <div class="row mb-3">
+        <div class="col-12">
+          <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div>
+              <span class="badge bg-secondary rounded-pill me-2">
+                <i class="bi bi-list-check"></i> <span id="bucketTotal">0</span> Total
+              </span>
+              <span class="badge bg-success rounded-pill">
+                <i class="bi bi-check-circle"></i> <span id="bucketDone">0</span> Selesai
+              </span>
+            </div>
+            <button class="btn btn-sm btn-outline-primary rounded-pill" onclick="openBucketModal()">
+              <i class="bi bi-plus me-1"></i>Tambah Item
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      <div id="bucketListContainer" class="bucket-grid">
+        <div class="text-center py-5 text-muted" style="grid-column: 1/-1;">
+          <i class="bi bi-bucket fs-1"></i>
+          <p class="mt-2">Buat daftar keinginan yang ingin dilakukan bersama!</p>
+          <button class="btn btn-outline-primary rounded-pill" onclick="openBucketModal()">
+            <i class="bi bi-plus-circle me-2"></i>Tambah Item
+          </button>
+        </div>
       </div>
     </div>
   </div>
+</section>
 
-  <div class="filter-bar-sharing">
-    <i class="bi bi-funnel-fill text-muted"></i>
-    <select id="visionFilter" class="form-select form-select-sm w-auto">
-      <option value="all">📋 Semua Post</option>
-      <option value="my">👤 Postinganku</option>
-      <option value="shared">🤝 Berbagi</option>
-      <option value="bookmarked">🔖 Tersimpan</option>
-      <option value="important">⭐ Penting</option>
-    </select>
-    <select id="visionSort" class="form-select form-select-sm w-auto">
-      <option value="newest">🕐 Terbaru</option>
-      <option value="oldest">🕐 Terlama</option>
-      <option value="mostLiked">❤️ Paling Disukai</option>
-      <option value="mostCommented">💬 Paling Dikomentari</option>
-    </select>
-    <div class="input-group ms-auto" style="max-width: 250px;">
-      <span class="input-group-text bg-transparent"><i class="bi bi-search"></i></span>
-      <input type="text" id="visionSearch" class="form-control" placeholder="Cari postingan...">
+<!-- MODAL: Dream/Vision -->
+<div class="modal fade" id="dreamModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-md">
+    <div class="modal-content rounded-4">
+      <div class="modal-header border-0 bg-gradient bg-primary text-white py-3">
+        <h5 class="fw-bold mb-0"><i class="bi bi-star-fill me-2"></i>Tambah Visi/Mimpi</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-4">
+        <input type="hidden" id="dreamEditId">
+        
+        <div class="mb-3">
+          <label class="form-label fw-semibold">🎯 Judul Visi <span class="text-danger">*</span></label>
+          <input type="text" id="dreamTitle" class="form-control" placeholder="Contoh: Punya Rumah Impian">
+        </div>
+        
+        <div class="mb-3">
+          <label class="form-label fw-semibold">📝 Deskripsi</label>
+          <textarea id="dreamDesc" class="form-control" rows="2" placeholder="Ceritakan mimpi ini..."></textarea>
+        </div>
+        
+        <div class="row g-3 mb-3">
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">📅 Target Tahun</label>
+            <select id="dreamYear" class="form-select">
+              <option value="1">Tahun 1</option>
+              <option value="2">Tahun 2</option>
+              <option value="3">Tahun 3</option>
+              <option value="4">Tahun 4</option>
+              <option value="5">Tahun 5+</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">💰 Estimasi Budget</label>
+            <input type="number" id="dreamBudget" class="form-control" placeholder="Rp">
+          </div>
+        </div>
+        
+        <div class="mb-3">
+          <label class="form-label fw-semibold">🖼️ Gambar Visi (opsional)</label>
+          <input type="file" id="dreamImage" accept="image/*" class="form-control" onchange="previewDreamImage(this)">
+          <small class="text-muted">Upload gambar representasi mimpi kalian (max 1MB)</small>
+          <div id="dreamImagePreview" class="mt-2" style="display:none">
+            <img id="dreamImagePreviewImg" style="max-width: 100%; max-height: 150px; border-radius: 12px;">
+          </div>
+        </div>
+        
+        <div class="form-check">
+          <input type="checkbox" id="dreamIsAchieved" class="form-check-input">
+          <label class="form-check-label">✅ Tandai sudah tercapai</label>
+        </div>
+      </div>
+      <div class="modal-footer border-0 pt-0 pb-4">
+        <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Batal</button>
+        <button type="button" onclick="saveDream()" class="btn btn-primary rounded-pill px-4">
+          <i class="bi bi-save me-2"></i>Simpan Mimpi
+        </button>
+      </div>
     </div>
   </div>
+</div>
 
-  <div id="visionList" class="row g-3"></div>
-  
-  <div id="visionLoading" class="text-center py-5" style="display:none;">
-    <div class="loading-spinner"></div>
-    <p class="text-muted mt-2">Memuat postingan...</p>
+<!-- MODAL: Goal -->
+<div class="modal fade" id="goalModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content rounded-4">
+      <div class="modal-header border-0 bg-gradient bg-success text-white py-3">
+        <h5 class="fw-bold mb-0"><i class="bi bi-calendar-check me-2"></i>Tambah Goal</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-4">
+        <input type="hidden" id="goalEditId">
+        <div class="mb-3">
+          <label class="form-label fw-semibold">🎯 Goal <span class="text-danger">*</span></label>
+          <input type="text" id="goalText" class="form-control" placeholder="Contoh: Beli rumah pertama">
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold">📅 Target Tahun ke-</label>
+          <select id="goalYear" class="form-select">
+            <option value="1">Tahun 1</option>
+            <option value="2">Tahun 2</option>
+            <option value="3">Tahun 3</option>
+            <option value="4">Tahun 4</option>
+            <option value="5">Tahun 5</option>
+          </select>
+        </div>
+        <div class="form-check">
+          <input type="checkbox" id="goalDone" class="form-check-input">
+          <label class="form-check-label">✅ Sudah tercapai</label>
+        </div>
+      </div>
+      <div class="modal-footer border-0 pt-0 pb-4">
+        <button class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Batal</button>
+        <button onclick="saveGoal()" class="btn btn-success rounded-pill px-4">Simpan</button>
+      </div>
+    </div>
   </div>
-</section>
+</div>
+
+<!-- MODAL: Bucket List -->
+<div class="modal fade" id="bucketModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content rounded-4">
+      <div class="modal-header border-0 bg-gradient bg-info text-white py-3">
+        <h5 class="fw-bold mb-0"><i class="bi bi-bucket me-2"></i>Tambah Bucket List</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-4">
+        <input type="hidden" id="bucketEditId">
+        <div class="mb-3">
+          <label class="form-label fw-semibold">✨ Yang ingin dilakukan <span class="text-danger">*</span></label>
+          <input type="text" id="bucketText" class="form-control" placeholder="Contoh: Liburan ke Jepang">
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold">🏷️ Kategori</label>
+          <select id="bucketCategory" class="form-select">
+            <option value="travel">✈️ Travel</option>
+            <option value="adventure">🧗 Adventure</option>
+            <option value="romance">💕 Romance</option>
+            <option value="milestone">🏆 Milestone</option>
+            <option value="fun">🎉 Fun</option>
+          </select>
+        </div>
+        <div class="form-check">
+          <input type="checkbox" id="bucketDone" class="form-check-input">
+          <label class="form-check-label">✅ Sudah terlaksana</label>
+        </div>
+      </div>
+      <div class="modal-footer border-0 pt-0 pb-4">
+        <button class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Batal</button>
+        <button onclick="saveBucketItem()" class="btn btn-info rounded-pill px-4 text-white">Simpan</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Dream Detail -->
+<div class="modal fade" id="dreamDetailModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-md">
+    <div class="modal-content rounded-4">
+      <div class="modal-header border-0">
+        <h5 class="fw-bold" id="dreamDetailTitle"></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-4 text-center">
+        <img id="dreamDetailImage" src="" style="max-width: 100%; border-radius: 16px; margin-bottom: 16px; display: none;">
+        <p id="dreamDetailDesc" class="mb-3"></p>
+        <div class="d-flex justify-content-between flex-wrap gap-2">
+          <span class="badge bg-primary" id="dreamDetailYear"></span>
+          <span class="badge bg-success" id="dreamDetailBudget"></span>
+        </div>
+        <div class="mt-3">
+          <span id="dreamDetailAuthor" class="badge bg-secondary"></span>
+        </div>
+      </div>
+      <div class="modal-footer border-0">
+        <button class="btn btn-danger rounded-pill" onclick="deleteDreamFromDetail()">Hapus</button>
+        <button class="btn btn-primary rounded-pill" onclick="editDreamFromDetail()">Edit</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- PLANNING PAGE - Tanpa Search -->
 <section id="planning-page" style="display:none">
