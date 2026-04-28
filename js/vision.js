@@ -72,6 +72,8 @@ function parseNumberInput(value) {
 
 // ============ DREAM FUNCTIONS ============
 async function saveDreamFunction() {
+  console.log("saveDreamFunction called");
+  
   const editId = document.getElementById('dreamEditId')?.value;
   const title = document.getElementById('dreamTitle')?.value.trim();
   const desc = document.getElementById('dreamDesc')?.value || '';
@@ -95,7 +97,13 @@ async function saveDreamFunction() {
   let imageData = null;
   if (imageFile) {
     showNotif('📸 Memproses gambar...', false);
-    imageData = await compressImage(imageFile);
+    try {
+      imageData = await compressImage(imageFile);
+    } catch (err) {
+      console.error("Image compression error:", err);
+      showNotif('❌ Gagal memproses gambar', true);
+      return;
+    }
   }
   
   const dreamData = {
@@ -124,11 +132,11 @@ async function saveDreamFunction() {
     }
     
     await refreshData();
-    renderDreamBoard();
+    renderDreamBoardFunction();
     closeDreamModal();
   } catch (err) {
-    console.error(err);
-    showNotif('❌ Gagal menyimpan mimpi', true);
+    console.error("Save dream error:", err);
+    showNotif('❌ Gagal menyimpan mimpi: ' + err.message, true);
   }
 }
 
@@ -140,22 +148,30 @@ async function updateDreamSavedAmountFunction(dreamId, newAmount) {
   const parsedAmount = parseInt(newAmount) || 0;
   const isAchieved = parsedAmount >= dream.budget && dream.budget > 0;
   
-  await update(ref(db, `data/dreams/${dreamId}`), { 
-    savedAmount: parsedAmount,
-    isAchieved: isAchieved,
-    updatedAt: Date.now()
-  });
-  
-  await refreshData();
-  renderDreamBoard();
-  showNotif(isAchieved ? '🎉 Selamat! Mimpi telah tercapai! 🎉' : '💰 Uang terkumpul diperbarui');
+  try {
+    await update(ref(db, `data/dreams/${dreamId}`), { 
+      savedAmount: parsedAmount,
+      isAchieved: isAchieved,
+      updatedAt: Date.now()
+    });
+    
+    await refreshData();
+    renderDreamBoardFunction();
+    showNotif(isAchieved ? '🎉 Selamat! Mimpi telah tercapai! 🎉' : '💰 Uang terkumpul diperbarui');
+  } catch (err) {
+    console.error("Update funding error:", err);
+    showNotif('❌ Gagal memperbarui tabungan', true);
+  }
 }
 
 function openFundingModalFunction(dreamId) {
   currentFundingModalDreamId = dreamId;
   const data = window.masterData || masterData;
   const dream = data?.dreams?.[dreamId];
-  if (!dream) return;
+  if (!dream) {
+    showNotif('❌ Data mimpi tidak ditemukan', true);
+    return;
+  }
   
   const modalHtml = `
     <div class="modal fade" id="fundingModalNew" tabindex="-1" data-bs-backdrop="static">
@@ -279,24 +295,37 @@ async function deleteDreamFromCardFunction(dreamId) {
   });
   
   document.getElementById('confirmDeleteDreamBtn').onclick = async () => {
-    await remove(ref(db, `data/dreams/${dreamId}`));
-    await refreshData();
-    renderDreamBoard();
-    showNotif('🗑️ Mimpi dihapus');
-    modal.hide();
+    try {
+      await remove(ref(db, `data/dreams/${dreamId}`));
+      await refreshData();
+      renderDreamBoardFunction();
+      showNotif('🗑️ Mimpi dihapus');
+      modal.hide();
+    } catch (err) {
+      console.error("Delete dream error:", err);
+      showNotif('❌ Gagal menghapus mimpi', true);
+    }
   };
 }
 
 function renderDreamBoardFunction() {
+  console.log("renderDreamBoardFunction called");
+  
   const data = window.masterData || masterData;
-  if (!data) return;
+  if (!data) {
+    console.log("No data available yet");
+    return;
+  }
   
   const dreams = data.dreams ? Object.entries(data.dreams) : [];
   const gridContainer = document.getElementById('visionBoardGrid');
   const visionCountEl = document.getElementById('visionCount');
   const visionAchievedEl = document.getElementById('visionAchievedCount');
   
-  if (!gridContainer) return;
+  if (!gridContainer) {
+    console.log("Grid container not found");
+    return;
+  }
   
   const achievedCount = dreams.filter(([id, d]) => d.isAchieved).length;
   if (visionCountEl) visionCountEl.innerText = dreams.length;
@@ -351,14 +380,14 @@ function renderDreamBoardFunction() {
               <div class="dropdown">
                 <i class="bi bi-three-dots-vertical text-muted" data-bs-toggle="dropdown" style="cursor: pointer;"></i>
                 <ul class="dropdown-menu dropdown-menu-end">
-                  <li><a class="dropdown-item" onclick="window.openDreamModal('${id}')">
+                  <li><a class="dropdown-item" href="#" onclick="event.preventDefault(); window.openDreamModal('${id}')">
                     <i class="bi bi-pencil me-2"></i>Edit
                   </a></li>
-                  <li><a class="dropdown-item" onclick="window.openFundingModal('${id}')">
+                  <li><a class="dropdown-item" href="#" onclick="event.preventDefault(); window.openFundingModal('${id}')">
                     <i class="bi bi-cash-stack me-2"></i>Update Tabungan
                   </a></li>
                   <li><hr class="dropdown-divider"></li>
-                  <li><a class="dropdown-item text-danger" onclick="window.deleteDreamFromCard('${id}')">
+                  <li><a class="dropdown-item text-danger" href="#" onclick="event.preventDefault(); window.deleteDreamFromCard('${id}')">
                     <i class="bi bi-trash me-2"></i>Hapus
                   </a></li>
                 </ul>
@@ -423,7 +452,10 @@ function viewDreamDetailFunction(id) {
   currentDreamId = id;
   const data = window.masterData || masterData;
   const dream = data?.dreams?.[id];
-  if (!dream) return;
+  if (!dream) {
+    showNotif('❌ Data mimpi tidak ditemukan', true);
+    return;
+  }
   
   const formatBudget = (val) => {
     if (privacyHidden) return '●●● ●●●';
@@ -495,6 +527,8 @@ async function deleteDreamFromDetailFunction() {
 }
 
 function openDreamModalFunction(editId = null) {
+  console.log("openDreamModalFunction called with editId:", editId);
+  
   const data = window.masterData || masterData;
   
   const existingModal = document.getElementById('dreamModalNew');
@@ -623,16 +657,16 @@ function openDreamModalFunction(editId = null) {
   
   const imageInput = document.getElementById('dreamImage');
   if (imageInput) {
-    imageInput.addEventListener('change', function(input) {
+    imageInput.addEventListener('change', function(e) {
       const preview = document.getElementById('dreamImagePreview');
       const previewImg = document.getElementById('dreamImagePreviewImg');
-      if (input.target.files && input.target.files[0]) {
+      if (e.target.files && e.target.files[0]) {
         const reader = new FileReader();
-        reader.onload = (e) => {
-          previewImg.src = e.target.result;
+        reader.onload = (event) => {
+          previewImg.src = event.target.result;
           preview.style.display = 'block';
         };
-        reader.readAsDataURL(input.target.files[0]);
+        reader.readAsDataURL(e.target.files[0]);
       }
     });
   }
@@ -659,6 +693,7 @@ function closeDreamModal() {
 }
 
 function initDreamBoardFunction() {
+  console.log("initDreamBoardFunction called");
   renderDreamBoardFunction();
 }
 
@@ -701,3 +736,19 @@ export const openFundingModal = openFundingModalFunction;
 export const confirmUpdateFunding = confirmUpdateFundingFunction;
 export const updateDreamSavedAmount = updateDreamSavedAmountFunction;
 export const initDreamBoard = initDreamBoardFunction;
+
+// Ekspor default untuk kompatibilitas
+export default {
+  saveDream: saveDreamFunction,
+  openDreamModal: openDreamModalFunction,
+  viewDreamDetail: viewDreamDetailFunction,
+  editDreamFromDetail: editDreamFromDetailFunction,
+  deleteDreamFromDetail: deleteDreamFromDetailFunction,
+  deleteDreamFromCard: deleteDreamFromCardFunction,
+  renderDreamBoard: renderDreamBoardFunction,
+  openFundingModal: openFundingModalFunction,
+  confirmUpdateFunding: confirmUpdateFundingFunction,
+  updateDreamSavedAmount: updateDreamSavedAmountFunction,
+  initDreamBoard: initDreamBoardFunction,
+  previewDreamImage: window.previewDreamImage
+};
