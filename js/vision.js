@@ -1,4 +1,4 @@
-// js/vision.js - Dream Board Version (FULLY FIXED)
+// js/vision.js - Dream Board Version (FIXED FOR content.html)
 
 import { db, ref, push, update, remove, get } from './firebase-config.js';
 import { showNotif, masterData, formatNumberRp, escapeHtml, privacyHidden, setMasterData } from './utils.js';
@@ -87,7 +87,6 @@ function formatNumberInput(value) {
 
 function parseNumberInput(value) {
   if (!value) return 0;
-  // Remove dots and commas, then parse
   const cleanValue = value.toString().replace(/\./g, '').replace(/,/g, '');
   return parseInt(cleanValue) || 0;
 }
@@ -96,8 +95,9 @@ function parseNumberInput(value) {
 async function saveDreamFunction() {
   console.log("=== saveDreamFunction called ===");
   
+  // Use the correct element IDs from content.html
   const editId = document.getElementById('dreamEditId')?.value;
-  const title = document.getElementById('dreamTitle')?.value.trim();
+  const title = document.getElementById('dreamTitle')?.value?.trim();
   const desc = document.getElementById('dreamDesc')?.value || '';
   const year = parseInt(document.getElementById('dreamYear')?.value);
   const budgetInput = document.getElementById('dreamBudget')?.value;
@@ -106,7 +106,19 @@ async function saveDreamFunction() {
   const imageFile = document.getElementById('dreamImage')?.files[0];
   const currentUser = sessionStorage.getItem('progrowth_user');
   
-  // Parse numbers with proper handling
+  // Log to debug
+  console.log("DOM elements found:", {
+    dreamEditId: !!document.getElementById('dreamEditId'),
+    dreamTitle: !!document.getElementById('dreamTitle'),
+    dreamDesc: !!document.getElementById('dreamDesc'),
+    dreamYear: !!document.getElementById('dreamYear'),
+    dreamBudget: !!document.getElementById('dreamBudget'),
+    dreamSavedAmount: !!document.getElementById('dreamSavedAmount'),
+    dreamIsAchieved: !!document.getElementById('dreamIsAchieved'),
+    dreamImage: !!document.getElementById('dreamImage')
+  });
+  
+  // Parse numbers
   const budget = parseNumberInput(budgetInput || '0');
   const savedAmount = parseNumberInput(savedAmountInput || '0');
   
@@ -180,8 +192,11 @@ async function saveDreamFunction() {
     // Re-render the dream board
     renderDreamBoardFunction();
     
-    // Close the modal properly
-    closeDreamModal();
+    // Close the modal properly - using the correct modal ID from content.html
+    const modal = bootstrap.Modal.getInstance(document.getElementById('dreamModal'));
+    if (modal) {
+      modal.hide();
+    }
     
     // Also refresh dashboard if visible
     if (window.renderAll) {
@@ -239,86 +254,65 @@ function openFundingModalFunction(dreamId) {
     return;
   }
   
-  const modalHtml = `
-    <div class="modal fade" id="fundingModalNew" tabindex="-1" data-bs-backdrop="static">
-      <div class="modal-dialog modal-dialog-centered modal-sm">
-        <div class="modal-content rounded-4">
-          <div class="modal-header border-0 bg-gradient bg-success text-white py-3">
-            <h5 class="fw-bold mb-0"><i class="bi bi-cash-stack me-2"></i>Update Tabungan</h5>
-            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-          </div>
-          <div class="modal-body p-4">
-            <div class="text-center mb-3">
-              <i class="bi bi-piggy-bank-fill fs-1 text-success"></i>
-              <h6 class="mt-2">${escapeHtml(dream.title)}</h6>
-            </div>
-            <div class="mb-3">
-              <label class="form-label fw-semibold">💰 Uang yang sudah terkumpul</label>
-              <div class="input-group">
-                <span class="input-group-text">Rp</span>
-                <input type="text" id="fundingAmountInputNew" class="form-control" placeholder="Masukkan nominal" inputmode="numeric" value="${formatNumberInput(dream.savedAmount || 0)}">
-              </div>
-              <small class="text-muted">Target: ${formatNumberRp(dream.budget)}</small>
-            </div>
-            <div class="progress mb-3" style="height: 8px;">
-              <div id="fundingProgressBarNew" class="progress-bar bg-success" style="width: ${dream.budget > 0 ? Math.min(100, (dream.savedAmount / dream.budget) * 100) : 0}%"></div>
-            </div>
-          </div>
-          <div class="modal-footer border-0 pt-0 pb-4">
-            <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Batal</button>
-            <button type="button" id="confirmFundingBtnNew" class="btn btn-success rounded-pill px-4">
-              <i class="bi bi-save me-2"></i>Simpan
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  `;
+  // Update the existing funding modal in content.html
+  const fundingDreamTitle = document.getElementById('fundingDreamTitle');
+  const fundingAmountInput = document.getElementById('fundingAmountInput');
+  const fundingProgressBar = document.getElementById('fundingProgressBar');
+  const fundingTargetText = document.getElementById('fundingTargetText');
   
-  const existingModal = document.getElementById('fundingModalNew');
-  if (existingModal) existingModal.remove();
-  
-  document.body.insertAdjacentHTML('beforeend', modalHtml);
-  
-  const amountInput = document.getElementById('fundingAmountInputNew');
-  const progressBar = document.getElementById('fundingProgressBarNew');
-  
-  if (amountInput) {
-    amountInput.addEventListener('input', function(e) {
-      let value = this.value.replace(/\./g, '');
-      if (!isNaN(value) && value !== '') {
-        const numValue = parseInt(value);
-        this.value = formatNumberInput(numValue);
-        const percent = dream.budget > 0 ? Math.min(100, (numValue / dream.budget) * 100) : 0;
-        if (progressBar) progressBar.style.width = `${percent}%`;
-      } else if (value === '') {
-        if (progressBar) progressBar.style.width = '0%';
-      }
-    });
+  if (fundingDreamTitle) {
+    fundingDreamTitle.innerText = escapeHtml(dream.title);
   }
   
-  const confirmBtn = document.getElementById('confirmFundingBtnNew');
+  if (fundingAmountInput) {
+    fundingAmountInput.value = formatNumberInput(dream.savedAmount || 0);
+    
+    // Remove existing event listener and add new one
+    fundingAmountInput.removeEventListener('input', fundingInputHandler);
+    fundingAmountInput.addEventListener('input', fundingInputHandler);
+    
+    function fundingInputHandler(e) {
+      let value = e.target.value.replace(/\./g, '');
+      if (!isNaN(value) && value !== '') {
+        const numValue = parseInt(value);
+        e.target.value = formatNumberInput(numValue);
+        const percent = dream.budget > 0 ? Math.min(100, (numValue / dream.budget) * 100) : 0;
+        if (fundingProgressBar) fundingProgressBar.style.width = `${percent}%`;
+      } else if (value === '') {
+        if (fundingProgressBar) fundingProgressBar.style.width = '0%';
+      }
+    }
+  }
+  
+  if (fundingProgressBar) {
+    const percent = dream.budget > 0 ? Math.min(100, (dream.savedAmount / dream.budget) * 100) : 0;
+    fundingProgressBar.style.width = `${percent}%`;
+  }
+  
+  if (fundingTargetText && dream.budget > 0) {
+    fundingTargetText.innerText = `Target: ${formatNumberRp(dream.budget)}`;
+  }
+  
+  // Update confirm button handler
+  const confirmBtn = document.getElementById('confirmUpdateFundingBtn');
   if (confirmBtn) {
-    confirmBtn.onclick = () => {
-      const amountValue = document.getElementById('fundingAmountInputNew')?.value || '0';
+    const newConfirmBtn = confirmBtn.cloneNode(true);
+    confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+    newConfirmBtn.onclick = () => {
+      const amountValue = document.getElementById('fundingAmountInput')?.value || '0';
       const rawAmount = parseNumberInput(amountValue);
       updateDreamSavedAmountFunction(dreamId, rawAmount);
-      const modal = bootstrap.Modal.getInstance(document.getElementById('fundingModalNew'));
+      const modal = bootstrap.Modal.getInstance(document.getElementById('fundingModal'));
       if (modal) modal.hide();
     };
   }
   
-  const modal = new bootstrap.Modal(document.getElementById('fundingModalNew'));
+  const modal = new bootstrap.Modal(document.getElementById('fundingModal'));
   modal.show();
-  
-  document.getElementById('fundingModalNew').addEventListener('hidden.bs.modal', function() {
-    const modalEl = document.getElementById('fundingModalNew');
-    if (modalEl) modalEl.remove();
-  });
 }
 
 function confirmUpdateFundingFunction() {
-  console.log('confirmUpdateFunding called - using new funding modal flow');
+  console.log('confirmUpdateFunding called - using funding modal flow');
   if (currentFundingModalDreamId) {
     openFundingModalFunction(currentFundingModalDreamId);
   }
@@ -326,55 +320,7 @@ function confirmUpdateFundingFunction() {
 
 async function deleteDreamFromCardFunction(dreamId) {
   console.log("=== deleteDreamFromCardFunction called ===", dreamId);
-  
-  const modalHtml = `
-    <div class="modal fade" id="confirmDeleteDreamModal" tabindex="-1" data-bs-backdrop="static">
-      <div class="modal-dialog modal-dialog-centered modal-sm">
-        <div class="modal-content rounded-4">
-          <div class="modal-header border-0 bg-gradient bg-danger text-white py-3">
-            <h5 class="fw-bold mb-0"><i class="bi bi-exclamation-triangle-fill me-2"></i>Konfirmasi Hapus</h5>
-            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-          </div>
-          <div class="modal-body p-4 text-center">
-            <i class="bi bi-trash3-fill text-danger fs-1 mb-3 d-block"></i>
-            <p>Yakin ingin menghapus mimpi ini?</p>
-            <small class="text-muted">Data yang dihapus tidak dapat dikembalikan</small>
-          </div>
-          <div class="modal-footer border-0 pt-0 pb-4 justify-content-center gap-3">
-            <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Batal</button>
-            <button type="button" id="confirmDeleteDreamBtn" class="btn btn-danger rounded-pill px-4">Hapus</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  `;
-  
-  const existingModal = document.getElementById('confirmDeleteDreamModal');
-  if (existingModal) existingModal.remove();
-  
-  document.body.insertAdjacentHTML('beforeend', modalHtml);
-  
-  const modal = new bootstrap.Modal(document.getElementById('confirmDeleteDreamModal'));
-  modal.show();
-  
-  document.getElementById('confirmDeleteDreamModal').addEventListener('hidden.bs.modal', function() {
-    const modalEl = document.getElementById('confirmDeleteDreamModal');
-    if (modalEl) modalEl.remove();
-  });
-  
-  document.getElementById('confirmDeleteDreamBtn').onclick = async () => {
-    try {
-      await remove(ref(db, `data/dreams/${dreamId}`));
-      await refreshData();
-      renderDreamBoardFunction();
-      showNotif('🗑️ Mimpi dihapus');
-      if (window.renderAll) window.renderAll();
-      modal.hide();
-    } catch (err) {
-      console.error("Error deleting dream:", err);
-      showNotif('❌ Gagal menghapus mimpi', true);
-    }
-  };
+  window.confirmDelete("dreams", dreamId);
 }
 
 function renderDreamBoardFunction() {
@@ -537,63 +483,39 @@ function viewDreamDetailFunction(id) {
     return formatNumberRp(val);
   };
   
-  const modalHtml = `
-    <div class="modal fade" id="dreamDetailModalNew" tabindex="-1">
-      <div class="modal-dialog modal-dialog-centered modal-md">
-        <div class="modal-content rounded-4">
-          <div class="modal-header border-0 bg-gradient bg-primary text-white py-3">
-            <h5 class="fw-bold mb-0">${escapeHtml(dream.title)}</h5>
-            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-          </div>
-          <div class="modal-body p-4">
-            ${dream.image ? `<img src="${dream.image}" style="width:100%; border-radius: 16px; margin-bottom: 16px;">` : ''}
-            <p class="mb-3">${escapeHtml(dream.desc || 'Tidak ada deskripsi')}</p>
-            <div class="d-flex flex-wrap gap-2 mb-3">
-              <span class="badge bg-primary">🎯 ${dream.year} tahun lagi</span>
-              ${dream.budget > 0 ? `<span class="badge bg-success">💰 ${formatBudget(dream.budget)}</span>` : ''}
-            </div>
-            <div class="mb-2">
-              <div class="d-flex justify-content-between small">
-                <span>Terkumpul: ${formatBudget(dream.savedAmount || 0)}</span>
-                <span>${dream.budget > 0 ? Math.round((dream.savedAmount / dream.budget) * 100) : 0}%</span>
-              </div>
-              <div class="progress" style="height: 6px;">
-                <div class="progress-bar bg-success" style="width: ${dream.budget > 0 ? Math.min(100, (dream.savedAmount / dream.budget) * 100) : 0}%"></div>
-              </div>
-            </div>
-            <div class="mt-2">
-              <small class="text-muted">Dibuat oleh: ${escapeHtml(dream.author)}</small>
-            </div>
-          </div>
-          <div class="modal-footer border-0">
-            <button class="btn btn-secondary rounded-pill" data-bs-dismiss="modal">Tutup</button>
-            <button class="btn btn-success rounded-pill" onclick="window.openFundingModal('${id}'); document.getElementById('dreamDetailModalNew')?.remove();">Update Tabungan</button>
-            <button class="btn btn-primary rounded-pill" onclick="window.openDreamModal('${id}'); document.getElementById('dreamDetailModalNew')?.remove();">Edit Mimpi</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  `;
+  // Update dream detail modal from content.html
+  const detailTitle = document.getElementById('dreamDetailTitle');
+  const detailImage = document.getElementById('dreamDetailImage');
+  const detailDesc = document.getElementById('dreamDetailDesc');
+  const detailYear = document.getElementById('dreamDetailYear');
+  const detailBudget = document.getElementById('dreamDetailBudget');
+  const detailAuthor = document.getElementById('dreamDetailAuthor');
   
-  const existingModal = document.getElementById('dreamDetailModalNew');
-  if (existingModal) existingModal.remove();
+  if (detailTitle) detailTitle.innerText = escapeHtml(dream.title);
+  if (detailDesc) detailDesc.innerText = escapeHtml(dream.desc || 'Tidak ada deskripsi');
+  if (detailYear) detailYear.innerText = `🎯 ${dream.year} tahun lagi`;
+  if (detailBudget && dream.budget > 0) detailBudget.innerText = `💰 ${formatBudget(dream.budget)}`;
+  if (detailBudget && (!dream.budget || dream.budget === 0)) detailBudget.style.display = 'none';
+  if (detailAuthor) detailAuthor.innerText = dream.author || '';
   
-  document.body.insertAdjacentHTML('beforeend', modalHtml);
+  if (detailImage) {
+    if (dream.image) {
+      detailImage.src = dream.image;
+      detailImage.style.display = 'block';
+    } else {
+      detailImage.style.display = 'none';
+    }
+  }
   
-  const modal = new bootstrap.Modal(document.getElementById('dreamDetailModalNew'));
+  const modal = new bootstrap.Modal(document.getElementById('dreamDetailModal'));
   modal.show();
-  
-  document.getElementById('dreamDetailModalNew').addEventListener('hidden.bs.modal', function() {
-    const modalEl = document.getElementById('dreamDetailModalNew');
-    if (modalEl) modalEl.remove();
-  });
 }
 
 function editDreamFromDetailFunction() {
   console.log("=== editDreamFromDetailFunction called ===", currentDreamId);
   if (currentDreamId) {
     openDreamModalFunction(currentDreamId);
-    const modal = bootstrap.Modal.getInstance(document.getElementById('dreamDetailModalNew'));
+    const modal = bootstrap.Modal.getInstance(document.getElementById('dreamDetailModal'));
     if (modal) modal.hide();
   }
 }
@@ -601,8 +523,8 @@ function editDreamFromDetailFunction() {
 async function deleteDreamFromDetailFunction() {
   console.log("=== deleteDreamFromDetailFunction called ===", currentDreamId);
   if (currentDreamId) {
-    await deleteDreamFromCardFunction(currentDreamId);
-    const modal = bootstrap.Modal.getInstance(document.getElementById('dreamDetailModalNew'));
+    window.confirmDelete("dreams", currentDreamId);
+    const modal = bootstrap.Modal.getInstance(document.getElementById('dreamDetailModal'));
     if (modal) modal.hide();
   }
 }
@@ -612,186 +534,52 @@ function openDreamModalFunction(editId = null) {
   
   const data = window.masterData || masterData;
   
-  const existingModal = document.getElementById('dreamModalNew');
-  if (existingModal) existingModal.remove();
+  // Reset form
+  const editIdField = document.getElementById('dreamEditId');
+  const titleField = document.getElementById('dreamTitle');
+  const descField = document.getElementById('dreamDesc');
+  const yearField = document.getElementById('dreamYear');
+  const budgetField = document.getElementById('dreamBudget');
+  const savedAmountField = document.getElementById('dreamSavedAmount');
+  const isAchievedField = document.getElementById('dreamIsAchieved');
+  const imageField = document.getElementById('dreamImage');
+  const imagePreview = document.getElementById('dreamImagePreview');
+  const imagePreviewImg = document.getElementById('dreamImagePreviewImg');
   
-  const modalHtml = `
-    <div class="modal fade" id="dreamModalNew" tabindex="-1" data-bs-backdrop="static">
-      <div class="modal-dialog modal-dialog-centered modal-md">
-        <div class="modal-content rounded-4">
-          <div class="modal-header border-0 bg-gradient bg-primary text-white py-3">
-            <h5 class="fw-bold mb-0"><i class="bi bi-star-fill me-2"></i>${editId ? 'Edit Mimpi' : 'Tambah Mimpi Baru'}</h5>
-            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-          </div>
-          <div class="modal-body p-4" style="max-height: 70vh; overflow-y: auto;">
-            <input type="hidden" id="dreamEditId" value="${editId || ''}">
-            
-            <div class="mb-3">
-              <label class="form-label fw-semibold">🎯 Judul Mimpi <span class="text-danger">*</span></label>
-              <input type="text" id="dreamTitle" class="form-control rounded-3" placeholder="Contoh: Punya Rumah Impian">
-            </div>
-            
-            <div class="mb-3">
-              <label class="form-label fw-semibold">📝 Cerita / Rincian</label>
-              <textarea id="dreamDesc" class="form-control rounded-3" rows="3" placeholder="Ceritakan mimpi ini..."></textarea>
-            </div>
-            
-            <div class="row g-3 mb-3">
-              <div class="col-md-6">
-                <label class="form-label fw-semibold">📅 Target (tahun lagi)</label>
-                <select id="dreamYear" class="form-select rounded-3">
-                  <option value="1">1 tahun lagi</option>
-                  <option value="2">2 tahun lagi</option>
-                  <option value="3">3 tahun lagi</option>
-                  <option value="4">4 tahun lagi</option>
-                  <option value="5">5 tahun lagi</option>
-                  <option value="6">6 tahun lagi</option>
-                  <option value="7">7 tahun lagi</option>
-                  <option value="8">8 tahun lagi</option>
-                  <option value="9">9 tahun lagi</option>
-                  <option value="10">10 tahun lagi</option>
-                </select>
-              </div>
-              <div class="col-md-6">
-                <label class="form-label fw-semibold">💰 Estimasi Budget</label>
-                <div class="input-group">
-                  <span class="input-group-text">Rp</span>
-                  <input type="text" id="dreamBudget" class="form-control rounded-3" placeholder="0" inputmode="numeric">
-                </div>
-              </div>
-            </div>
-            
-            <div class="mb-3">
-              <label class="form-label fw-semibold">💵 Uang yang Sudah Terkumpul</label>
-              <div class="input-group">
-                <span class="input-group-text">Rp</span>
-                <input type="text" id="dreamSavedAmount" class="form-control rounded-3" placeholder="0" inputmode="numeric">
-              </div>
-              <small class="text-muted">Catat tabungan yang sudah disiapkan untuk mimpi ini</small>
-            </div>
-            
-            <div class="mb-3">
-              <label class="form-label fw-semibold">🖼️ Gambar (opsional)</label>
-              <input type="file" id="dreamImage" accept="image/*" class="form-control rounded-3">
-              <small class="text-muted">Upload gambar representasi mimpi (max 1MB)</small>
-              <div id="dreamImagePreview" class="mt-2" style="display:none">
-                <img id="dreamImagePreviewImg" style="max-width: 100%; max-height: 120px; border-radius: 12px;">
-              </div>
-            </div>
-            
-            <div class="form-check">
-              <input type="checkbox" id="dreamIsAchieved" class="form-check-input">
-              <label class="form-check-label">✅ Tandai sudah tercapai</label>
-            </div>
-          </div>
-          <div class="modal-footer border-0 pt-0 pb-4">
-            <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Batal</button>
-            <button type="button" id="saveDreamBtn" class="btn btn-primary rounded-pill px-4">
-              <i class="bi bi-save me-2"></i>Simpan Mimpi
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  `;
-  
-  document.body.insertAdjacentHTML('beforeend', modalHtml);
-  
-  const budgetInput = document.getElementById('dreamBudget');
-  const savedInput = document.getElementById('dreamSavedAmount');
-  
-  const formatCurrencyInput = (input) => {
-    if (input) {
-      input.addEventListener('input', function(e) {
-        let value = this.value.replace(/\./g, '');
-        if (!isNaN(value) && value !== '' && value !== '0') {
-          const numValue = parseInt(value);
-          this.value = formatNumberInput(numValue);
-        } else if (value === '' || value === '0') {
-          this.value = '';
-        }
-      });
-    }
-  };
-  
-  formatCurrencyInput(budgetInput);
-  formatCurrencyInput(savedInput);
+  if (editIdField) editIdField.value = editId || '';
+  if (titleField) titleField.value = '';
+  if (descField) descField.value = '';
+  if (yearField) yearField.value = '1';
+  if (budgetField) budgetField.value = '';
+  if (savedAmountField) savedAmountField.value = '';
+  if (isAchievedField) isAchievedField.checked = false;
+  if (imageField) imageField.value = '';
+  if (imagePreview) imagePreview.style.display = 'none';
+  if (imagePreviewImg) imagePreviewImg.src = '';
   
   if (editId && data?.dreams?.[editId]) {
     const dream = data.dreams[editId];
-    document.getElementById('dreamTitle').value = dream.title;
-    document.getElementById('dreamDesc').value = dream.desc || '';
-    document.getElementById('dreamYear').value = dream.year || 1;
-    if (budgetInput) budgetInput.value = formatNumberInput(dream.budget || 0);
-    if (savedInput) savedInput.value = formatNumberInput(dream.savedAmount || 0);
-    document.getElementById('dreamIsAchieved').checked = dream.isAchieved || false;
+    if (titleField) titleField.value = dream.title;
+    if (descField) descField.value = dream.desc || '';
+    if (yearField) yearField.value = dream.year || 1;
+    if (budgetField) budgetField.value = formatNumberInput(dream.budget || 0);
+    if (savedAmountField) savedAmountField.value = formatNumberInput(dream.savedAmount || 0);
+    if (isAchievedField) isAchievedField.checked = dream.isAchieved || false;
     
-    if (dream.image) {
-      const preview = document.getElementById('dreamImagePreview');
-      const previewImg = document.getElementById('dreamImagePreviewImg');
-      if (preview && previewImg) {
-        previewImg.src = dream.image;
-        preview.style.display = 'block';
-      }
+    if (dream.image && imagePreview && imagePreviewImg) {
+      imagePreviewImg.src = dream.image;
+      imagePreview.style.display = 'block';
     }
   }
   
-  const imageInput = document.getElementById('dreamImage');
-  if (imageInput) {
-    imageInput.addEventListener('change', function(input) {
-      const preview = document.getElementById('dreamImagePreview');
-      const previewImg = document.getElementById('dreamImagePreviewImg');
-      if (input.target.files && input.target.files[0]) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          previewImg.src = e.target.result;
-          preview.style.display = 'block';
-        };
-        reader.readAsDataURL(input.target.files[0]);
-      }
-    });
-  }
-  
-  const saveBtn = document.getElementById('saveDreamBtn');
-  if (saveBtn) {
-    saveBtn.onclick = () => {
-      saveDreamFunction();
-    };
-  }
-  
-  const modal = new bootstrap.Modal(document.getElementById('dreamModalNew'));
+  const modal = new bootstrap.Modal(document.getElementById('dreamModal'));
   modal.show();
-  
-  document.getElementById('dreamModalNew').addEventListener('hidden.bs.modal', function() {
-    const modalEl = document.getElementById('dreamModalNew');
-    if (modalEl) modalEl.remove();
-  });
-}
-
-function closeDreamModal() {
-  console.log("=== closeDreamModal called ===");
-  const modal = bootstrap.Modal.getInstance(document.getElementById('dreamModalNew'));
-  if (modal) modal.hide();
 }
 
 function initDreamBoardFunction() {
   console.log("=== initDreamBoardFunction called ===");
   renderDreamBoardFunction();
 }
-
-// Preview image function for window
-window.previewDreamImage = function(input) {
-  const preview = document.getElementById('dreamImagePreview');
-  const previewImg = document.getElementById('dreamImagePreviewImg');
-  if (input.files && input.files[0]) {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      previewImg.src = e.target.result;
-      preview.style.display = 'block';
-    };
-    reader.readAsDataURL(input.files[0]);
-  }
-};
 
 // ============ EXPOSE FUNCTIONS TO WINDOW ============
 window.saveDream = saveDreamFunction;
