@@ -1,4 +1,4 @@
-// js/moment.js - Full working version
+// js/moment.js - Full version with sorting & special moment priority
 import { db, ref, push, update, remove, get } from './firebase-config.js';
 import { masterData, escapeHtml } from './utils.js';
 
@@ -7,6 +7,27 @@ let currentViewDate = new Date();
 let currentDetailMomentId = null;
 let currentMomentPhotos = [];
 let pendingDeleteCallback = null;
+
+// ============ HELPER FUNCTIONS ============
+function formatDate(dateStr) {
+  if (!dateStr) return '';
+  const parts = dateStr.split('-');
+  if (parts.length === 3) {
+    return `${parts[2]}/${parts[1]}/${parts[0]}`;
+  }
+  return dateStr;
+}
+
+function getMoodText(mood) {
+  const moods = {
+    '🥰': 'Romantis',
+    '🎉': 'Bahagia',
+    '😢': 'Haru',
+    '😂': 'Lucu',
+    '💪': 'Berkesan'
+  };
+  return moods[mood] || 'Spesial';
+}
 
 // Show toast custom
 function showMomentToast(msg, isError = false) {
@@ -37,7 +58,10 @@ function showCustomConfirm(message, onConfirm) {
   const messageEl = document.getElementById('customConfirmMessage');
   const okBtn = document.getElementById('customConfirmOkBtn');
   
-  if (!modal || !messageEl || !okBtn) return;
+  if (!modal || !messageEl || !okBtn) {
+    if (confirm(message)) onConfirm();
+    return;
+  }
   
   messageEl.innerText = message;
   modal.style.display = 'flex';
@@ -234,16 +258,20 @@ export function renderCalendar() {
     }
     
     const dateKey = `${cellYear}-${String(cellMonth + 1).padStart(2, '0')}-${String(cellDate).padStart(2, '0')}`;
-    const hasMoment = moments && Object.values(moments).some(m => m.date === dateKey);
+    const momentOnDate = Object.values(moments).find(m => m.date === dateKey);
+    const hasMoment = !!momentOnDate;
+    const isSpecial = momentOnDate?.isSpecial || false;
     const isToday = cellYear === today.getFullYear() && cellMonth === today.getMonth() && cellDate === today.getDate();
     
     let cellClass = `calendar-day ${!isCurrentMonth ? 'other-month' : ''}`;
     if (isToday && isCurrentMonth) cellClass += ' today';
     if (hasMoment && isCurrentMonth) cellClass += ' has-moment';
+    if (isSpecial && isCurrentMonth) cellClass += ' special-moment';
     
     calendarHtml += `
       <div class="${cellClass}" onclick="window.selectMomentDate('${dateKey}')">
         <span class="day-number">${displayDate}</span>
+        ${hasMoment ? `<span class="moment-dot ${isSpecial ? 'special-dot' : ''}"></span>` : ''}
       </div>
     `;
   }
@@ -260,16 +288,31 @@ export function renderMomentsList() {
   const momentsCountEl = document.getElementById('momentsCount');
   if (!momentsListEl) return;
   
-  const momentsArray = Object.entries(moments).sort((a, b) => b[1].createdAt - a[1].createdAt);
+  // Convert to array for sorting
+  const momentsArray = Object.entries(moments).map(([id, m]) => ({ id, ...m }));
+  
+  // SORTING LOGIC:
+  // 1. Special moments (isSpecial = true) appear first
+  // 2. Then sort by date (newest to oldest)
+  momentsArray.sort((a, b) => {
+    // Prioritize special moments
+    if (a.isSpecial && !b.isSpecial) return -1;
+    if (!a.isSpecial && b.isSpecial) return 1;
+    
+    // Both have same special status, sort by date (newest first)
+    const dateA = a.date || '';
+    const dateB = b.date || '';
+    return dateB.localeCompare(dateA);
+  });
   
   if (momentsCountEl) momentsCountEl.innerHTML = `${momentsArray.length} momen`;
   
   if (momentsArray.length === 0) {
     momentsListEl.innerHTML = `
       <div class="col-12">
-        <div class="empty-moments">
-          <i class="bi bi-calendar-heart"></i>
-          <h6>Belum ada momen</h6>
+        <div class="empty-moments text-center py-5">
+          <i class="bi bi-calendar-heart fs-1 text-muted"></i>
+          <h6 class="mt-2">Belum ada momen</h6>
           <p class="text-muted small">Klik tanggal pada kalender untuk menambah momen</p>
         </div>
       </div>
@@ -277,15 +320,20 @@ export function renderMomentsList() {
     return;
   }
   
-  momentsListEl.innerHTML = momentsArray.map(([id, m]) => {
-    const specialClass = m.isSpecial ? 'special' : '';
-    const moodEmoji = m.mood || '🥰';
-    const firstPhoto = m.photos && m.photos[0] ? m.photos[0] : null;
-    const moodText = getMoodText(m.mood);
+  momentsListEl.innerHTML = momentsArray.map((moment) => {
+    const specialClass = moment.isSpecial ? 'special-card' : '';
+    const moodEmoji = moment.mood || '🥰';
+    const firstPhoto = moment.photos && moment.photos[0] ? moment.photos[0] : null;
+    const moodText = getMoodText(moment.mood);
+    const dateFormatted = formatDate(moment.date);
+    
+    // Add special badge
+    const specialBadge = moment.isSpecial ? 
+      '<span class="badge bg-warning text-dark ms-1"><i class="bi bi-star-fill me-1"></i>Spesial</span>' : '';
     
     return `
       <div class="col-6 col-md-4 col-lg-3">
-        <div class="card moment-card ${specialClass} h-100" onclick="window.viewMomentDetail('${id}')" style="cursor: pointer;">
+        <div class="card moment-card ${specialClass} h-100" onclick="window.viewMomentDetail('${moment.id}')" style="cursor: pointer;">
           ${firstPhoto ? `
             <img src="${firstPhoto}" class="moment-image" loading="lazy">
           ` : `
@@ -295,36 +343,18 @@ export function renderMomentsList() {
           `}
           <div class="card-body p-2">
             <div class="d-flex justify-content-between align-items-start mb-1">
-              <span class="moment-mood-badge small">${moodEmoji} ${moodText}</span>
-              ${m.isSpecial ? '<span class="badge bg-warning text-dark p-1">⭐</span>' : ''}
+              <div class="d-flex align-items-center gap-1 flex-wrap">
+                <span class="moment-mood-badge small">${moodEmoji} ${moodText}</span>
+                ${specialBadge}
+              </div>
             </div>
-            <h6 class="fw-bold mb-0 small">${escapeHtml(m.title || 'Momen Tak Terlupakan')}</h6>
-            <small class="text-muted">${formatDate(m.date)}</small>
+            <h6 class="fw-bold mb-0 small">${escapeHtml(moment.title || 'Momen Tak Terlupakan')}</h6>
+            <small class="text-muted">${dateFormatted}</small>
           </div>
         </div>
       </div>
     `;
   }).join('');
-}
-
-function formatDate(dateStr) {
-  if (!dateStr) return '';
-  const parts = dateStr.split('-');
-  if (parts.length === 3) {
-    return `${parts[2]}/${parts[1]}/${parts[0]}`;
-  }
-  return dateStr;
-}
-
-function getMoodText(mood) {
-  const moods = {
-    '🥰': 'Romantis',
-    '🎉': 'Bahagia',
-    '😢': 'Haru',
-    '😂': 'Lucu',
-    '💪': 'Berkesan'
-  };
-  return moods[mood] || 'Spesial';
 }
 
 export function selectMomentDate(dateKey) {
@@ -360,6 +390,7 @@ export function selectMomentDate(dateKey) {
 
 export function openMomentModal(momentId) {
   if (!momentId) {
+    document.getElementById('momentModalTitle').innerText = 'Tambah Momen';
     document.getElementById('momentEditId').value = '';
     if (!document.getElementById('momentDate').value) {
       document.getElementById('momentDate').value = new Date().toISOString().split('T')[0];
@@ -380,10 +411,10 @@ export function openMomentModal(momentId) {
     
     renderPhotoGrid();
   } else {
+    document.getElementById('momentModalTitle').innerText = 'Edit Momen';
     const data = masterData;
     const moment = data?.moments?.[momentId];
     if (moment) {
-      document.getElementById('momentModalTitle').innerText = 'Edit Momen';
       document.getElementById('momentEditId').value = momentId;
       document.getElementById('momentDate').value = moment.date || '';
       document.getElementById('momentTitle').value = moment.title || '';
@@ -545,6 +576,7 @@ export function changeMonth(delta) {
   renderCalendar();
 }
 
+// Export to window
 window.initMomentPage = initMomentPage;
 window.renderCalendar = renderCalendar;
 window.renderMomentsList = renderMomentsList;
