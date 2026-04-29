@@ -1,10 +1,10 @@
-// js/app.js - Full Optimized Version (Dengan Semua Fitur Baru)
+// js/app.js - Full Optimized Version (Dengan Semua Fitur Baru & Perbaikan)
 
 import { db, ref, onValue, set, update, push, remove, get } from './firebase-config.js';
 import { masterData, setMasterData, showNotif, togglePrivacy, setCurrentUser, privacyHidden, debounce, throttle } from './utils.js';
 import { handleLogin, updateCloudPassword, resetPassword, confirmLogout, handleLogout, checkSessionOnLoad, startSessionMonitoring, resetSessionTimeout, stopSessionMonitoring } from './auth.js';
 import { renderDashboard, updateCharts } from './dashboard.js';
-import { savePlan, renderBoardPlans, updatePlan, deletePlanItem, addSubPlan, togglePlan, openEditPlan, deletePlanItemById, deleteSubPlan, initPlanFilter, confirmAddTemplate } from './planning.js';
+import { savePlan, renderBoardPlans, updatePlan, deletePlanItem, addSubPlan, togglePlan, openEditPlan, deletePlanItemById, deleteSubPlan, initPlanFilter, confirmAddTemplate, addTemplateToCategory } from './planning.js';
 import { saveFinance, editFinance, renderFinances, initFinancialPage, addSavingTarget, editSavingTarget, deleteSavingTarget, loadSavingTargets } from './financial.js';
 import { 
   saveDream, openDreamModal, viewDreamDetail, editDreamFromDetail, deleteDreamFromDetail, deleteDreamFromCard,
@@ -110,10 +110,14 @@ function showLoadingOverlay(message = "Memproses...") {
   
   const spinner = document.createElement('div');
   spinner.className = 'loading-spinner';
-  spinner.style.width = '48px';
-  spinner.style.height = '48px';
-  spinner.style.border = '4px solid rgba(255,255,255,0.3)';
-  spinner.style.borderTop = '4px solid #6366f1';
+  spinner.style.cssText = `
+    width: 48px;
+    height: 48px;
+    border: 4px solid rgba(255,255,255,0.3);
+    border-top: 4px solid #6366f1;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  `;
   
   const text = document.createElement('p');
   text.textContent = message;
@@ -264,7 +268,7 @@ function initPullToRefresh() {
           gap: 8px;
         `;
         refreshIndicator.innerHTML = `
-          <div class="loading-spinner" style="width: 16px; height: 16px; border-width: 2px;"></div>
+          <div style="width: 16px; height: 16px; border: 2px solid white; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
           <span>Menyegarkan...</span>
         `;
         document.body.appendChild(refreshIndicator);
@@ -313,7 +317,134 @@ function initUIUXImprovements() {
   });
 }
 
-// ============ END UI/UX IMPROVEMENTS ============
+// ============ ADVANCED FEATURES INITIALIZATION ============
+
+function addAIPromotionButton() {
+  const financialPage = document.getElementById('financial-page');
+  if (!financialPage) return;
+  
+  if (document.querySelector('.ai-promotion-btn')) return;
+  
+  const targetCard = financialPage.querySelector('.card:first-child');
+  if (targetCard) {
+    const aiPromo = document.createElement('div');
+    aiPromo.className = 'alert alert-primary d-flex justify-content-between align-items-center mt-3 ai-promotion-btn';
+    aiPromo.style.cursor = 'pointer';
+    aiPromo.innerHTML = `
+      <div>
+        <i class="bi bi-robot fs-4 me-2"></i>
+        <strong>AI Budget Recommendation</strong>
+        <div class="small text-muted">Dapatkan estimasi budget pernikahan berdasarkan lokasi, jumlah tamu, dan gaya pernikahan</div>
+      </div>
+      <button class="btn btn-primary rounded-pill" onclick="event.stopPropagation(); window.openAIRecommendModal && window.openAIRecommendModal()">
+        <i class="bi bi-magic me-2"></i>Coba Sekarang
+      </button>
+    `;
+    targetCard.parentNode.insertBefore(aiPromo, targetCard.nextSibling);
+  }
+}
+
+function addCountdownContainer() {
+  const dashboardPage = document.getElementById('dashboard-page');
+  if (!dashboardPage) return;
+  
+  if (document.getElementById('countdownWidgetContainer')) return;
+  
+  const container = document.createElement('div');
+  container.id = 'countdownWidgetContainer';
+  container.className = 'mb-4';
+  
+  const firstElement = dashboardPage.firstChild;
+  if (firstElement) {
+    dashboardPage.insertBefore(container, firstElement);
+  } else {
+    dashboardPage.appendChild(container);
+  }
+}
+
+function addAIContainerInDashboard() {
+  const dashboardPage = document.getElementById('dashboard-page');
+  if (!dashboardPage) return;
+  
+  if (document.querySelector('.dashboard-ai-card')) return;
+  
+  const targetRingkasan = dashboardPage.querySelector('.row.g-4.mb-5');
+  if (targetRingkasan) {
+    const aiCard = document.createElement('div');
+    aiCard.className = 'dashboard-ai-card mb-4';
+    aiCard.innerHTML = `
+      <div class="card border-0 shadow-sm bg-gradient bg-primary text-white">
+        <div class="card-body p-3 d-flex justify-content-between align-items-center">
+          <div>
+            <i class="bi bi-robot fs-3 me-2"></i>
+            <strong>AI Rekomendasi Budget Pernikahan</strong>
+            <div class="small opacity-75">Dapatkan estimasi biaya berdasarkan lokasi, tamu, dan gaya pernikahan</div>
+          </div>
+          <button class="btn btn-light rounded-pill" onclick="window.openAIRecommendModal()">
+            <i class="bi bi-magic me-2"></i>Coba
+          </button>
+        </div>
+      </div>
+    `;
+    targetRingkasan.parentNode.insertBefore(aiCard, targetRingkasan.nextSibling);
+  }
+}
+
+function initAdvancedFeatures() {
+  console.log('🚀 Initializing advanced features...');
+  
+  // Tambahkan container countdown
+  addCountdownContainer();
+  
+  // Inisialisasi countdown widget
+  setTimeout(() => {
+    if (window.renderCountdownWidget) {
+      window.renderCountdownWidget();
+      console.log('✅ Countdown widget initialized');
+    } else {
+      console.warn('⚠️ renderCountdownWidget not available');
+    }
+  }, 500);
+  
+  // Tambahkan tombol AI di halaman Keuangan
+  setTimeout(() => {
+    addAIPromotionButton();
+    addAIContainerInDashboard();
+  }, 800);
+  
+  // Inisialisasi notifikasi
+  setTimeout(() => {
+    if (window.checkAndShowPermissionModal) {
+      window.checkAndShowPermissionModal();
+      console.log('✅ Notification permission checker initialized');
+    }
+    if (window.startNotificationListener) {
+      window.startNotificationListener();
+      console.log('✅ Notification listener started');
+    }
+  }, 2000);
+  
+  // Inisialisasi integrasi planning-vendor
+  setTimeout(() => {
+    if (window.initIntegrations) {
+      window.initIntegrations();
+      console.log('✅ Planning-Vendor integration initialized');
+    }
+    if (window.renderAll) {
+      window.renderAll();
+    }
+  }, 1000);
+  
+  // Inisialisasi AI style buttons
+  setTimeout(() => {
+    if (window.initAIStyleButtons) {
+      window.initAIStyleButtons();
+      console.log('✅ AI style buttons initialized');
+    }
+  }, 600);
+}
+
+// ============ END ADVANCED FEATURES ============
 
 async function loadComponents() {
   try {
@@ -387,11 +518,10 @@ async function loadComponents() {
       if (window.initKeyboardShortcuts) window.initKeyboardShortcuts();
       if (window.setupGlobalErrorHandler) window.setupGlobalErrorHandler();
       if (window.initPerformanceMonitoring) window.initPerformanceMonitoring();
-      if (window.checkAndShowPermissionModal) window.checkAndShowPermissionModal();
-      if (window.startNotificationListener) window.startNotificationListener();
-      if (window.renderCountdownWidget) window.renderCountdownWidget();
-      if (window.initIntegrations) window.initIntegrations();
       if (window.initVendorPage) window.initVendorPage();
+      
+      // ============ INIT ADVANCED FEATURES ============
+      initAdvancedFeatures();
     }, 100);
     
     initCoupleChat();
@@ -761,6 +891,11 @@ export function setupAppSession(u) {
   
   renderAll();
   showPage('dashboard');
+  
+  // Inisialisasi ulang advanced features setelah login
+  setTimeout(() => {
+    initAdvancedFeatures();
+  }, 500);
 }
 
 function renderAll() {
@@ -892,6 +1027,7 @@ window.showLoadingOverlay = showLoadingOverlay;
 window.hideLoadingOverlay = hideLoadingOverlay;
 window.initUIUXImprovements = initUIUXImprovements;
 window.confirmAddTemplate = confirmAddTemplate;
+window.addTemplateToCategory = addTemplateToCategory;
 
 // Dream/Vision
 window.saveDream = saveDream;
@@ -1005,6 +1141,8 @@ window.generateAIRecommendation = generateAIRecommendation;
 window.applyAIRecommendation = applyAIRecommendation;
 window.openAIRecommendModal = openAIRecommendModal;
 window.initAIStyleButtons = initAIStyleButtons;
+
+// Accessibility
 window.initAccessibility = initAccessibility;
 window.announceToScreenReader = announceToScreenReader;
 window.initKeyboardShortcuts = initKeyboardShortcuts;
@@ -1015,6 +1153,7 @@ window.safeFetchData = safeFetchData;
 window.showSkeletonLoader = showSkeletonLoader;
 window.hideSkeletonLoader = hideSkeletonLoader;
 window.initPerformanceMonitoring = initPerformanceMonitoring;
+
 // Integration
 window.initIntegrations = initIntegrations;
 window.selectVendorForPlan = selectVendorForPlan;
@@ -1024,7 +1163,10 @@ window.syncCountdownWithPlans = syncCountdownWithPlans;
 window.addVendorAssignmentToPlans = addVendorAssignmentToPlans;
 window.addDeadlineWarningsToPlans = addDeadlineWarningsToPlans;
 
-// ============ INITIALIZATION ============
+// Advanced Features
+window.initAdvancedFeatures = initAdvancedFeatures;
+
+// ============ FINAL INITIALIZATION ============
 document.addEventListener("DOMContentLoaded", () => {
   loadComponents().then(() => {
     if (checkSessionOnLoad()) {
@@ -1033,6 +1175,21 @@ document.addEventListener("DOMContentLoaded", () => {
         setCurrentUser(savedUser);
         setupAppSession(savedUser);
       }
+    }
+    
+    // Tambahkan style untuk animasi loading spinner jika belum ada
+    if (!document.getElementById('global-spinner-style')) {
+      const style = document.createElement('style');
+      style.id = 'global-spinner-style';
+      style.textContent = `
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+        .loading-spinner {
+          animation: spin 0.8s linear infinite;
+        }
+      `;
+      document.head.appendChild(style);
     }
   });
 });
