@@ -17,7 +17,7 @@ function getVendorById(vendorId) {
 }
 
 // Simpan assignment vendor ke plan
-export async function selectVendorForPlan(planId, vendorId) {
+async function selectVendorForPlanFunction(planId, vendorId) {
   try {
     if (vendorId) {
       await update(ref(db, `data/planVendors/${planId}`), {
@@ -25,7 +25,6 @@ export async function selectVendorForPlan(planId, vendorId) {
         assignedAt: Date.now()
       });
       
-      // Update juga di vendor side (list rencana yang menggunakan vendor ini)
       const vendorRef = ref(db, `data/vendors/${vendorId}/assignedPlans`);
       const snapshot = await get(vendorRef);
       const assignedPlans = snapshot.val() || {};
@@ -34,16 +33,13 @@ export async function selectVendorForPlan(planId, vendorId) {
       
       showNotif('✅ Vendor berhasil di-assign ke rencana');
     } else {
-      // Hapus assignment
       await update(ref(db, `data/planVendors/${planId}`), null);
       showNotif('🗑️ Assignment vendor dihapus');
     }
     
-    // Tutup modal jika ada
     const modal = bootstrap.Modal.getInstance(document.getElementById('vendorSelectorModal'));
     if (modal) modal.hide();
     
-    // Refresh tampilan
     if (window.renderAll) window.renderAll();
     
   } catch (err) {
@@ -59,7 +55,6 @@ function openVendorSelector(planId) {
   const currentVendor = getAssignedVendorForPlan(planId);
   const currentVendorId = currentVendor?.vendorId || null;
   
-  // Buat modal dinamis
   const modalHtml = `
     <div class="modal fade" id="vendorSelectorModal" tabindex="-1">
       <div class="modal-dialog modal-dialog-centered">
@@ -107,7 +102,6 @@ function openVendorSelector(planId) {
     </div>
   `;
   
-  // Hapus modal lama jika ada
   const existingModal = document.getElementById('vendorSelectorModal');
   if (existingModal) existingModal.remove();
   
@@ -117,14 +111,13 @@ function openVendorSelector(planId) {
 }
 
 // Menambahkan tombol "Assign Vendor" di card rencana
-export function addVendorAssignmentToPlans() {
+function addVendorAssignmentToPlansFunction() {
   const planCards = document.querySelectorAll('.plan-card');
   
   planCards.forEach(card => {
     const planId = card.getAttribute('data-plan-id');
     if (!planId) return;
     
-    // Cek apakah sudah ada tombol assign vendor
     if (card.querySelector('.vendor-assign-btn')) return;
     
     const actionButtons = card.querySelector('.d-flex.gap-2');
@@ -147,7 +140,7 @@ export function addVendorAssignmentToPlans() {
 
 // ============ 2. DEADLINE WARNINGS DI RENCANA ============
 
-export function addDeadlineWarningsToPlans() {
+function addDeadlineWarningsToPlansFunction() {
   const planCards = document.querySelectorAll('.plan-card');
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -160,7 +153,6 @@ export function addDeadlineWarningsToPlans() {
     targetDate.setHours(0, 0, 0, 0);
     const diffDays = Math.ceil((targetDate - today) / (1000 * 60 * 60 * 24));
     
-    // Hapus warning lama jika ada
     const oldWarning = card.querySelector('.deadline-warning');
     if (oldWarning) oldWarning.remove();
     
@@ -187,7 +179,6 @@ export function addDeadlineWarningsToPlans() {
       const cardBody = card.querySelector('.card-body');
       if (cardBody) {
         cardBody.insertAdjacentHTML('beforeend', warningHtml);
-        // Hapus class lama, tambah class baru
         card.classList.remove('border-start', 'border-danger', 'border-warning');
         if (warningClass) {
           warningClass.split(' ').forEach(cls => {
@@ -201,12 +192,11 @@ export function addDeadlineWarningsToPlans() {
 
 // ============ 3. VENDOR RELATED PLANS ============
 
-export function showVendorRelatedPlans(vendorId) {
+function showVendorRelatedPlansFunction(vendorId) {
   const data = window.masterData || masterData;
   const plans = data?.plans || {};
   const planVendors = data?.planVendors || {};
   
-  // Cari semua plan yang menggunakan vendor ini
   const relatedPlans = [];
   for (const [planId, assignment] of Object.entries(planVendors)) {
     if (assignment.vendorId === vendorId && plans[planId]) {
@@ -219,7 +209,6 @@ export function showVendorRelatedPlans(vendorId) {
     return [];
   }
   
-  // Tampilkan modal daftar rencana
   const modalHtml = `
     <div class="modal fade" id="vendorPlansModal" tabindex="-1">
       <div class="modal-dialog modal-dialog-centered">
@@ -258,7 +247,7 @@ export function showVendorRelatedPlans(vendorId) {
 }
 
 // Scroll ke plan tertentu
-function scrollToPlan(planId) {
+function scrollToPlanFunction(planId) {
   window.showPage('planning');
   setTimeout(() => {
     const planElement = document.querySelector(`.plan-card[data-plan-id="${planId}"]`);
@@ -275,23 +264,20 @@ function scrollToPlan(planId) {
 
 // ============ 4. BUDGET CALCULATION ============
 
-export async function calculateTotalWeddingBudgetFunction() {
+async function calculateTotalWeddingBudgetFunction() {
   const data = window.masterData || masterData;
   const plans = data?.plans || {};
   const vendors = data?.vendors || {};
-  const planVendors = data?.planVendors || {};
   
   let totalEstimated = 0;
   let totalActual = 0;
   let totalFromVendors = 0;
   
-  // Hitung dari plans
   Object.values(plans).forEach(plan => {
     totalEstimated += plan.estimatedBudget || 0;
     totalActual += plan.actualBudget || 0;
   });
   
-  // Hitung dari vendors yang sudah dideal
   Object.values(vendors).forEach(vendor => {
     if (vendor.dealPrice) {
       totalFromVendors += vendor.dealPrice;
@@ -308,7 +294,7 @@ export async function calculateTotalWeddingBudgetFunction() {
 
 // ============ 5. COUNTDOWN INTEGRATION ============
 
-export function syncCountdownWithPlans() {
+function syncCountdownWithPlansFunction() {
   const data = window.masterData || masterData;
   const plans = data?.plans || {};
   const weddingDate = data?.settings?.weddingDate;
@@ -325,17 +311,14 @@ export function syncCountdownWithPlans() {
       planDate.setHours(0, 0, 0, 0);
       const diffDays = Math.ceil((planDate - weddingDateObj) / (1000 * 60 * 60 * 24));
       
-      // Plan yang targetnya mendekati wedding date (plus minus 7 hari)
       if (Math.abs(diffDays) <= 7) {
         criticalPlans.push({ id, ...plan, diffDays });
       }
     }
   });
   
-  // Tampilkan warning di countdown widget
   const widget = document.getElementById('countdownWidget');
   if (widget) {
-    // Hapus warning lama
     const oldWarning = widget.querySelector('.countdown-warnings');
     if (oldWarning) oldWarning.remove();
     
@@ -354,8 +337,7 @@ export function syncCountdownWithPlans() {
   }
 }
 
-// Tampilkan rencana kritis
-function showCriticalPlans() {
+function showCriticalPlansFunction() {
   const data = window.masterData || masterData;
   const plans = data?.plans || {};
   const weddingDate = data?.settings?.weddingDate;
@@ -429,25 +411,24 @@ const originalRenderBoardPlans = window.renderBoardPlans;
 const originalRenderVendors = window.renderVendors;
 
 // Enhanced renderBoardPlans
-export const enhancedRenderBoardPlans = (plansMap) => {
+function enhancedRenderBoardPlansFunction(plansMap) {
   if (originalRenderBoardPlans) {
     originalRenderBoardPlans(plansMap);
   }
   
   setTimeout(() => {
-    addVendorAssignmentToPlans();
-    addDeadlineWarningsToPlans();
+    addVendorAssignmentToPlansFunction();
+    addDeadlineWarningsToPlansFunction();
   }, 100);
-};
+}
 
 // Enhanced renderVendors
-export const enhancedRenderVendors = () => {
+function enhancedRenderVendorsFunction() {
   if (originalRenderVendors) {
     originalRenderVendors();
   }
   
   setTimeout(() => {
-    // Tambahkan tombol "Lihat Rencana" di setiap vendor card
     const vendorCards = document.querySelectorAll('.vendor-card');
     vendorCards.forEach(card => {
       const vendorId = card.getAttribute('data-vendor-id');
@@ -462,59 +443,47 @@ export const enhancedRenderVendors = () => {
         btn.innerHTML = '<i class="bi bi-calendar-check me-1"></i>Lihat Rencana Terkait';
         btn.onclick = (e) => {
           e.stopPropagation();
-          showVendorRelatedPlans(vendorId);
+          showVendorRelatedPlansFunction(vendorId);
         };
         cardBody.appendChild(btn);
       }
     });
   }, 100);
-};
+}
 
 // ============ 7. INITIALIZATION ============
 
-export function initIntegrations() {
+function initIntegrationsFunction() {
   console.log('🔄 Initializing integrations: Planning - Vendor - Countdown');
   
-  // Override render functions
-  window.renderBoardPlans = enhancedRenderBoardPlans;
-  window.renderVendors = enhancedRenderVendors;
+  window.renderBoardPlans = enhancedRenderBoardPlansFunction;
+  window.renderVendors = enhancedRenderVendorsFunction;
   
-  // Backup original renderAll
   const originalRenderAll = window.renderAll;
   window.renderAll = function() {
     if (originalRenderAll) originalRenderAll();
     setTimeout(() => {
-      addVendorAssignmentToPlans();
-      addDeadlineWarningsToPlans();
-      syncCountdownWithPlans();
+      addVendorAssignmentToPlansFunction();
+      addDeadlineWarningsToPlansFunction();
+      syncCountdownWithPlansFunction();
     }, 200);
   };
   
   console.log('✅ Integrations initialized successfully');
 }
 
-// ============ EXPORT SEMUA FUNGSI UNIQUE ============
-export { 
-  selectVendorForPlan,
-  showVendorRelatedPlans,
-  addVendorAssignmentToPlans,
-  addDeadlineWarningsToPlans,
-  initIntegrations,
-  syncCountdownWithPlans,
-  calculateTotalWeddingBudgetFunction as calculateTotalWeddingBudget,
-  enhancedRenderBoardPlans as renderBoardPlans,
-  enhancedRenderVendors as renderVendors
-};
-
-// Export ke window juga agar bisa diakses dari HTML
+// ============ EXPORT KE WINDOW ============
 if (typeof window !== 'undefined') {
-  window.selectVendorForPlan = selectVendorForPlan;
-  window.showVendorRelatedPlans = showVendorRelatedPlans;
+  window.selectVendorForPlan = selectVendorForPlanFunction;
+  window.showVendorRelatedPlans = showVendorRelatedPlansFunction;
   window.calculateTotalWeddingBudget = calculateTotalWeddingBudgetFunction;
-  window.syncCountdownWithPlans = syncCountdownWithPlans;
-  window.addVendorAssignmentToPlans = addVendorAssignmentToPlans;
-  window.addDeadlineWarningsToPlans = addDeadlineWarningsToPlans;
-  window.initIntegrations = initIntegrations;
-  window.showCriticalPlans = showCriticalPlans;
-  window.scrollToPlan = scrollToPlan;
+  window.syncCountdownWithPlans = syncCountdownWithPlansFunction;
+  window.addVendorAssignmentToPlans = addVendorAssignmentToPlansFunction;
+  window.addDeadlineWarningsToPlans = addDeadlineWarningsToPlansFunction;
+  window.initIntegrations = initIntegrationsFunction;
+  window.showCriticalPlans = showCriticalPlansFunction;
+  window.scrollToPlan = scrollToPlanFunction;
 }
+
+// ============ TIDAK ADA EXPORT NAMED (semua via window) ============
+// Ini penting untuk menghindari duplicate export name error
