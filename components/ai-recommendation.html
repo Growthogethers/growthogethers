@@ -1,0 +1,85 @@
+<!-- FILE BARU: components/ai-recommendation.html -->
+<!-- AI Recommendation Modal -->
+<div class="modal fade" id="aiRecommendModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content rounded-4">
+      <div class="modal-header border-0 bg-gradient bg-primary text-white py-3">
+        <h5 class="fw-bold mb-0"><i class="bi bi-robot me-2"></i>AI Rekomendasi Budget Pernikahan</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-4">
+        <div class="alert alert-info mb-3">
+          <i class="bi bi-info-circle me-2"></i>
+          AI akan merekomendasikan estimasi budget berdasarkan lokasi, jumlah tamu, dan gaya pernikahan.
+        </div>
+        
+        <div class="row g-3 mb-4">
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">📍 Kota / Domisili</label>
+            <select id="aiLocation" class="form-select">
+              <option value="jakarta">Jakarta (Mahal)</option>
+              <option value="surabaya">Surabaya (Sedang)</option>
+              <option value="bandung">Bandung (Sedang)</option>
+              <option value="yogya">Yogyakarta (Sedang)</option>
+              <option value="semarang">Semarang (Sedang)</option>
+              <option value="medan">Medan (Sedang)</option>
+              <option value="other">Kota Lain (Ekonomis)</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">👥 Jumlah Tamu</label>
+            <select id="aiGuestCount" class="form-select">
+              <option value="50">50 orang (Intim)</option>
+              <option value="100">100 orang (Kecil)</option>
+              <option value="250">250 orang (Sedang)</option>
+              <option value="500">500 orang (Besar)</option>
+              <option value="1000">1000+ orang (Sangat Besar)</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="row g-3 mb-4">
+          <div class="col-md-12">
+            <label class="form-label fw-semibold">💒 Gaya Pernikahan</label>
+            <div class="d-flex flex-wrap gap-2">
+              <button type="button" class="btn btn-outline-primary rounded-pill style-option" data-style="modern">Modern Minimalis</button>
+              <button type="button" class="btn btn-outline-primary rounded-pill style-option" data-style="traditional">Adat / Tradisional</button>
+              <button type="button" class="btn btn-outline-primary rounded-pill style-option" data-style="outdoor">Outdoor / Garden</button>
+              <button type="button" class="btn btn-outline-primary rounded-pill style-option" data-style="luxury">Luxury / Mewah</button>
+              <button type="button" class="btn btn-outline-primary rounded-pill style-option" data-style="simple">Sederhana / Budget</button>
+            </div>
+            <input type="hidden" id="aiStyle" value="modern">
+          </div>
+        </div>
+        
+        <button onclick="window.generateAIRecommendation()" class="btn btn-primary w-100 mb-4" id="aiGenerateBtn">
+          <i class="bi bi-magic me-2"></i>Generate Rekomendasi
+        </button>
+        
+        <div id="aiResult" style="display: none;">
+          <div class="card border-0 bg-gradient bg-success text-white">
+            <div class="card-body text-center p-4">
+              <i class="bi bi-trophy-fill fs-1"></i>
+              <h4 class="mt-2 mb-0" id="aiTotalBudget">Rp0</h4>
+              <small>Estimasi Total Budget Pernikahan</small>
+            </div>
+          </div>
+          
+          <div class="mt-4">
+            <h6 class="fw-bold"><i class="bi bi-pie-chart me-2"></i>Rincian Budget</h6>
+            <div id="aiBreakdown" class="mt-2"></div>
+          </div>
+          
+          <div class="mt-4">
+            <h6 class="fw-bold"><i class="bi bi-lightbulb me-2"></i>Tips Hemat dari AI</h6>
+            <ul id="aiTips" class="mt-2"></ul>
+          </div>
+          
+          <button onclick="window.applyAIRecommendation()" class="btn btn-success w-100 mt-3">
+            <i class="bi bi-check-circle me-2"></i>Terapkan ke Target Tabungan
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
