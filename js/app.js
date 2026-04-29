@@ -1,4 +1,4 @@
-// js/app.js - Full Optimized Version (Tanpa Goals & Bucket List)
+// js/app.js - Full Optimized Version (Dengan Semua Fitur Baru)
 
 import { db, ref, onValue, set, update, push, remove, get } from './firebase-config.js';
 import { masterData, setMasterData, showNotif, togglePrivacy, setCurrentUser, privacyHidden, debounce, throttle } from './utils.js';
@@ -12,6 +12,68 @@ import {
   initDreamBoard, renderDreamBoard
 } from './vision.js';
 import { initMomentPage, renderCalendar, renderMomentsList, saveMoment, viewMomentDetail, deleteMomentFromDetail, changeMonth, selectMomentDate, openMomentModal, handleMultiplePhotos, removePhotoAtIndex } from './moment.js';
+
+// ============ MODUL BARU ============
+import { 
+  startNotificationListener, 
+  stopNotificationListener, 
+  requestNotificationPermission, 
+  checkAndShowPermissionModal,
+  showRealtimeToast,
+  hideRealtimeToast
+} from './notifications.js';
+
+import { 
+  saveVendor, 
+  renderVendors, 
+  openVendorModal, 
+  viewVendorDetail, 
+  editVendorFromDetail, 
+  deleteVendorFromDetail, 
+  copyVendorContact, 
+  initVendorPage 
+} from './vendor.js';
+
+import { 
+  renderCountdownWidget, 
+  startCountdown, 
+  showEditWeddingDateModal, 
+  loadWeddingDate, 
+  saveWeddingDate 
+} from './countdown.js';
+
+import { 
+  generateAIRecommendation, 
+  applyAIRecommendation, 
+  openAIRecommendModal, 
+  initAIStyleButtons 
+} from './ai-recommendation.js';
+
+import { 
+  setupGlobalErrorHandler, 
+  safeFetchData, 
+  showSkeletonLoader, 
+  hideSkeletonLoader, 
+  initPerformanceMonitoring,
+  createDebouncedSave,
+  createVirtualScroll
+} from './error-handler.js';
+
+import { 
+  initAccessibility, 
+  announceToScreenReader, 
+  initKeyboardShortcuts 
+} from './accessibility.js';
+
+import { 
+  initIntegrations,
+  selectVendorForPlan,
+  showVendorRelatedPlans,
+  calculateTotalWeddingBudget,
+  syncCountdownWithPlans,
+  addVendorAssignmentToPlans,
+  addDeadlineWarningsToPlans
+} from './integration-planning-vendor.js';
 
 // Global variables
 let weddingChart = null;
@@ -280,6 +342,36 @@ async function loadComponents() {
     const appContent = document.getElementById('app-content');
     if (appContent) appContent.innerHTML = contentHtml;
     
+    // ============ LOAD KOMPONEN BARU ============
+    
+    // Load vendor page
+    const vendorPageResp = await fetch('components/vendor-page.html');
+    if (vendorPageResp.ok) {
+      const vendorPageHtml = await vendorPageResp.text();
+      if (appContent) appContent.insertAdjacentHTML('beforeend', vendorPageHtml);
+    }
+    
+    // Load vendor modals
+    const vendorModalsResp = await fetch('components/vendor.html');
+    if (vendorModalsResp.ok) {
+      const vendorModalsHtml = await vendorModalsResp.text();
+      if (modalsContainer) modalsContainer.insertAdjacentHTML('beforeend', vendorModalsHtml);
+    }
+    
+    // Load AI recommendation modal
+    const aiModalResp = await fetch('components/ai-recommendation.html');
+    if (aiModalResp.ok) {
+      const aiModalHtml = await aiModalResp.text();
+      if (modalsContainer) modalsContainer.insertAdjacentHTML('beforeend', aiModalHtml);
+    }
+    
+    // Load notification modals
+    const notifModalsResp = await fetch('components/notification-modals.html');
+    if (notifModalsResp.ok) {
+      const notifModalsHtml = await notifModalsResp.text();
+      if (modalsContainer) modalsContainer.insertAdjacentHTML('beforeend', notifModalsHtml);
+    }
+    
     attachEventListeners();
     
     setTimeout(() => {
@@ -288,6 +380,18 @@ async function loadComponents() {
       if (window.initMomentPage) window.initMomentPage();
       if (window.initPlanFilter) window.initPlanFilter();
       if (window.initUIUXImprovements) window.initUIUXImprovements();
+      
+      // ============ INIT MODUL BARU ============
+      if (window.initAccessibility) window.initAccessibility();
+      if (window.initKeyboardShortcuts) window.initKeyboardShortcuts();
+      if (window.initAIStyleButtons) window.initAIStyleButtons();
+      if (window.setupGlobalErrorHandler) window.setupGlobalErrorHandler();
+      if (window.initPerformanceMonitoring) window.initPerformanceMonitoring();
+      if (window.checkAndShowPermissionModal) window.checkAndShowPermissionModal();
+      if (window.startNotificationListener) window.startNotificationListener();
+      if (window.renderCountdownWidget) window.renderCountdownWidget();
+      if (window.initIntegrations) window.initIntegrations();
+      if (window.initVendorPage) window.initVendorPage();
     }, 100);
     
     initCoupleChat();
@@ -491,6 +595,7 @@ function attachEventListeners() {
       if (window.loadSavingTargets) window.loadSavingTargets();
       if (window.renderFinances) window.renderFinances();
       if (window.renderDreamBoard) window.renderDreamBoard();
+      if (window.renderVendors) window.renderVendors();
     });
   }
   if (privacyToggleFinance) {
@@ -499,6 +604,7 @@ function attachEventListeners() {
       if (window.loadSavingTargets) window.loadSavingTargets();
       if (window.renderFinances) window.renderFinances();
       if (window.renderDreamBoard) window.renderDreamBoard();
+      if (window.renderVendors) window.renderVendors();
     });
   }
   
@@ -533,6 +639,8 @@ function attachEventListeners() {
             await update(ref(db, 'data/settings'), { savingTargets: targets });
           } else if (path === "dreams") {
             await remove(ref(db, `data/dreams/${id}`));
+          } else if (path === "vendors") {
+            await remove(ref(db, `data/vendors/${id}`));
           } else {
             const dbRef = ref(db, `data/${path}/${id}`);
             await remove(dbRef);
@@ -540,6 +648,7 @@ function attachEventListeners() {
           showNotif("🗑️ Data berhasil dihapus");
           if (window.renderAll) window.renderAll();
           if (window.loadSavingTargets) window.loadSavingTargets();
+          if (window.renderVendors) window.renderVendors();
         } catch (err) {
           console.error(err);
           showNotif("❌ Gagal hapus data: " + err.message, true);
@@ -616,6 +725,12 @@ function showPage(pageId) {
       window.initMomentPage();
     }, 100);
   }
+  
+  if (pageId === "vendor" && window.initVendorPage) {
+    setTimeout(() => {
+      window.initVendorPage();
+    }, 100);
+  }
 }
 
 export function setupAppSession(u) {
@@ -654,6 +769,7 @@ function renderAll() {
   if (window.renderDashboard) window.renderDashboard();
   if (window.renderDreamBoard) window.renderDreamBoard();
   if (window.renderFinances) window.renderFinances();
+  if (window.renderVendors) window.renderVendors();
   
   if (window.loadSavingTargets) {
     window.loadSavingTargets();
@@ -693,6 +809,13 @@ function renderAll() {
   plansChart = charts.plansChart;
   
   checkPlanReminders();
+  
+  // Integrasi tambahan
+  setTimeout(() => {
+    if (window.addVendorAssignmentToPlans) window.addVendorAssignmentToPlans();
+    if (window.addDeadlineWarningsToPlans) window.addDeadlineWarningsToPlans();
+    if (window.syncCountdownWithPlans) window.syncCountdownWithPlans();
+  }, 200);
 }
 
 function checkPlanReminders() {
@@ -720,7 +843,9 @@ onValue(ref(db, "data/"), (snapshot) => {
     settings: {}, 
     comments: {}, 
     likes: {}, 
-    moments: {} 
+    moments: {},
+    vendors: {},
+    planVendors: {}
   };
   setMasterData(data);
   
@@ -736,6 +861,9 @@ onValue(ref(db, "data/"), (snapshot) => {
   }
 });
 
+// ============ EXPORT SEMUA FUNGSI KE WINDOW ============
+
+// Existing
 window.setupAppSession = setupAppSession;
 window.handleLogin = handleLogin;
 window.savePlan = savePlan;
@@ -765,6 +893,7 @@ window.hideLoadingOverlay = hideLoadingOverlay;
 window.initUIUXImprovements = initUIUXImprovements;
 window.confirmAddTemplate = confirmAddTemplate;
 
+// Dream/Vision
 window.saveDream = saveDream;
 window.openDreamModal = openDreamModal;
 window.viewDreamDetail = viewDreamDetail;
@@ -777,12 +906,14 @@ window.confirmUpdateFunding = confirmUpdateFunding;
 window.updateDreamSavedAmount = updateDreamSavedAmount;
 window.initDreamBoard = initDreamBoard;
 
+// Financial
 window.initFinancialPage = initFinancialPage;
 window.addSavingTarget = addSavingTarget;
 window.editSavingTarget = editSavingTarget;
 window.deleteSavingTarget = deleteSavingTarget;
 window.loadSavingTargets = loadSavingTargets;
 
+// Moment
 window.initMomentPage = initMomentPage;
 window.renderCalendar = renderCalendar;
 window.renderMomentsList = renderMomentsList;
@@ -795,6 +926,7 @@ window.openMomentModal = openMomentModal;
 window.handleMultiplePhotos = handleMultiplePhotos;
 window.removePhotoAtIndex = removePhotoAtIndex;
 
+// Confirm Delete
 window.confirmDelete = (path, id) => {
   window.pendingDelete = { path, id };
   const modalEl = document.getElementById("confirmDeleteModal");
@@ -811,6 +943,7 @@ window.deleteItem = (path, id) => {
   if (modalEl) new bootstrap.Modal(modalEl).show();
 };
 
+// Rekomendasi Template
 window.applyWeddingReco = async () => {
   showGlobalProgress();
   const items = ["💍 Persiapan Lamaran", "🏨 Booking Venue", "💄 MUA & Busana", "📸 Dokumentasi", "🎤 MC & Entertainment"];
@@ -840,6 +973,61 @@ window.hideToast = () => {
 
 window.validateRequiredFields = validateRequiredFields;
 
+// ============ EXPORT FUNGSI MODUL BARU ============
+
+// Notifications
+window.startNotificationListener = startNotificationListener;
+window.stopNotificationListener = stopNotificationListener;
+window.requestNotificationPermission = requestNotificationPermission;
+window.checkAndShowPermissionModal = checkAndShowPermissionModal;
+window.showRealtimeToast = showRealtimeToast;
+window.hideRealtimeToast = hideRealtimeToast;
+
+// Vendor
+window.saveVendor = saveVendor;
+window.renderVendors = renderVendors;
+window.openVendorModal = openVendorModal;
+window.viewVendorDetail = viewVendorDetail;
+window.editVendorFromDetail = editVendorFromDetail;
+window.deleteVendorFromDetail = deleteVendorFromDetail;
+window.copyVendorContact = copyVendorContact;
+window.initVendorPage = initVendorPage;
+
+// Countdown
+window.renderCountdownWidget = renderCountdownWidget;
+window.startCountdown = startCountdown;
+window.showEditWeddingDateModal = showEditWeddingDateModal;
+window.loadWeddingDate = loadWeddingDate;
+window.saveWeddingDate = saveWeddingDate;
+
+// AI Recommendation
+window.generateAIRecommendation = generateAIRecommendation;
+window.applyAIRecommendation = applyAIRecommendation;
+window.openAIRecommendModal = openAIRecommendModal;
+window.initAIStyleButtons = initAIStyleButtons;
+
+// Error Handler
+window.setupGlobalErrorHandler = setupGlobalErrorHandler;
+window.safeFetchData = safeFetchData;
+window.showSkeletonLoader = showSkeletonLoader;
+window.hideSkeletonLoader = hideSkeletonLoader;
+window.initPerformanceMonitoring = initPerformanceMonitoring;
+
+// Accessibility
+window.initAccessibility = initAccessibility;
+window.announceToScreenReader = announceToScreenReader;
+window.initKeyboardShortcuts = initKeyboardShortcuts;
+
+// Integration
+window.initIntegrations = initIntegrations;
+window.selectVendorForPlan = selectVendorForPlan;
+window.showVendorRelatedPlans = showVendorRelatedPlans;
+window.calculateTotalWeddingBudget = calculateTotalWeddingBudget;
+window.syncCountdownWithPlans = syncCountdownWithPlans;
+window.addVendorAssignmentToPlans = addVendorAssignmentToPlans;
+window.addDeadlineWarningsToPlans = addDeadlineWarningsToPlans;
+
+// ============ INITIALIZATION ============
 document.addEventListener("DOMContentLoaded", () => {
   loadComponents().then(() => {
     if (checkSessionOnLoad()) {
