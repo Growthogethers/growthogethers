@@ -241,7 +241,9 @@ export function renderBoardPlans(plansMap) {
       
       return `
         <div class="col-md-6 col-lg-4">
-          <div class="plan-card card border-0 shadow-sm h-100 ${isDone ? 'border-start border-success border-3' : ''}">
+          <div class="plan-card card border-0 shadow-sm h-100 ${isDone ? 'border-start border-success border-3' : ''}" 
+     data-plan-id="${id}" 
+     data-target-date="${p.targetDate || ''}">
             <div class="card-body p-3">
               <!-- Header -->
               <div class="d-flex justify-content-between align-items-start mb-2">
