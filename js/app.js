@@ -331,14 +331,6 @@ function addAIPromotionButton() {
     aiPromo.className = 'alert alert-primary d-flex justify-content-between align-items-center mt-3 ai-promotion-btn';
     aiPromo.style.cursor = 'pointer';
     aiPromo.innerHTML = `
-      <div>
-        <i class="bi bi-robot fs-4 me-2"></i>
-        <strong>AI Budget Recommendation</strong>
-        <div class="small text-muted">Dapatkan estimasi budget pernikahan berdasarkan lokasi, jumlah tamu, dan gaya pernikahan</div>
-      </div>
-      <button class="btn btn-primary rounded-pill" onclick="event.stopPropagation(); window.openAIRecommendModal && window.openAIRecommendModal()">
-        <i class="bi bi-magic me-2"></i>Coba Sekarang
-      </button>
     `;
     targetCard.parentNode.insertBefore(aiPromo, targetCard.nextSibling);
   }
