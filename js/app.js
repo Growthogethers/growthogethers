@@ -326,14 +326,14 @@ function addAIPromotionButton() {
   if (document.querySelector('.ai-promotion-btn')) return;
   
   const targetCard = financialPage.querySelector('.card:first-child');
-  if (targetCard) {
-    const aiPromo = document.createElement('div');
-    aiPromo.className = 'alert alert-primary d-flex justify-content-between align-items-center mt-3 ai-promotion-btn';
-    aiPromo.style.cursor = 'pointer';
-    aiPromo.innerHTML = `
-    `;
-    targetCard.parentNode.insertBefore(aiPromo, targetCard.nextSibling);
-  }
+  // if (targetCard) {
+  //   const aiPromo = document.createElement('div');
+  //   aiPromo.className = 'alert alert-primary d-flex justify-content-between align-items-center mt-3 ai-promotion-btn';
+  //   aiPromo.style.cursor = 'pointer';
+  //   aiPromo.innerHTML = `
+  //   `;
+  //   targetCard.parentNode.insertBefore(aiPromo, targetCard.nextSibling);
+  // }
 }
 
 function addCountdownContainer() {
