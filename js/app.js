@@ -35,6 +35,12 @@ import {
 } from './vendor.js';
 
 import { 
+  initAccessibility, 
+  announceToScreenReader, 
+  initKeyboardShortcuts 
+} from './accessibility.js';
+
+import { 
   renderCountdownWidget, 
   startCountdown, 
   showEditWeddingDateModal, 
@@ -377,6 +383,8 @@ async function loadComponents() {
       
       // ============ INIT MODUL BARU ============
       if (window.initAIStyleButtons) window.initAIStyleButtons();
+      if (window.initAccessibility) window.initAccessibility();
+      if (window.initKeyboardShortcuts) window.initKeyboardShortcuts();
       if (window.setupGlobalErrorHandler) window.setupGlobalErrorHandler();
       if (window.initPerformanceMonitoring) window.initPerformanceMonitoring();
       if (window.checkAndShowPermissionModal) window.checkAndShowPermissionModal();
@@ -997,6 +1005,9 @@ window.generateAIRecommendation = generateAIRecommendation;
 window.applyAIRecommendation = applyAIRecommendation;
 window.openAIRecommendModal = openAIRecommendModal;
 window.initAIStyleButtons = initAIStyleButtons;
+window.initAccessibility = initAccessibility;
+window.announceToScreenReader = announceToScreenReader;
+window.initKeyboardShortcuts = initKeyboardShortcuts;
 
 // Error Handler
 window.setupGlobalErrorHandler = setupGlobalErrorHandler;
