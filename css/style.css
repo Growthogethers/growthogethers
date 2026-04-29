@@ -1296,3 +1296,216 @@ body.dark .saving-progress {
 html {
   scroll-behavior: smooth;
 }
+
+/* TAMBAHAN CSS - tambahkan ke style.css */
+
+/* ============ VENDOR PAGE STYLES ============ */
+.vendor-card {
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.vendor-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(0,0,0,0.1);
+}
+
+.vendor-card.booked {
+  border-left: 4px solid #10b981;
+  background: linear-gradient(135deg, var(--card-bg), rgba(16,185,129,0.05));
+}
+
+.rating-stars {
+  color: #fbbf24;
+  font-size: 12px;
+}
+
+.vendor-category-badge {
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 500;
+}
+
+/* ============ COUNTDOWN WIDGET ============ */
+.countdown-widget {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 24px;
+  padding: 20px;
+  color: white;
+  position: relative;
+  overflow: hidden;
+}
+
+.countdown-widget::before {
+  content: "❤️";
+  position: absolute;
+  bottom: -10px;
+  right: -10px;
+  font-size: 80px;
+  opacity: 0.1;
+}
+
+.countdown-digits {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 12px;
+}
+
+.countdown-digit {
+  text-align: center;
+  min-width: 60px;
+}
+
+.countdown-number {
+  font-size: 2rem;
+  font-weight: 800;
+  background: rgba(255,255,255,0.2);
+  border-radius: 16px;
+  padding: 8px 12px;
+  backdrop-filter: blur(4px);
+}
+
+.countdown-label {
+  font-size: 0.7rem;
+  opacity: 0.8;
+  margin-top: 4px;
+  display: block;
+}
+
+/* ============ AI RECOMMENDATION STYLES ============ */
+.style-option.active {
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: white;
+  border-color: transparent;
+}
+
+.style-option:active {
+  transform: scale(0.96);
+}
+
+/* ============ ACCESSIBILITY ENHANCEMENTS ============ */
+:focus-visible {
+  outline: 3px solid #6366f1;
+  outline-offset: 2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .card, .btn, .form-control {
+    border: 2px solid currentColor;
+  }
+  
+  .progress-bar {
+    border: 1px solid black;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Screen reader only text */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Focus trap keyboard navigation */
+.focus-trap {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+}
+
+/* Touch target minimum size */
+button, 
+.nav-link, 
+.bottom-nav-item,
+[role="button"],
+.clickable {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* Announce for screen readers */
+[role="status"] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+}
+
+/* ============ ERROR HANDLING STYLES ============ */
+.error-boundary {
+  background: var(--card-bg);
+  border-left: 4px solid #ef4444;
+  padding: 16px;
+  border-radius: 12px;
+  margin: 16px 0;
+}
+
+.error-boundary i {
+  color: #ef4444;
+  font-size: 1.5rem;
+}
+
+.error-boundary details {
+  margin-top: 8px;
+}
+
+.offline-banner {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #ef4444;
+  color: white;
+  text-align: center;
+  padding: 12px;
+  z-index: 10000;
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+/* Skeleton loading */
+.skeleton {
+  background: linear-gradient(90deg, var(--border-light) 25%, var(--bg-light) 50%, var(--border-light) 75%);
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s infinite;
+  border-radius: 8px;
+}
+
+@keyframes skeleton-loading {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
