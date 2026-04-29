@@ -60,12 +60,6 @@ import {
 } from './error-handler.js';
 
 import { 
-  initAccessibility, 
-  announceToScreenReader, 
-  initKeyboardShortcuts 
-} from './accessibility.js';
-
-import { 
   initIntegrations,
   selectVendorForPlan,
   showVendorRelatedPlans,
@@ -382,8 +376,6 @@ async function loadComponents() {
       if (window.initUIUXImprovements) window.initUIUXImprovements();
       
       // ============ INIT MODUL BARU ============
-      if (window.initAccessibility) window.initAccessibility();
-      if (window.initKeyboardShortcuts) window.initKeyboardShortcuts();
       if (window.initAIStyleButtons) window.initAIStyleButtons();
       if (window.setupGlobalErrorHandler) window.setupGlobalErrorHandler();
       if (window.initPerformanceMonitoring) window.initPerformanceMonitoring();
@@ -1012,12 +1004,6 @@ window.safeFetchData = safeFetchData;
 window.showSkeletonLoader = showSkeletonLoader;
 window.hideSkeletonLoader = hideSkeletonLoader;
 window.initPerformanceMonitoring = initPerformanceMonitoring;
-
-// Accessibility
-window.initAccessibility = initAccessibility;
-window.announceToScreenReader = announceToScreenReader;
-window.initKeyboardShortcuts = initKeyboardShortcuts;
-
 // Integration
 window.initIntegrations = initIntegrations;
 window.selectVendorForPlan = selectVendorForPlan;
