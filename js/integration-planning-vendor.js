@@ -1,3 +1,6 @@
+// js/integration-planning-vendor.js
+// Menghubungkan Planning, Vendor, dan Countdown
+
 import { db, ref, update, get } from './firebase-config.js';
 import { showNotif, formatNumberRp, masterData, escapeHtml } from './utils.js';
 
@@ -17,7 +20,7 @@ function getVendorById(vendorId) {
 }
 
 // Simpan assignment vendor ke plan
-async function selectVendorForPlanFunction(planId, vendorId) {
+export async function selectVendorForPlan(planId, vendorId) {
   try {
     if (vendorId) {
       await update(ref(db, `data/planVendors/${planId}`), {
@@ -111,7 +114,7 @@ function openVendorSelector(planId) {
 }
 
 // Menambahkan tombol "Assign Vendor" di card rencana
-function addVendorAssignmentToPlansFunction() {
+export function addVendorAssignmentToPlans() {
   const planCards = document.querySelectorAll('.plan-card');
   
   planCards.forEach(card => {
@@ -140,7 +143,7 @@ function addVendorAssignmentToPlansFunction() {
 
 // ============ 2. DEADLINE WARNINGS DI RENCANA ============
 
-function addDeadlineWarningsToPlansFunction() {
+export function addDeadlineWarningsToPlans() {
   const planCards = document.querySelectorAll('.plan-card');
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -192,7 +195,7 @@ function addDeadlineWarningsToPlansFunction() {
 
 // ============ 3. VENDOR RELATED PLANS ============
 
-function showVendorRelatedPlansFunction(vendorId) {
+export function showVendorRelatedPlans(vendorId) {
   const data = window.masterData || masterData;
   const plans = data?.plans || {};
   const planVendors = data?.planVendors || {};
@@ -247,7 +250,7 @@ function showVendorRelatedPlansFunction(vendorId) {
 }
 
 // Scroll ke plan tertentu
-function scrollToPlanFunction(planId) {
+function scrollToPlan(planId) {
   window.showPage('planning');
   setTimeout(() => {
     const planElement = document.querySelector(`.plan-card[data-plan-id="${planId}"]`);
@@ -264,7 +267,7 @@ function scrollToPlanFunction(planId) {
 
 // ============ 4. BUDGET CALCULATION ============
 
-async function calculateTotalWeddingBudgetFunction() {
+export async function calculateTotalWeddingBudget() {
   const data = window.masterData || masterData;
   const plans = data?.plans || {};
   const vendors = data?.vendors || {};
@@ -294,7 +297,7 @@ async function calculateTotalWeddingBudgetFunction() {
 
 // ============ 5. COUNTDOWN INTEGRATION ============
 
-function syncCountdownWithPlansFunction() {
+export function syncCountdownWithPlans() {
   const data = window.masterData || masterData;
   const plans = data?.plans || {};
   const weddingDate = data?.settings?.weddingDate;
@@ -337,7 +340,7 @@ function syncCountdownWithPlansFunction() {
   }
 }
 
-function showCriticalPlansFunction() {
+function showCriticalPlans() {
   const data = window.masterData || masterData;
   const plans = data?.plans || {};
   const weddingDate = data?.settings?.weddingDate;
@@ -411,19 +414,19 @@ const originalRenderBoardPlans = window.renderBoardPlans;
 const originalRenderVendors = window.renderVendors;
 
 // Enhanced renderBoardPlans
-function enhancedRenderBoardPlansFunction(plansMap) {
+export function enhancedRenderBoardPlans(plansMap) {
   if (originalRenderBoardPlans) {
     originalRenderBoardPlans(plansMap);
   }
   
   setTimeout(() => {
-    addVendorAssignmentToPlansFunction();
-    addDeadlineWarningsToPlansFunction();
+    addVendorAssignmentToPlans();
+    addDeadlineWarningsToPlans();
   }, 100);
 }
 
 // Enhanced renderVendors
-function enhancedRenderVendorsFunction() {
+export function enhancedRenderVendors() {
   if (originalRenderVendors) {
     originalRenderVendors();
   }
@@ -443,7 +446,7 @@ function enhancedRenderVendorsFunction() {
         btn.innerHTML = '<i class="bi bi-calendar-check me-1"></i>Lihat Rencana Terkait';
         btn.onclick = (e) => {
           e.stopPropagation();
-          showVendorRelatedPlansFunction(vendorId);
+          showVendorRelatedPlans(vendorId);
         };
         cardBody.appendChild(btn);
       }
@@ -453,37 +456,34 @@ function enhancedRenderVendorsFunction() {
 
 // ============ 7. INITIALIZATION ============
 
-function initIntegrationsFunction() {
+export function initIntegrations() {
   console.log('🔄 Initializing integrations: Planning - Vendor - Countdown');
   
-  window.renderBoardPlans = enhancedRenderBoardPlansFunction;
-  window.renderVendors = enhancedRenderVendorsFunction;
+  window.renderBoardPlans = enhancedRenderBoardPlans;
+  window.renderVendors = enhancedRenderVendors;
   
   const originalRenderAll = window.renderAll;
   window.renderAll = function() {
     if (originalRenderAll) originalRenderAll();
     setTimeout(() => {
-      addVendorAssignmentToPlansFunction();
-      addDeadlineWarningsToPlansFunction();
-      syncCountdownWithPlansFunction();
+      addVendorAssignmentToPlans();
+      addDeadlineWarningsToPlans();
+      syncCountdownWithPlans();
     }, 200);
   };
   
   console.log('✅ Integrations initialized successfully');
 }
 
-// ============ EXPORT KE WINDOW ============
+// ============ EXPORT KE WINDOW UNTUK HTML ============
 if (typeof window !== 'undefined') {
-  window.selectVendorForPlan = selectVendorForPlanFunction;
-  window.showVendorRelatedPlans = showVendorRelatedPlansFunction;
-  window.calculateTotalWeddingBudget = calculateTotalWeddingBudgetFunction;
-  window.syncCountdownWithPlans = syncCountdownWithPlansFunction;
-  window.addVendorAssignmentToPlans = addVendorAssignmentToPlansFunction;
-  window.addDeadlineWarningsToPlans = addDeadlineWarningsToPlansFunction;
-  window.initIntegrations = initIntegrationsFunction;
-  window.showCriticalPlans = showCriticalPlansFunction;
-  window.scrollToPlan = scrollToPlanFunction;
+  window.selectVendorForPlan = selectVendorForPlan;
+  window.showVendorRelatedPlans = showVendorRelatedPlans;
+  window.calculateTotalWeddingBudget = calculateTotalWeddingBudget;
+  window.syncCountdownWithPlans = syncCountdownWithPlans;
+  window.addVendorAssignmentToPlans = addVendorAssignmentToPlans;
+  window.addDeadlineWarningsToPlans = addDeadlineWarningsToPlans;
+  window.initIntegrations = initIntegrations;
+  window.showCriticalPlans = showCriticalPlans;
+  window.scrollToPlan = scrollToPlan;
 }
-
-// ============ TIDAK ADA EXPORT NAMED (semua via window) ============
-// Ini penting untuk menghindari duplicate export name error
