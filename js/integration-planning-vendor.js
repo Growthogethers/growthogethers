@@ -1,41 +1,7 @@
-// FILE BARU: js/integration-planning-vendor.js
-// Menghubungkan Planning, Vendor, dan Countdown
-
 import { db, ref, update, get } from './firebase-config.js';
-import { showNotif, formatNumberRp, masterData } from './utils.js';
+import { showNotif, formatNumberRp, masterData, escapeHtml } from './utils.js';
 
 // ============ 1. ASSIGN VENDOR KE RENCANA ============
-// Menambahkan tombol "Assign Vendor" di card rencana
-
-export function addVendorAssignmentToPlans() {
-  // Fungsi ini akan dipanggil saat render planning
-  // Menambahkan dropdown vendor di setiap plan card
-  
-  const planCards = document.querySelectorAll('.plan-card');
-  planCards.forEach(card => {
-    const planId = card.dataset.planId;
-    if (!planId) return;
-    
-    // Cek apakah sudah ada tombol assign vendor
-    if (card.querySelector('.vendor-assign-btn')) return;
-    
-    const actionButtons = card.querySelector('.d-flex.gap-2');
-    if (!actionButtons) return;
-    
-    const assignedVendorId = getAssignedVendorForPlan(planId);
-    const vendor = getVendorById(assignedVendorId);
-    
-    const vendorBtn = document.createElement('button');
-    vendorBtn.className = `btn btn-sm ${vendor ? 'btn-success' : 'btn-outline-secondary'} rounded-pill vendor-assign-btn`;
-    vendorBtn.innerHTML = vendor ? `<i class="bi bi-building me-1"></i>${vendor.name.substring(0, 15)}` : '<i class="bi bi-building me-1"></i>Assign Vendor';
-    vendorBtn.onclick = (e) => {
-      e.stopPropagation();
-      openVendorSelector(planId);
-    };
-    
-    actionButtons.appendChild(vendorBtn);
-  });
-}
 
 // Mendapatkan vendor yang terassign ke plan
 function getAssignedVendorForPlan(planId) {
@@ -50,11 +16,48 @@ function getVendorById(vendorId) {
   return data?.vendors?.[vendorId] || null;
 }
 
+// Simpan assignment vendor ke plan
+export async function selectVendorForPlan(planId, vendorId) {
+  try {
+    if (vendorId) {
+      await update(ref(db, `data/planVendors/${planId}`), {
+        vendorId: vendorId,
+        assignedAt: Date.now()
+      });
+      
+      // Update juga di vendor side (list rencana yang menggunakan vendor ini)
+      const vendorRef = ref(db, `data/vendors/${vendorId}/assignedPlans`);
+      const snapshot = await get(vendorRef);
+      const assignedPlans = snapshot.val() || {};
+      assignedPlans[planId] = true;
+      await update(ref(db, `data/vendors/${vendorId}`), { assignedPlans });
+      
+      showNotif('✅ Vendor berhasil di-assign ke rencana');
+    } else {
+      // Hapus assignment
+      await update(ref(db, `data/planVendors/${planId}`), null);
+      showNotif('🗑️ Assignment vendor dihapus');
+    }
+    
+    // Tutup modal jika ada
+    const modal = bootstrap.Modal.getInstance(document.getElementById('vendorSelectorModal'));
+    if (modal) modal.hide();
+    
+    // Refresh tampilan
+    if (window.renderAll) window.renderAll();
+    
+  } catch (err) {
+    console.error('Error assigning vendor:', err);
+    showNotif('❌ Gagal assign vendor: ' + err.message, true);
+  }
+}
+
 // Open modal untuk memilih vendor
 function openVendorSelector(planId) {
   const data = window.masterData || masterData;
   const vendors = data?.vendors || {};
-  const currentVendorId = getAssignedVendorForPlan(planId);
+  const currentVendor = getAssignedVendorForPlan(planId);
+  const currentVendorId = currentVendor?.vendorId || null;
   
   // Buat modal dinamis
   const modalHtml = `
@@ -70,11 +73,11 @@ function openVendorSelector(planId) {
               ${Object.keys(vendors).length === 0 ? `
                 <div class="text-center py-4">
                   <i class="bi bi-shop fs-1 text-muted"></i>
-                  <p class="mt-2">Belum ada vendor. <a href="#" onclick="window.openVendorModal(); $('#vendorSelectorModal').modal('hide');">Tambah vendor dulu</a></p>
+                  <p class="mt-2">Belum ada vendor. <a href="#" onclick="window.openVendorModal(); document.getElementById('vendorSelectorModal')?.remove();">Tambah vendor dulu</a></p>
                 </div>
               ` : `
                 <div class="list-group">
-                  <div class="list-group-item ${!currentVendorId ? 'active' : ''}" style="cursor: pointer;" onclick="selectVendorForPlan('${planId}', null)">
+                  <div class="list-group-item ${!currentVendorId ? 'active' : ''}" style="cursor: pointer;" onclick="window.selectVendorForPlan('${planId}', null)">
                     <div class="d-flex align-items-center gap-2">
                       <i class="bi bi-ban"></i>
                       <div>
@@ -84,7 +87,7 @@ function openVendorSelector(planId) {
                     </div>
                   </div>
                   ${Object.entries(vendors).map(([vid, v]) => `
-                    <div class="list-group-item ${currentVendorId === vid ? 'active' : ''}" style="cursor: pointer;" onclick="selectVendorForPlan('${planId}', '${vid}')">
+                    <div class="list-group-item ${currentVendorId === vid ? 'active' : ''}" style="cursor: pointer;" onclick="window.selectVendorForPlan('${planId}', '${vid}')">
                       <div class="d-flex align-items-center gap-2">
                         <i class="bi bi-building"></i>
                         <div class="flex-grow-1">
@@ -113,42 +116,164 @@ function openVendorSelector(planId) {
   modal.show();
 }
 
-// Simpan assignment vendor ke plan
-window.selectVendorForPlan = async (planId, vendorId) => {
-  try {
-    if (vendorId) {
-      await update(ref(db, `data/planVendors/${planId}`), {
-        vendorId: vendorId,
-        assignedAt: Date.now()
-      });
-      
-      // Update juga di vendor side (list rencana yang menggunakan vendor ini)
-      const vendorRef = ref(db, `data/vendors/${vendorId}/assignedPlans`);
-      const snapshot = await get(vendorRef);
-      const assignedPlans = snapshot.val() || {};
-      assignedPlans[planId] = true;
-      await update(ref(db, `data/vendors/${vendorId}`), { assignedPlans });
-      
-      showNotif('✅ Vendor berhasil di-assign ke rencana');
-    } else {
-      // Hapus assignment
-      await update(ref(db, `data/planVendors/${planId}`), null);
-      showNotif('🗑️ Assignment vendor dihapus');
+// Menambahkan tombol "Assign Vendor" di card rencana
+export function addVendorAssignmentToPlans() {
+  const planCards = document.querySelectorAll('.plan-card');
+  
+  planCards.forEach(card => {
+    const planId = card.getAttribute('data-plan-id');
+    if (!planId) return;
+    
+    // Cek apakah sudah ada tombol assign vendor
+    if (card.querySelector('.vendor-assign-btn')) return;
+    
+    const actionButtons = card.querySelector('.d-flex.gap-2');
+    if (!actionButtons) return;
+    
+    const assignedVendor = getAssignedVendorForPlan(planId);
+    const vendor = assignedVendor ? getVendorById(assignedVendor.vendorId) : null;
+    
+    const vendorBtn = document.createElement('button');
+    vendorBtn.className = `btn btn-sm ${vendor ? 'btn-success' : 'btn-outline-secondary'} rounded-pill vendor-assign-btn`;
+    vendorBtn.innerHTML = vendor ? `<i class="bi bi-building me-1"></i>${vendor.name.substring(0, 15)}` : '<i class="bi bi-building me-1"></i>Assign Vendor';
+    vendorBtn.onclick = (e) => {
+      e.stopPropagation();
+      openVendorSelector(planId);
+    };
+    
+    actionButtons.appendChild(vendorBtn);
+  });
+}
+
+// ============ 2. DEADLINE WARNINGS DI RENCANA ============
+
+export function addDeadlineWarningsToPlans() {
+  const planCards = document.querySelectorAll('.plan-card');
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  planCards.forEach(card => {
+    const targetDateStr = card.getAttribute('data-target-date');
+    if (!targetDateStr) return;
+    
+    const targetDate = new Date(targetDateStr);
+    targetDate.setHours(0, 0, 0, 0);
+    const diffDays = Math.ceil((targetDate - today) / (1000 * 60 * 60 * 24));
+    
+    // Hapus warning lama jika ada
+    const oldWarning = card.querySelector('.deadline-warning');
+    if (oldWarning) oldWarning.remove();
+    
+    let warningHtml = '';
+    let warningClass = '';
+    
+    if (diffDays < 0) {
+      warningHtml = `<div class="deadline-warning mt-2 p-2 bg-danger bg-opacity-10 text-danger rounded-2 small">
+        <i class="bi bi-exclamation-triangle-fill me-1"></i>Terlambat ${Math.abs(diffDays)} hari!
+      </div>`;
+      warningClass = 'border-start border-danger border-3';
+    } else if (diffDays <= 7) {
+      warningHtml = `<div class="deadline-warning mt-2 p-2 bg-warning bg-opacity-10 text-warning rounded-2 small">
+        <i class="bi bi-clock-fill me-1"></i>Tinggal ${diffDays} hari lagi!
+      </div>`;
+      warningClass = 'border-start border-warning border-3';
+    } else if (diffDays <= 30) {
+      warningHtml = `<div class="deadline-warning mt-2 p-2 bg-info bg-opacity-10 text-info rounded-2 small">
+        <i class="bi bi-calendar-week me-1"></i>${diffDays} hari menuju deadline
+      </div>`;
     }
     
-    // Tutup modal
-    const modal = bootstrap.Modal.getInstance(document.getElementById('vendorSelectorModal'));
-    if (modal) modal.hide();
-    
-    // Refresh tampilan
-    if (window.renderAll) window.renderAll();
-    
-  } catch (err) {
-    showNotif('❌ Gagal assign vendor: ' + err.message, true);
+    if (warningHtml) {
+      const cardBody = card.querySelector('.card-body');
+      if (cardBody) {
+        cardBody.insertAdjacentHTML('beforeend', warningHtml);
+        // Hapus class lama, tambah class baru
+        card.classList.remove('border-start', 'border-danger', 'border-warning');
+        if (warningClass) {
+          warningClass.split(' ').forEach(cls => {
+            if (cls) card.classList.add(cls);
+          });
+        }
+      }
+    }
+  });
+}
+
+// ============ 3. VENDOR RELATED PLANS ============
+
+export function showVendorRelatedPlans(vendorId) {
+  const data = window.masterData || masterData;
+  const plans = data?.plans || {};
+  const planVendors = data?.planVendors || {};
+  
+  // Cari semua plan yang menggunakan vendor ini
+  const relatedPlans = [];
+  for (const [planId, assignment] of Object.entries(planVendors)) {
+    if (assignment.vendorId === vendorId && plans[planId]) {
+      relatedPlans.push({ id: planId, ...plans[planId] });
+    }
   }
+  
+  if (relatedPlans.length === 0) {
+    showNotif('Tidak ada rencana yang menggunakan vendor ini');
+    return [];
+  }
+  
+  // Tampilkan modal daftar rencana
+  const modalHtml = `
+    <div class="modal fade" id="vendorPlansModal" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4">
+          <div class="modal-header border-0 bg-gradient bg-info text-white">
+            <h5 class="fw-bold mb-0"><i class="bi bi-calendar-check me-2"></i>Rencana Terkait</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body p-4">
+            <div class="list-group">
+              ${relatedPlans.map(plan => `
+                <div class="list-group-item d-flex justify-content-between align-items-center">
+                  <div>
+                    <strong>${escapeHtml(plan.text)}</strong>
+                    <br>
+                    <small class="text-muted">Progress: ${plan.progress || 0}%</small>
+                  </div>
+                  <button class="btn btn-sm btn-outline-primary rounded-pill" onclick="window.scrollToPlan('${plan.id}')">
+                    <i class="bi bi-eye"></i> Lihat
+                  </button>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  const existing = document.getElementById('vendorPlansModal');
+  if (existing) existing.remove();
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+  new bootstrap.Modal(document.getElementById('vendorPlansModal')).show();
+  
+  return relatedPlans;
+}
+
+// Scroll ke plan tertentu
+window.scrollToPlan = (planId) => {
+  window.showPage('planning');
+  setTimeout(() => {
+    const planElement = document.querySelector(`.plan-card[data-plan-id="${planId}"]`);
+    if (planElement) {
+      planElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      planElement.style.transition = 'all 0.3s';
+      planElement.style.boxShadow = '0 0 0 3px #6366f1';
+      setTimeout(() => {
+        planElement.style.boxShadow = '';
+      }, 2000);
+    }
+  }, 300);
 };
 
-// ============ 2. BUDGET SUMMARY DARI RENCANA & VENDOR ============
+// ============ 4. BUDGET CALCULATION ============
 
 export async function calculateTotalWeddingBudget() {
   const data = window.masterData || masterData;
@@ -181,179 +306,9 @@ export async function calculateTotalWeddingBudget() {
   };
 }
 
-// ============ 3. INTEGRASI COUNTDOWN DENGAN RENCANA ============
-
-export function addDeadlineWarningsToPlans() {
-  const planCards = document.querySelectorAll('.plan-card');
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  
-  planCards.forEach(card => {
-    const targetDateStr = card.dataset.targetDate;
-    if (!targetDateStr) return;
-    
-    const targetDate = new Date(targetDateStr);
-    targetDate.setHours(0, 0, 0, 0);
-    const diffDays = Math.ceil((targetDate - today) / (1000 * 60 * 60 * 24));
-    
-    // Cek apakah sudah ada warning
-    if (card.querySelector('.deadline-warning')) return;
-    
-    let warningHtml = '';
-    let warningClass = '';
-    
-    if (diffDays < 0) {
-      warningHtml = `<div class="deadline-warning mt-2 p-2 bg-danger bg-opacity-10 text-danger rounded-2 small">
-        <i class="bi bi-exclamation-triangle-fill me-1"></i>Terlambat ${Math.abs(diffDays)} hari!
-      </div>`;
-      warningClass = 'border-start border-danger border-3';
-    } else if (diffDays <= 7) {
-      warningHtml = `<div class="deadline-warning mt-2 p-2 bg-warning bg-opacity-10 text-warning rounded-2 small">
-        <i class="bi bi-clock-fill me-1"></i>Tinggal ${diffDays} hari lagi!
-      </div>`;
-      warningClass = 'border-start border-warning border-3';
-    } else if (diffDays <= 30) {
-      warningHtml = `<div class="deadline-warning mt-2 p-2 bg-info bg-opacity-10 text-info rounded-2 small">
-        <i class="bi bi-calendar-week me-1"></i>${diffDays} hari menuju deadline
-      </div>`;
-    }
-    
-    if (warningHtml) {
-      const cardBody = card.querySelector('.card-body');
-      if (cardBody && !card.querySelector('.deadline-warning')) {
-        cardBody.insertAdjacentHTML('beforeend', warningHtml);
-        card.classList.add(warningClass);
-      }
-    }
-  });
-}
-
-// ============ 4. UPDATE RENDER FUNCTIONS ============
-
-// Override renderBoardPlans untuk menambahkan vendor info dan deadline warning
-export const enhancedRenderBoardPlans = (plansMap) => {
-  // Panggil render asli dulu
-  if (window.originalRenderBoardPlans) {
-    window.originalRenderBoardPlans(plansMap);
-  } else {
-    // Backup original jika belum ada
-    window.originalRenderBoardPlans = window.renderBoardPlans;
-  }
-  
-  // Tunggu DOM update, lalu tambahkan integrasi
-  setTimeout(() => {
-    addVendorAssignmentToPlans();
-    addDeadlineWarningsToPlans();
-  }, 100);
-};
-
-// ============ 5. VENDOR PAGE - TAMPILKAN RENCANA TERKAIT ============
-
-export function showVendorRelatedPlans(vendorId) {
-  const data = window.masterData || masterData;
-  const plans = data?.plans || {};
-  const planVendors = data?.planVendors || {};
-  
-  // Cari semua plan yang menggunakan vendor ini
-  const relatedPlans = [];
-  for (const [planId, assignment] of Object.entries(planVendors)) {
-    if (assignment.vendorId === vendorId && plans[planId]) {
-      relatedPlans.push({ id: planId, ...plans[planId] });
-    }
-  }
-  
-  if (relatedPlans.length === 0) return [];
-  
-  // Tampilkan modal daftar rencana
-  const modalHtml = `
-    <div class="modal fade" id="vendorPlansModal" tabindex="-1">
-      <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content rounded-4">
-          <div class="modal-header border-0 bg-gradient bg-info text-white">
-            <h5 class="fw-bold mb-0"><i class="bi bi-calendar-check me-2"></i>Rencana Terkait</h5>
-            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-          </div>
-          <div class="modal-body p-4">
-            <div class="list-group">
-              ${relatedPlans.map(plan => `
-                <div class="list-group-item d-flex justify-content-between align-items-center">
-                  <div>
-                    <strong>${escapeHtml(plan.text)}</strong>
-                    <br>
-                    <small class="text-muted">Progress: ${plan.progress || 0}%</small>
-                  </div>
-                  <button class="btn btn-sm btn-outline-primary rounded-pill" onclick="window.showPage('planning'); window.scrollToPlan('${plan.id}')">
-                    <i class="bi bi-eye"></i> Lihat
-                  </button>
-                </div>
-              `).join('')}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  `;
-  
-  const existing = document.getElementById('vendorPlansModal');
-  if (existing) existing.remove();
-  document.body.insertAdjacentHTML('beforeend', modalHtml);
-  new bootstrap.Modal(document.getElementById('vendorPlansModal')).show();
-  
-  return relatedPlans;
-}
-
-// Scroll ke plan tertentu
-window.scrollToPlan = (planId) => {
-  setTimeout(() => {
-    const planElement = document.querySelector(`.plan-card[data-plan-id="${planId}"]`);
-    if (planElement) {
-      planElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      planElement.style.transition = 'all 0.3s';
-      planElement.style.boxShadow = '0 0 0 3px #6366f1';
-      setTimeout(() => {
-        planElement.style.boxShadow = '';
-      }, 2000);
-    }
-  }, 300);
-};
-
-// ============ 6. UPDATE VENDOR CARD ============
-
-export const enhancedRenderVendors = () => {
-  if (window.originalRenderVendors) {
-    window.originalRenderVendors();
-  } else {
-    window.originalRenderVendors = window.renderVendors;
-  }
-  
-  // Tambahkan tombol "Lihat Rencana" di setiap vendor card
-  setTimeout(() => {
-    const vendorCards = document.querySelectorAll('.vendor-card');
-    vendorCards.forEach(card => {
-      const vendorId = card.dataset.vendorId;
-      if (!vendorId) return;
-      
-      if (card.querySelector('.view-plans-btn')) return;
-      
-      const cardBody = card.querySelector('.card-body');
-      if (cardBody) {
-        const btn = document.createElement('button');
-        btn.className = 'btn btn-sm btn-outline-info rounded-pill w-100 mt-2 view-plans-btn';
-        btn.innerHTML = '<i class="bi bi-calendar-check me-1"></i>Lihat Rencana Terkait';
-        btn.onclick = (e) => {
-          e.stopPropagation();
-          showVendorRelatedPlans(vendorId);
-        };
-        cardBody.appendChild(btn);
-      }
-    });
-  }, 100);
-};
-
-// ============ 7. COUNTDOWN WIDGET INTEGRATION ============
+// ============ 5. COUNTDOWN INTEGRATION ============
 
 export function syncCountdownWithPlans() {
-  // Cek semua plan yang target date-nya sama dengan wedding date
   const data = window.masterData || masterData;
   const plans = data?.plans || {};
   const weddingDate = data?.settings?.weddingDate;
@@ -370,7 +325,7 @@ export function syncCountdownWithPlans() {
       planDate.setHours(0, 0, 0, 0);
       const diffDays = Math.ceil((planDate - weddingDateObj) / (1000 * 60 * 60 * 24));
       
-      // Plan yang targetnya mendekati wedding date
+      // Plan yang targetnya mendekati wedding date (plus minus 7 hari)
       if (Math.abs(diffDays) <= 7) {
         criticalPlans.push({ id, ...plan, diffDays });
       }
@@ -379,37 +334,45 @@ export function syncCountdownWithPlans() {
   
   // Tampilkan warning di countdown widget
   const widget = document.getElementById('countdownWidget');
-  if (widget && criticalPlans.length > 0) {
-    const warningDiv = widget.querySelector('.countdown-warnings') || (() => {
-      const div = document.createElement('div');
-      div.className = 'countdown-warnings mt-3';
-      widget.querySelector('.text-center').appendChild(div);
-      return div;
-    })();
+  if (widget) {
+    // Hapus warning lama
+    const oldWarning = widget.querySelector('.countdown-warnings');
+    if (oldWarning) oldWarning.remove();
     
-    warningDiv.innerHTML = `
-      <div class="alert alert-warning small p-2 mt-2">
-        <i class="bi bi-exclamation-triangle me-1"></i>
-        <strong>Pengingat:</strong> ${criticalPlans.length} rencana mendekati hari pernikahan!
-        <button class="btn btn-sm btn-link text-warning p-0 ms-2" onclick="window.showCriticalPlans()">Lihat</button>
-      </div>
-    `;
+    if (criticalPlans.length > 0) {
+      const warningDiv = document.createElement('div');
+      warningDiv.className = 'countdown-warnings mt-3';
+      warningDiv.innerHTML = `
+        <div class="alert alert-warning small p-2">
+          <i class="bi bi-exclamation-triangle me-1"></i>
+          <strong>Pengingat:</strong> ${criticalPlans.length} rencana mendekati hari pernikahan!
+          <button class="btn btn-sm btn-link text-warning p-0 ms-2" onclick="window.showCriticalPlans()">Lihat</button>
+        </div>
+      `;
+      widget.querySelector('.text-center')?.appendChild(warningDiv);
+    }
   }
 }
 
+// Tampilkan rencana kritis
 window.showCriticalPlans = () => {
   const data = window.masterData || masterData;
   const plans = data?.plans || {};
   const weddingDate = data?.settings?.weddingDate;
   
-  if (!weddingDate) return;
+  if (!weddingDate) {
+    showNotif('❌ Tanggal pernikahan belum diatur', true);
+    return;
+  }
   
   const critical = [];
   const weddingDateObj = new Date(weddingDate);
+  weddingDateObj.setHours(0, 0, 0, 0);
   
   Object.entries(plans).forEach(([id, plan]) => {
     if (plan.targetDate && plan.progress < 100) {
       const planDate = new Date(plan.targetDate);
+      planDate.setHours(0, 0, 0, 0);
       const diffDays = Math.ceil((planDate - weddingDateObj) / (1000 * 60 * 60 * 24));
       if (Math.abs(diffDays) <= 7) {
         critical.push({ id, ...plan, diffDays });
@@ -459,14 +422,64 @@ window.showCriticalPlans = () => {
   new bootstrap.Modal(document.getElementById('criticalPlansModal')).show();
 };
 
-// ============ 8. INITIALIZATION ============
+// ============ 6. ENHANCED RENDER FUNCTIONS ============
+
+// Backup original render functions
+const originalRenderBoardPlans = window.renderBoardPlans;
+const originalRenderVendors = window.renderVendors;
+
+// Enhanced renderBoardPlans
+export const enhancedRenderBoardPlans = (plansMap) => {
+  if (originalRenderBoardPlans) {
+    originalRenderBoardPlans(plansMap);
+  }
+  
+  setTimeout(() => {
+    addVendorAssignmentToPlans();
+    addDeadlineWarningsToPlans();
+  }, 100);
+};
+
+// Enhanced renderVendors
+export const enhancedRenderVendors = () => {
+  if (originalRenderVendors) {
+    originalRenderVendors();
+  }
+  
+  setTimeout(() => {
+    // Tambahkan tombol "Lihat Rencana" di setiap vendor card
+    const vendorCards = document.querySelectorAll('.vendor-card');
+    vendorCards.forEach(card => {
+      const vendorId = card.getAttribute('data-vendor-id');
+      if (!vendorId) return;
+      
+      if (card.querySelector('.view-plans-btn')) return;
+      
+      const cardBody = card.querySelector('.card-body');
+      if (cardBody) {
+        const btn = document.createElement('button');
+        btn.className = 'btn btn-sm btn-outline-info rounded-pill w-100 mt-2 view-plans-btn';
+        btn.innerHTML = '<i class="bi bi-calendar-check me-1"></i>Lihat Rencana Terkait';
+        btn.onclick = (e) => {
+          e.stopPropagation();
+          showVendorRelatedPlans(vendorId);
+        };
+        cardBody.appendChild(btn);
+      }
+    });
+  }, 100);
+};
+
+// ============ 7. INITIALIZATION ============
 
 export function initIntegrations() {
+  console.log('🔄 Initializing integrations: Planning - Vendor - Countdown');
+  
   // Override render functions
   window.renderBoardPlans = enhancedRenderBoardPlans;
   window.renderVendors = enhancedRenderVendors;
   
-  // Add event listener untuk data changes
+  // Backup original renderAll
   const originalRenderAll = window.renderAll;
   window.renderAll = function() {
     if (originalRenderAll) originalRenderAll();
@@ -477,14 +490,27 @@ export function initIntegrations() {
     }, 200);
   };
   
-  console.log('✅ Integrations: Planning - Vendor - Countdown connected');
+  console.log('✅ Integrations initialized successfully');
 }
 
-// Export ke window
-window.initIntegrations = initIntegrations;
-window.selectVendorForPlan = selectVendorForPlan;
-window.showVendorRelatedPlans = showVendorRelatedPlans;
-window.calculateTotalWeddingBudget = calculateTotalWeddingBudget;
-window.syncCountdownWithPlans = syncCountdownWithPlans;
-window.addVendorAssignmentToPlans = addVendorAssignmentToPlans;
-window.addDeadlineWarningsToPlans = addDeadlineWarningsToPlans;
+// ============ EXPORT SEMUA FUNGSI ============
+export {
+  getAssignedVendorForPlan,
+  getVendorById,
+  openVendorSelector,
+  calculateTotalWeddingBudget,
+  syncCountdownWithPlans
+};
+
+// Export ke window juga agar bisa diakses dari HTML
+if (typeof window !== 'undefined') {
+  window.selectVendorForPlan = selectVendorForPlan;
+  window.showVendorRelatedPlans = showVendorRelatedPlans;
+  window.calculateTotalWeddingBudget = calculateTotalWeddingBudget;
+  window.syncCountdownWithPlans = syncCountdownWithPlans;
+  window.addVendorAssignmentToPlans = addVendorAssignmentToPlans;
+  window.addDeadlineWarningsToPlans = addDeadlineWarningsToPlans;
+  window.initIntegrations = initIntegrations;
+  window.showCriticalPlans = showCriticalPlans;
+  window.scrollToPlan = window.scrollToPlan || scrollToPlan;
+}
