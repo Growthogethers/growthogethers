@@ -258,7 +258,7 @@ export function showVendorRelatedPlans(vendorId) {
 }
 
 // Scroll ke plan tertentu
-window.scrollToPlan = (planId) => {
+function scrollToPlan(planId) {
   window.showPage('planning');
   setTimeout(() => {
     const planElement = document.querySelector(`.plan-card[data-plan-id="${planId}"]`);
@@ -271,11 +271,11 @@ window.scrollToPlan = (planId) => {
       }, 2000);
     }
   }, 300);
-};
+}
 
 // ============ 4. BUDGET CALCULATION ============
 
-export async function calculateTotalWeddingBudget() {
+export async function calculateTotalWeddingBudgetFunction() {
   const data = window.masterData || masterData;
   const plans = data?.plans || {};
   const vendors = data?.vendors || {};
@@ -355,7 +355,7 @@ export function syncCountdownWithPlans() {
 }
 
 // Tampilkan rencana kritis
-window.showCriticalPlans = () => {
+function showCriticalPlans() {
   const data = window.masterData || masterData;
   const plans = data?.plans || {};
   const weddingDate = data?.settings?.weddingDate;
@@ -420,7 +420,7 @@ window.showCriticalPlans = () => {
   if (existing) existing.remove();
   document.body.insertAdjacentHTML('beforeend', modalHtml);
   new bootstrap.Modal(document.getElementById('criticalPlansModal')).show();
-};
+}
 
 // ============ 6. ENHANCED RENDER FUNCTIONS ============
 
@@ -493,24 +493,28 @@ export function initIntegrations() {
   console.log('✅ Integrations initialized successfully');
 }
 
-// ============ EXPORT SEMUA FUNGSI ============
-export {
-  getAssignedVendorForPlan,
-  getVendorById,
-  openVendorSelector,
-  calculateTotalWeddingBudget,
-  syncCountdownWithPlans
+// ============ EXPORT SEMUA FUNGSI UNIQUE ============
+export { 
+  selectVendorForPlan,
+  showVendorRelatedPlans,
+  addVendorAssignmentToPlans,
+  addDeadlineWarningsToPlans,
+  initIntegrations,
+  syncCountdownWithPlans,
+  calculateTotalWeddingBudgetFunction as calculateTotalWeddingBudget,
+  enhancedRenderBoardPlans as renderBoardPlans,
+  enhancedRenderVendors as renderVendors
 };
 
 // Export ke window juga agar bisa diakses dari HTML
 if (typeof window !== 'undefined') {
   window.selectVendorForPlan = selectVendorForPlan;
   window.showVendorRelatedPlans = showVendorRelatedPlans;
-  window.calculateTotalWeddingBudget = calculateTotalWeddingBudget;
+  window.calculateTotalWeddingBudget = calculateTotalWeddingBudgetFunction;
   window.syncCountdownWithPlans = syncCountdownWithPlans;
   window.addVendorAssignmentToPlans = addVendorAssignmentToPlans;
   window.addDeadlineWarningsToPlans = addDeadlineWarningsToPlans;
   window.initIntegrations = initIntegrations;
   window.showCriticalPlans = showCriticalPlans;
-  window.scrollToPlan = window.scrollToPlan || scrollToPlan;
+  window.scrollToPlan = scrollToPlan;
 }
