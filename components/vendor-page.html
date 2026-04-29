@@ -1,0 +1,78 @@
+<!-- components/vendor-page.html - Vendor Page -->
+<section id="vendor-page" style="display:none">
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+    <div>
+      <h3 class="fw-bold mb-1">
+        <i class="bi bi-shop text-primary me-2"></i>Vendor Pernikahan
+      </h3>
+      <p class="text-muted small mb-0">Kelola vendor untuk persiapan pernikahan 💒</p>
+    </div>
+    <button class="btn btn-primary rounded-pill px-4" onclick="window.openVendorModal()">
+      <i class="bi bi-plus-lg me-2"></i>Tambah Vendor
+    </button>
+  </div>
+
+  <!-- Statistik -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex gap-3 mb-3">
+        <div class="bg-primary bg-opacity-10 rounded-pill px-3 py-2">
+          <i class="bi bi-building text-primary me-1"></i> <span id="vendorCount">0</span> Vendor
+        </div>
+        <div class="bg-success bg-opacity-10 rounded-pill px-3 py-2">
+          <i class="bi bi-check-circle text-success me-1"></i> <span id="bookedCount">0</span> Booking
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Search Bar -->
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-body p-3">
+      <div class="row g-2">
+        <div class="col-md-6">
+          <div class="input-group">
+            <span class="input-group-text bg-white border-end-0">
+              <i class="bi bi-search"></i>
+            </span>
+            <input type="text" id="vendorSearchInput" class="form-control border-start-0" 
+                   placeholder="Cari vendor..." onkeyup="window.filterVendors()">
+          </div>
+        </div>
+        <div class="col-md-3">
+          <select id="vendorCategoryFilter" class="form-select" onchange="window.filterVendors()">
+            <option value="all">Semua Kategori</option>
+            <option value="MUA">💄 MUA & Makeup</option>
+            <option value="Photography">📸 Photography</option>
+            <option value="Catering">🍽️ Catering</option>
+            <option value="Venue">🏨 Venue</option>
+            <option value="Decoration">💐 Dekorasi</option>
+            <option value="Entertainment">🎤 Entertainment</option>
+            <option value="Busana">👗 Busana</option>
+            <option value="Cincin">💍 Cincin</option>
+            <option value="Transport">🚗 Transportasi</option>
+            <option value="Other">📦 Lainnya</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <select id="vendorStatusFilter" class="form-select" onchange="window.filterVendors()">
+            <option value="all">Semua Status</option>
+            <option value="booked">Sudah Booking</option>
+            <option value="not_booked">Belum Booking</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Grid Vendor -->
+  <div id="vendorsList" class="row g-3">
+    <div class="col-12 text-center py-5 text-muted">
+      <i class="bi bi-shop fs-1"></i>
+      <p class="mt-2">Belum ada vendor. Mulai tambahkan vendor untuk persiapan pernikahan!</p>
+      <button class="btn btn-outline-primary rounded-pill" onclick="window.openVendorModal()">
+        <i class="bi bi-plus-circle me-2"></i>Tambah Vendor
+      </button>
+    </div>
+  </div>
+</section>
