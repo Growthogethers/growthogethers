@@ -1,6 +1,6 @@
-// js/planning.js - Full Version with addSubPlan
+// js/planning.js - Full Version
 import { db, ref, push, update, remove } from './firebase-config.js';
-import { showNotif, masterData, escapeHtml, formatNumberRp, privacyHidden, showCustomConfirm, truncateText, parseNumberInput, formatNumberInput } from './utils.js';
+import { showNotif, masterData, escapeHtml, formatNumberRp, privacyHidden, showCustomConfirm, truncateText } from './utils.js';
 
 // Template items untuk setiap kategori
 const categoryTemplates = {
@@ -76,7 +76,7 @@ export async function addTemplateToCategory(category) {
     });
   }
   
-  showNotif(`✅ Template berhasil ditambahkan!`);
+  showNotif(`✅ Template ${category} berhasil ditambahkan!`);
   if (window.renderAll) window.renderAll();
 }
 
@@ -87,40 +87,114 @@ export function confirmAddTemplate(category) {
   );
 }
 
-// ============ CRUD FUNCTIONS ============
+// ============ SAVE PLAN ============
 export async function savePlan() {
-  const text = getEl("planText")?.value.trim();
-  if (!text) { showNotif("❌ Nama rencana harus diisi!", true); return; }
+  const text = document.getElementById("planText")?.value.trim();
+  if (!text) { 
+    showNotif("❌ Nama rencana harus diisi!", true); 
+    return; 
+  }
   
-  const cat = getEl("planCat")?.value;
-  const targetDate = getEl("planTargetDate")?.value;
-  const description = getEl("planDesc")?.value || "";
-  const estimatedBudget = parseInt(getEl("planBudget")?.value) || 0;
+  const cat = document.getElementById("planCat")?.value;
+  const targetDate = document.getElementById("planTargetDate")?.value;
+  const description = document.getElementById("planDesc")?.value || "";
+  const estimatedBudget = parseInt(document.getElementById("planBudget")?.value) || 0;
   
-  await push(ref(db, "data/plans"), {
-    text, cat, targetDate: targetDate || null,
-    progress: 0, done: false, sub: {},
-    description: description,
-    estimatedBudget: estimatedBudget,
-    actualBudget: 0,
-    createdAt: Date.now(),
+  try {
+    await push(ref(db, "data/plans"), {
+      text: text,
+      cat: cat,
+      targetDate: targetDate || null,
+      progress: 0,
+      done: false,
+      sub: {},
+      description: description,
+      estimatedBudget: estimatedBudget,
+      actualBudget: 0,
+      createdAt: Date.now(),
+      updatedAt: Date.now()
+    });
+    
+    showNotif("✅ Rencana berhasil ditambahkan!");
+    
+    // Tutup modal
+    const modal = bootstrap.Modal.getInstance(document.getElementById("addPlanModal"));
+    if (modal) modal.hide();
+    
+    // Reset form
+    const planText = document.getElementById("planText");
+    const planTargetDate = document.getElementById("planTargetDate");
+    const planDesc = document.getElementById("planDesc");
+    const planBudget = document.getElementById("planBudget");
+    
+    if (planText) planText.value = "";
+    if (planTargetDate) planTargetDate.value = "";
+    if (planDesc) planDesc.value = "";
+    if (planBudget) planBudget.value = "";
+    
+    // Refresh tampilan
+    if (window.renderAll) window.renderAll();
+    
+  } catch (err) {
+    console.error("Error saving plan:", err);
+    showNotif("❌ Gagal menyimpan rencana: " + err.message, true);
+  }
+}
+
+// ============ UPDATE PLAN ============
+export async function updatePlan() {
+  const id = getEl("editPlanId")?.value;
+  const text = getEl("editPlanText")?.value.trim();
+  
+  if (!text) { 
+    showNotif("❌ Nama rencana harus diisi!", true); 
+    return; 
+  }
+  
+  const cat = getEl("editPlanCat")?.value;
+  const targetDate = getEl("editPlanTargetDate")?.value;
+  const description = getEl("editPlanDesc")?.value;
+  const budget = parseInt(getEl("editPlanBudget")?.value) || 0;
+  const priority = getEl("editPlanPriority")?.value;
+  const isUrgent = getEl("editPlanIsUrgent")?.checked || false;
+  
+  await update(ref(db, `data/plans/${id}`), { 
+    text, 
+    cat, 
+    targetDate: targetDate || null, 
+    description: description || "",
+    estimatedBudget: budget,
+    priority: priority || "medium",
+    isUrgent: isUrgent,
     updatedAt: Date.now()
   });
   
-  showNotif("✅ Rencana berhasil ditambahkan!");
+  showNotif("✅ Rencana berhasil diupdate");
   
-  const modal = bootstrap.Modal.getInstance(getEl("addPlanModal"));
+  const modal = bootstrap.Modal.getInstance(getEl("planModal"));
   if (modal) modal.hide();
-  
-  // Reset form
-  if (getEl("planText")) getEl("planText").value = "";
-  if (getEl("planTargetDate")) getEl("planTargetDate").value = "";
-  if (getEl("planDesc")) getEl("planDesc").value = "";
-  if (getEl("planBudget")) getEl("planBudget").value = "";
   
   if (window.renderAll) window.renderAll();
 }
 
+// ============ DELETE PLAN ============
+export async function deletePlanItem() {
+  const { id, pid } = window.currentDeletePlanId || {};
+  if (!id) return;
+  const path = pid ? `data/plans/${pid}/sub/${id}` : `data/plans/${id}`;
+  await remove(ref(db, path));
+  showNotif("🗑️ Rencana dihapus");
+  
+  const modal = bootstrap.Modal.getInstance(getEl("planModal"));
+  if (modal) modal.hide();
+  if (window.renderAll) window.renderAll();
+}
+
+export function deletePlanItemById(id) {
+  window.confirmDelete("plans", id);
+}
+
+// ============ SUB PLAN FUNCTIONS ============
 function calculateProgressFromSubs(subs) {
   if (!subs || Object.keys(subs).length === 0) return 0;
   const total = Object.keys(subs).length;
@@ -141,6 +215,84 @@ async function updateParentProgress(pid) {
     return newProgress;
   }
   return 0;
+}
+
+export async function addSubPlan() {
+  const pid = document.getElementById("editPlanId")?.value;
+  if (!pid) {
+    showNotif("❌ ID rencana tidak ditemukan", true);
+    return;
+  }
+  
+  const text = document.getElementById("newSubText")?.value.trim();
+  if (!text) { 
+    showNotif("❌ Isi checklist terlebih dahulu", true); 
+    return; 
+  }
+  
+  await push(ref(db, `data/plans/${pid}/sub`), { 
+    text: text, 
+    done: false, 
+    estimatedCost: 0, 
+    actualCost: 0,
+    createdAt: Date.now()
+  });
+  
+  const newSubText = document.getElementById("newSubText");
+  if (newSubText) newSubText.value = "";
+  
+  showNotif("✅ Checklist ditambahkan");
+  await updateParentProgress(pid);
+  if (window.renderAll) window.renderAll();
+}
+
+export async function addSubPlanWithDetails(pid) {
+  const text = prompt("Nama item:", "");
+  if (!text || !text.trim()) { showNotif("❌ Nama harus diisi", true); return; }
+  
+  const estimatedCost = parseInt(prompt("Estimasi biaya (opsional):", "0")) || 0;
+  const note = prompt("Catatan:", "");
+  
+  await push(ref(db, `data/plans/${pid}/sub`), { 
+    text: text.trim(), 
+    note: note || "",
+    estimatedCost: estimatedCost,
+    actualCost: 0,
+    done: false,
+    createdAt: Date.now()
+  });
+  
+  await updateParentProgress(pid);
+  
+  const data = window.masterData || masterData;
+  const plan = data?.plans?.[pid];
+  if (plan && plan.sub) {
+    let totalEstimated = 0;
+    Object.values(plan.sub).forEach(sub => {
+      totalEstimated += sub.estimatedCost || 0;
+    });
+    await update(ref(db, `data/plans/${pid}`), { estimatedBudget: totalEstimated });
+  }
+  
+  showNotif("✅ Item berhasil ditambahkan!");
+  if (window.renderAll) window.renderAll();
+}
+
+export async function addBudgetToPlan(pid, currentEstimated, currentActual) {
+  const newActual = parseInt(prompt(`Catat biaya yang sudah keluar:\nEstimasi: ${formatNumberRp(currentEstimated)}\nTerpakai: ${formatNumberRp(currentActual)}\n\nMasukkan total biaya:`, currentActual)) || 0;
+  
+  if (newActual >= 0) {
+    await update(ref(db, `data/plans/${pid}`), { actualBudget: newActual });
+    showNotif(`✅ Biaya diupdate ke ${formatNumberRp(newActual)}`);
+    if (window.renderAll) window.renderAll();
+  }
+}
+
+export async function deleteSubPlan(pid, sid) {
+  await remove(ref(db, `data/plans/${pid}/sub/${sid}`));
+  await updateParentProgress(pid);
+  showNotif("🗑️ Item dihapus");
+  if (window.renderAll) window.renderAll();
 }
 
 export async function togglePlan(id, status, pid = null) {
@@ -166,6 +318,59 @@ export async function toggleSubPlanCheckbox(pid, sid, currentStatus) {
 }
 
 // ============ RENDER FUNCTIONS ============
+function renderSubPlansList(pid, subs) {
+  const container = getEl("subPlansList");
+  if (!container) return;
+  
+  if (!subs || Object.keys(subs).length === 0) {
+    container.innerHTML = '<p class="text-muted small mb-0">Belum ada subtugas</p>';
+    return;
+  }
+  
+  container.innerHTML = Object.entries(subs).map(([sid, s]) => `
+    <div class="d-flex justify-content-between align-items-center mb-2 p-2 bg-white rounded-3">
+      <div class="form-check flex-grow-1">
+        <input class="form-check-input" type="checkbox" ${s.done ? 'checked' : ''} 
+               onchange="window.toggleSubPlanCheckbox('${pid}', '${sid}', ${s.done})">
+        <label class="form-check-label ${s.done ? 'text-decoration-line-through text-muted' : ''}">
+          ${escapeHtml(truncateText(s.text, 40))}
+        </label>
+        ${s.estimatedCost > 0 ? `<span class="badge bg-secondary bg-opacity-10 ms-2">Rp ${s.estimatedCost.toLocaleString()}</span>` : ''}
+      </div>
+      <i class="bi bi-trash text-danger small" style="cursor: pointer;" 
+         onclick="window.deleteSubPlan('${pid}', '${sid}')"></i>
+    </div>
+  `).join('');
+}
+
+export function openEditPlan(id, pid = null) {
+  const data = window.masterData || masterData;
+  const plan = pid ? data?.plans?.[pid]?.sub?.[id] : data?.plans?.[id];
+  if (!plan) return;
+  
+  if (getEl("editPlanId")) getEl("editPlanId").value = id;
+  if (getEl("editPlanParentId")) getEl("editPlanParentId").value = pid || "";
+  if (getEl("editPlanText")) getEl("editPlanText").value = plan.text;
+  if (getEl("editPlanCat")) getEl("editPlanCat").value = plan.cat || "💍 Menikah";
+  if (getEl("editPlanTargetDate")) getEl("editPlanTargetDate").value = plan.targetDate || "";
+  if (getEl("editPlanDesc")) getEl("editPlanDesc").value = plan.description || "";
+  if (getEl("editPlanBudget")) getEl("editPlanBudget").value = plan.estimatedBudget || 0;
+  if (getEl("editPlanPriority")) getEl("editPlanPriority").value = plan.priority || "medium";
+  if (getEl("editPlanIsUrgent")) getEl("editPlanIsUrgent").checked = plan.isUrgent || false;
+  
+  window.currentDeletePlanId = { id, pid };
+  
+  if (!pid && plan.sub && Object.keys(plan.sub).length > 0) {
+    renderSubPlansList(id, plan.sub);
+  } else {
+    const subPlansList = getEl("subPlansList");
+    if (subPlansList) subPlansList.innerHTML = "";
+  }
+  
+  const modalEl = getEl("planModal");
+  if (modalEl) new bootstrap.Modal(modalEl).show();
+}
+
 export function renderBoardPlans(plansMap) {
   const categories = {
     "💍 Menikah": { id: "menikahPlans", color: "danger", icon: "bi-heart-fill" },
@@ -308,192 +513,6 @@ export function renderBoardPlans(plansMap) {
   }
 }
 
-// ============ SUB PLAN FUNCTIONS ============
-export async function addSubPlanWithDetails(pid) {
-  const text = prompt("Nama item:", "");
-  if (!text || !text.trim()) { showNotif("❌ Nama harus diisi", true); return; }
-  
-  const estimatedCost = parseInt(prompt("Estimasi biaya (opsional):", "0")) || 0;
-  const note = prompt("Catatan:", "");
-  
-  await push(ref(db, `data/plans/${pid}/sub`), { 
-    text: text.trim(), 
-    note: note || "",
-    estimatedCost: estimatedCost,
-    actualCost: 0,
-    done: false,
-    createdAt: Date.now()
-  });
-  
-  await updateParentProgress(pid);
-  
-  const data = window.masterData || masterData;
-  const plan = data?.plans?.[pid];
-  if (plan && plan.sub) {
-    let totalEstimated = 0;
-    Object.values(plan.sub).forEach(sub => {
-      totalEstimated += sub.estimatedCost || 0;
-    });
-    await update(ref(db, `data/plans/${pid}`), { estimatedBudget: totalEstimated });
-  }
-  
-  showNotif("✅ Item berhasil ditambahkan!");
-  if (window.renderAll) window.renderAll();
-}
-
-// ============ BACKWARD COMPATIBILITY ============
-// Fungsi ini digunakan oleh modal HTML (modals.html) - DO NOT DELETE
-export async function addSubPlan() {
-  const pid = document.getElementById("editPlanId")?.value;
-  if (!pid) {
-    showNotif("❌ ID rencana tidak ditemukan", true);
-    return;
-  }
-  
-  const text = document.getElementById("newSubText")?.value.trim();
-  if (!text) { 
-    showNotif("❌ Isi checklist terlebih dahulu", true); 
-    return; 
-  }
-  
-  await push(ref(db, `data/plans/${pid}/sub`), { 
-    text: text, 
-    done: false, 
-    estimatedCost: 0, 
-    actualCost: 0,
-    createdAt: Date.now()
-  });
-  
-  const newSubText = document.getElementById("newSubText");
-  if (newSubText) newSubText.value = "";
-  
-  showNotif("✅ Checklist ditambahkan");
-  await updateParentProgress(pid);
-  if (window.renderAll) window.renderAll();
-}
-
-export async function addBudgetToPlan(pid, currentEstimated, currentActual) {
-  const newActual = parseInt(prompt(`Catat biaya yang sudah keluar:\nEstimasi: ${formatNumberRp(currentEstimated)}\nTerpakai: ${formatNumberRp(currentActual)}\n\nMasukkan total biaya:`, currentActual)) || 0;
-  
-  if (newActual >= 0) {
-    await update(ref(db, `data/plans/${pid}`), { actualBudget: newActual });
-    showNotif(`✅ Biaya diupdate ke ${formatNumberRp(newActual)}`);
-    if (window.renderAll) window.renderAll();
-  }
-}
-
-// ============ EDIT & DELETE FUNCTIONS ============
-export async function updatePlan() {
-  const id = getEl("editPlanId")?.value;
-  const text = getEl("editPlanText")?.value.trim();
-  
-  if (!text) { 
-    showNotif("❌ Nama rencana harus diisi!", true); 
-    return; 
-  }
-  
-  const cat = getEl("editPlanCat")?.value;
-  const targetDate = getEl("editPlanTargetDate")?.value;
-  const description = getEl("editPlanDesc")?.value;
-  const budget = parseInt(getEl("editPlanBudget")?.value) || 0;
-  const priority = getEl("editPlanPriority")?.value;
-  const isUrgent = getEl("editPlanIsUrgent")?.checked || false;
-  
-  await update(ref(db, `data/plans/${id}`), { 
-    text, 
-    cat, 
-    targetDate: targetDate || null, 
-    description: description || "",
-    estimatedBudget: budget,
-    priority: priority || "medium",
-    isUrgent: isUrgent,
-    updatedAt: Date.now()
-  });
-  
-  showNotif("✅ Rencana berhasil diupdate");
-  
-  const modal = bootstrap.Modal.getInstance(getEl("planModal"));
-  if (modal) modal.hide();
-  
-  if (window.renderAll) window.renderAll();
-}
-
-export async function deletePlanItem() {
-  const { id, pid } = window.currentDeletePlanId || {};
-  if (!id) return;
-  const path = pid ? `data/plans/${pid}/sub/${id}` : `data/plans/${id}`;
-  await remove(ref(db, path));
-  showNotif("🗑️ Rencana dihapus");
-  
-  const modal = bootstrap.Modal.getInstance(getEl("planModal"));
-  if (modal) modal.hide();
-  if (window.renderAll) window.renderAll();
-}
-
-function renderSubPlansList(pid, subs) {
-  const container = getEl("subPlansList");
-  if (!container) return;
-  
-  if (!subs || Object.keys(subs).length === 0) {
-    container.innerHTML = '<p class="text-muted small mb-0">Belum ada subtugas</p>';
-    return;
-  }
-  
-  container.innerHTML = Object.entries(subs).map(([sid, s]) => `
-    <div class="d-flex justify-content-between align-items-center mb-2 p-2 bg-white rounded-3">
-      <div class="form-check flex-grow-1">
-        <input class="form-check-input" type="checkbox" ${s.done ? 'checked' : ''} 
-               onchange="window.toggleSubPlanCheckbox('${pid}', '${sid}', ${s.done})">
-        <label class="form-check-label ${s.done ? 'text-decoration-line-through text-muted' : ''}">
-          ${escapeHtml(truncateText(s.text, 40))}
-        </label>
-        ${s.estimatedCost > 0 ? `<span class="badge bg-secondary bg-opacity-10 ms-2">Rp ${s.estimatedCost.toLocaleString()}</span>` : ''}
-      </div>
-      <i class="bi bi-trash text-danger small" style="cursor: pointer;" 
-         onclick="window.deleteSubPlan('${pid}', '${sid}')"></i>
-    </div>
-  `).join('');
-}
-
-export function openEditPlan(id, pid = null) {
-  const data = window.masterData || masterData;
-  const plan = pid ? data?.plans?.[pid]?.sub?.[id] : data?.plans?.[id];
-  if (!plan) return;
-  
-  if (getEl("editPlanId")) getEl("editPlanId").value = id;
-  if (getEl("editPlanParentId")) getEl("editPlanParentId").value = pid || "";
-  if (getEl("editPlanText")) getEl("editPlanText").value = plan.text;
-  if (getEl("editPlanCat")) getEl("editPlanCat").value = plan.cat || "💍 Menikah";
-  if (getEl("editPlanTargetDate")) getEl("editPlanTargetDate").value = plan.targetDate || "";
-  if (getEl("editPlanDesc")) getEl("editPlanDesc").value = plan.description || "";
-  if (getEl("editPlanBudget")) getEl("editPlanBudget").value = plan.estimatedBudget || 0;
-  if (getEl("editPlanPriority")) getEl("editPlanPriority").value = plan.priority || "medium";
-  if (getEl("editPlanIsUrgent")) getEl("editPlanIsUrgent").checked = plan.isUrgent || false;
-  
-  window.currentDeletePlanId = { id, pid };
-  
-  if (!pid && plan.sub && Object.keys(plan.sub).length > 0) {
-    renderSubPlansList(id, plan.sub);
-  } else {
-    const subPlansList = getEl("subPlansList");
-    if (subPlansList) subPlansList.innerHTML = "";
-  }
-  
-  const modalEl = getEl("planModal");
-  if (modalEl) new bootstrap.Modal(modalEl).show();
-}
-
-export function deletePlanItemById(id) {
-  window.confirmDelete("plans", id);
-}
-
-export async function deleteSubPlan(pid, sid) {
-  await remove(ref(db, `data/plans/${pid}/sub/${sid}`));
-  await updateParentProgress(pid);
-  showNotif("🗑️ Item dihapus");
-  if (window.renderAll) window.renderAll();
-}
-
 // ============ FILTER FUNCTIONS ============
 export function initPlanFilter() {
   const filterBtns = document.querySelectorAll('.filter-cat');
@@ -531,6 +550,6 @@ window.deletePlanItemById = deletePlanItemById;
 window.addTemplateToCategory = addTemplateToCategory;
 window.confirmAddTemplate = confirmAddTemplate;
 window.addSubPlanWithDetails = addSubPlanWithDetails;
-window.addSubPlan = addSubPlan;  // <-- EXPORTED untuk backward compatibility
+window.addSubPlan = addSubPlan;
 window.addBudgetToPlan = addBudgetToPlan;
 window.initPlanFilter = initPlanFilter;
