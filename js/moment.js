@@ -1,23 +1,13 @@
-// js/moment.js - Full version with sorting & special moment priority
+// js/moment.js - Clean version with centralized utilities
 import { db, ref, push, update, remove, get } from './firebase-config.js';
-import { masterData, escapeHtml } from './utils.js';
+import { masterData, escapeHtml, showCustomConfirm, formatDateShort } from './utils.js';
 
 // State
 let currentViewDate = new Date();
 let currentDetailMomentId = null;
 let currentMomentPhotos = [];
-let pendingDeleteCallback = null;
 
 // ============ HELPER FUNCTIONS ============
-function formatDate(dateStr) {
-  if (!dateStr) return '';
-  const parts = dateStr.split('-');
-  if (parts.length === 3) {
-    return `${parts[2]}/${parts[1]}/${parts[0]}`;
-  }
-  return dateStr;
-}
-
 function getMoodText(mood) {
   const moods = {
     '🥰': 'Romantis',
@@ -29,7 +19,6 @@ function getMoodText(mood) {
   return moods[mood] || 'Spesial';
 }
 
-// Show toast custom
 function showMomentToast(msg, isError = false) {
   const toast = document.getElementById('momentToast');
   const messageEl = document.getElementById('momentToastMessage');
@@ -51,33 +40,6 @@ function showMomentToast(msg, isError = false) {
 window.hideMomentToast = function() {
   const toast = document.getElementById('momentToast');
   if (toast) toast.style.display = 'none';
-};
-
-function showCustomConfirm(message, onConfirm) {
-  const modal = document.getElementById('customConfirmModal');
-  const messageEl = document.getElementById('customConfirmMessage');
-  const okBtn = document.getElementById('customConfirmOkBtn');
-  
-  if (!modal || !messageEl || !okBtn) {
-    if (confirm(message)) onConfirm();
-    return;
-  }
-  
-  messageEl.innerText = message;
-  modal.style.display = 'flex';
-  
-  const handleConfirm = () => {
-    modal.style.display = 'none';
-    okBtn.removeEventListener('click', handleConfirm);
-    onConfirm();
-  };
-  
-  okBtn.addEventListener('click', handleConfirm, { once: true });
-}
-
-window.hideCustomConfirm = function() {
-  const modal = document.getElementById('customConfirmModal');
-  if (modal) modal.style.display = 'none';
 };
 
 async function compressImage(file, maxSizeMB = 2) {
@@ -288,18 +250,12 @@ export function renderMomentsList() {
   const momentsCountEl = document.getElementById('momentsCount');
   if (!momentsListEl) return;
   
-  // Convert to array for sorting
   const momentsArray = Object.entries(moments).map(([id, m]) => ({ id, ...m }));
   
-  // SORTING LOGIC:
-  // 1. Special moments (isSpecial = true) appear first
-  // 2. Then sort by date (newest to oldest)
+  // Sort: special first, then by date newest
   momentsArray.sort((a, b) => {
-    // Prioritize special moments
     if (a.isSpecial && !b.isSpecial) return -1;
     if (!a.isSpecial && b.isSpecial) return 1;
-    
-    // Both have same special status, sort by date (newest first)
     const dateA = a.date || '';
     const dateB = b.date || '';
     return dateB.localeCompare(dateA);
@@ -325,9 +281,8 @@ export function renderMomentsList() {
     const moodEmoji = moment.mood || '🥰';
     const firstPhoto = moment.photos && moment.photos[0] ? moment.photos[0] : null;
     const moodText = getMoodText(moment.mood);
-    const dateFormatted = formatDate(moment.date);
+    const dateFormatted = formatDateShort(moment.date);
     
-    // Add special badge
     const specialBadge = moment.isSpecial ? 
       '<span class="badge bg-warning text-dark ms-1"><i class="bi bi-star-fill me-1"></i>Spesial</span>' : '';
     
@@ -506,7 +461,7 @@ export async function viewMomentDetail(momentId) {
   
   document.getElementById('detailTitle').innerHTML = escapeHtml(moment.title || 'Momen Spesial');
   document.getElementById('detailMood').innerHTML = `${moment.mood || '🥰'} ${getMoodText(moment.mood)}`;
-  document.getElementById('detailDate').innerHTML = formatDate(moment.date);
+  document.getElementById('detailDate').innerHTML = formatDateShort(moment.date);
   document.getElementById('detailStory').innerHTML = escapeHtml(moment.story || 'Tidak ada cerita yang ditulis.').replace(/\n/g, '<br>');
   document.getElementById('detailAuthor').innerHTML = moment.author || '';
   
@@ -537,9 +492,7 @@ export async function viewMomentDetail(momentId) {
     
     const carouselElement = document.getElementById('detailCarousel');
     if (carouselElement && typeof bootstrap !== 'undefined') {
-      new bootstrap.Carousel(carouselElement, {
-        interval: false
-      });
+      new bootstrap.Carousel(carouselElement, { interval: false });
     }
   }
   
