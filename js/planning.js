@@ -1,4 +1,4 @@
-// js/planning.js - Clean version, no duplicates
+// js/planning.js - Full Version with addSubPlan
 import { db, ref, push, update, remove } from './firebase-config.js';
 import { showNotif, masterData, escapeHtml, formatNumberRp, privacyHidden, showCustomConfirm, truncateText, parseNumberInput, formatNumberInput } from './utils.js';
 
@@ -341,6 +341,37 @@ export async function addSubPlanWithDetails(pid) {
   if (window.renderAll) window.renderAll();
 }
 
+// ============ BACKWARD COMPATIBILITY ============
+// Fungsi ini digunakan oleh modal HTML (modals.html) - DO NOT DELETE
+export async function addSubPlan() {
+  const pid = document.getElementById("editPlanId")?.value;
+  if (!pid) {
+    showNotif("❌ ID rencana tidak ditemukan", true);
+    return;
+  }
+  
+  const text = document.getElementById("newSubText")?.value.trim();
+  if (!text) { 
+    showNotif("❌ Isi checklist terlebih dahulu", true); 
+    return; 
+  }
+  
+  await push(ref(db, `data/plans/${pid}/sub`), { 
+    text: text, 
+    done: false, 
+    estimatedCost: 0, 
+    actualCost: 0,
+    createdAt: Date.now()
+  });
+  
+  const newSubText = document.getElementById("newSubText");
+  if (newSubText) newSubText.value = "";
+  
+  showNotif("✅ Checklist ditambahkan");
+  await updateParentProgress(pid);
+  if (window.renderAll) window.renderAll();
+}
+
 export async function addBudgetToPlan(pid, currentEstimated, currentActual) {
   const newActual = parseInt(prompt(`Catat biaya yang sudah keluar:\nEstimasi: ${formatNumberRp(currentEstimated)}\nTerpakai: ${formatNumberRp(currentActual)}\n\nMasukkan total biaya:`, currentActual)) || 0;
   
@@ -500,5 +531,6 @@ window.deletePlanItemById = deletePlanItemById;
 window.addTemplateToCategory = addTemplateToCategory;
 window.confirmAddTemplate = confirmAddTemplate;
 window.addSubPlanWithDetails = addSubPlanWithDetails;
+window.addSubPlan = addSubPlan;  // <-- EXPORTED untuk backward compatibility
 window.addBudgetToPlan = addBudgetToPlan;
 window.initPlanFilter = initPlanFilter;
