@@ -1,4 +1,5 @@
-// js/utils.js - Full Optimized Version
+// js/utils.js - Full Optimized Version with Centralized Functions
+
 export let currentUser = null;
 export let masterData = null;
 export let privacyHidden = false;
@@ -11,7 +12,6 @@ export function showNotif(msg, isErr = false) {
   const t = document.getElementById("customToast"); 
   if (!t) return;
   
-  // Queue toast jika sedang menampilkan
   if (isToastShowing) {
     toastQueue.push({ msg, isErr });
     return;
@@ -30,7 +30,6 @@ export function showNotif(msg, isErr = false) {
     t.style.display = "none";
     isToastShowing = false;
     
-    // Tampilkan toast berikutnya dalam antrian
     if (toastQueue.length > 0) {
       const next = toastQueue.shift();
       showNotif(next.msg, next.isErr);
@@ -44,23 +43,20 @@ export function hideToast() {
   isToastShowing = false;
 }
 
-// Format number dengan caching untuk hasil yang sama
+// Format number dengan caching
 let numberFormatCache = new Map();
 
 export function formatNumberRp(val) { 
   if (privacyHidden) return "●●● ●●●";
   if (val === undefined || val === null) return "Rp 0";
   
-  // Cek cache
-  const cacheKey = val;
-  if (numberFormatCache.has(cacheKey)) {
-    return numberFormatCache.get(cacheKey);
+  if (numberFormatCache.has(val)) {
+    return numberFormatCache.get(val);
   }
   
   const result = `Rp ${val.toLocaleString('id-ID')}`;
-  numberFormatCache.set(cacheKey, result);
+  numberFormatCache.set(val, result);
   
-  // Batasi ukuran cache
   if (numberFormatCache.size > 100) {
     const firstKey = numberFormatCache.keys().next().value;
     numberFormatCache.delete(firstKey);
@@ -96,14 +92,14 @@ export function setMasterData(data) {
   window.masterData = data;
 }
 
-// Optimized getTimeAgo dengan caching
+// Time ago dengan caching
 let timeAgoCache = new Map();
 
 export function getTimeAgo(timestamp) {
   if (!timestamp) return "Baru saja";
   
   const now = Date.now();
-  const cacheKey = `${timestamp}_${Math.floor(now / 60000)}`; // Cache per menit
+  const cacheKey = `${timestamp}_${Math.floor(now / 60000)}`;
   
   if (timeAgoCache.has(cacheKey)) {
     return timeAgoCache.get(cacheKey);
@@ -120,7 +116,6 @@ export function getTimeAgo(timestamp) {
   
   timeAgoCache.set(cacheKey, result);
   
-  // Batasi ukuran cache
   if (timeAgoCache.size > 200) {
     const firstKey = timeAgoCache.keys().next().value;
     timeAgoCache.delete(firstKey);
@@ -129,28 +124,123 @@ export function getTimeAgo(timestamp) {
   return result;
 }
 
-// Format tanggal
-export function formatDate(dateStr) {
-  if (!dateStr) return '';
+// ============ CENTRALIZED DATE FORMATTERS ============
+
+export function formatDateShort(dateStr) {
+  if (!dateStr) return '-';
   const parts = dateStr.split('-');
   if (parts.length === 3) {
-    return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+    const monthName = monthNames[parseInt(parts[1]) - 1];
+    return `${parts[2]} ${monthName} ${parts[0]}`;
   }
   return dateStr;
 }
 
-// Format tanggal lengkap
 export function formatDateLong(dateStr) {
   if (!dateStr) return '';
   const parts = dateStr.split('-');
   if (parts.length === 3) {
     const monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
-    return `${parseInt(parts[2])} ${monthNames[parseInt(parts[1]) - 1]} ${parts[0]}`;
+    const monthName = monthNames[parseInt(parts[1]) - 1];
+    return `${parts[2]} ${monthName} ${parts[0]}`;
   }
   return dateStr;
 }
 
-// Debounce utility
+// ============ CENTRALIZED LOADING OVERLAY ============
+
+let loadingOverlay = null;
+
+export function showLoadingOverlay(message = "Memproses...") {
+  if (loadingOverlay) {
+    loadingOverlay.remove();
+  }
+  
+  loadingOverlay = document.createElement('div');
+  loadingOverlay.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+    z-index: 20000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+  `;
+  
+  const spinner = document.createElement('div');
+  spinner.className = 'loading-spinner';
+  spinner.style.cssText = `
+    width: 48px;
+    height: 48px;
+    border: 4px solid rgba(255,255,255,0.3);
+    border-top: 4px solid #6366f1;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  `;
+  
+  const text = document.createElement('p');
+  text.textContent = message;
+  text.style.color = 'white';
+  text.style.marginTop = '16px';
+  text.style.fontSize = '14px';
+  
+  loadingOverlay.appendChild(spinner);
+  loadingOverlay.appendChild(text);
+  document.body.appendChild(loadingOverlay);
+}
+
+export function hideLoadingOverlay() {
+  if (loadingOverlay) {
+    loadingOverlay.remove();
+    loadingOverlay = null;
+  }
+}
+
+// ============ CENTRALIZED CONFIRM DIALOG ============
+
+export function showCustomConfirm(message, onConfirm, title = "Konfirmasi") {
+  const modal = document.getElementById('customConfirmModal');
+  const messageEl = document.getElementById('customConfirmMessage');
+  const okBtn = document.getElementById('customConfirmOkBtn');
+  const titleEl = document.getElementById('customConfirmTitle');
+  
+  if (!modal || !messageEl || !okBtn) {
+    if (confirm(message)) onConfirm();
+    return;
+  }
+  
+  if (titleEl) titleEl.innerText = title;
+  messageEl.innerText = message;
+  modal.style.display = 'flex';
+  
+  const handleConfirm = () => {
+    modal.style.display = 'none';
+    okBtn.removeEventListener('click', handleConfirm);
+    onConfirm();
+  };
+  
+  okBtn.addEventListener('click', handleConfirm, { once: true });
+}
+
+export function hideCustomConfirm() {
+  const modal = document.getElementById('customConfirmModal');
+  if (modal) modal.style.display = 'none';
+}
+
+// ============ UTILITY FUNCTIONS ============
+
+export function truncateText(text, maxLength = 100) {
+  if (!text) return "";
+  if (text.length <= maxLength) return text;
+  return text.substring(0, maxLength) + "...";
+}
+
 export function debounce(func, delay) {
   let timeoutId;
   return function (...args) {
@@ -159,7 +249,6 @@ export function debounce(func, delay) {
   };
 }
 
-// Throttle utility
 export function throttle(func, limit) {
   let inThrottle;
   return function (...args) {
@@ -171,20 +260,17 @@ export function throttle(func, limit) {
   };
 }
 
-// Format persentase
-export function formatPercent(value) {
-  if (isNaN(value)) return "0%";
-  return `${Math.round(value)}%`;
+export function parseNumberInput(value) {
+  if (!value) return 0;
+  const cleanValue = value.toString().replace(/\./g, '').replace(/,/g, '');
+  return parseInt(cleanValue) || 0;
 }
 
-// Truncate text
-export function truncateText(text, maxLength = 100) {
-  if (!text) return "";
-  if (text.length <= maxLength) return text;
-  return text.substring(0, maxLength) + "...";
+export function formatNumberInput(value) {
+  if (!value || value === 0) return '';
+  return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
 }
 
-// Copy to clipboard
 export async function copyToClipboard(text) {
   try {
     await navigator.clipboard.writeText(text);
@@ -196,31 +282,21 @@ export async function copyToClipboard(text) {
   }
 }
 
-// Download file
-export function downloadFile(content, filename, type = "text/plain") {
-  const blob = new Blob([content], { type });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-}
-
-// Parse number from string
-export function parseNumber(value) {
-  const num = parseInt(value);
-  return isNaN(num) ? 0 : num;
-}
-
-// Group array by key
-export function groupBy(array, key) {
-  return array.reduce((result, item) => {
-    const groupKey = item[key];
-    if (!result[groupKey]) result[groupKey] = [];
-    result[groupKey].push(item);
-    return result;
-  }, {});
+// Export ke window
+if (typeof window !== 'undefined') {
+  window.showNotif = showNotif;
+  window.hideToast = hideToast;
+  window.formatNumberRp = formatNumberRp;
+  window.escapeHtml = escapeHtml;
+  window.togglePrivacy = togglePrivacy;
+  window.setCurrentUser = setCurrentUser;
+  window.setMasterData = setMasterData;
+  window.showLoadingOverlay = showLoadingOverlay;
+  window.hideLoadingOverlay = hideLoadingOverlay;
+  window.showCustomConfirm = showCustomConfirm;
+  window.hideCustomConfirm = hideCustomConfirm;
+  window.formatDateShort = formatDateShort;
+  window.formatDateLong = formatDateLong;
+  window.truncateText = truncateText;
+  window.copyToClipboard = copyToClipboard;
 }
