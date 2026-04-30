@@ -1,98 +1,11 @@
-<div class="modal fade" id="planModal" tabindex="-1">
-  <div class="modal-dialog">
-    <div class="modal-content rounded-4">
-      <div class="modal-header border-0">
-        <h5 class="fw-bold">Edit rencana</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body">
-        <input type="hidden" id="editPlanId">
-        <input type="hidden" id="editPlanParentId">
-        <input id="editPlanText" class="form-control mb-2">
-        <input type="date" id="editPlanTargetDate" class="form-control mb-2">
-        <input type="number" id="editPlanProgress" class="form-control mb-2" placeholder="Progres %">
-        <div class="bg-light p-3 rounded-3">
-          <label class="small">Sub rencana</label>
-          <div class="input-group mt-1">
-            <input id="newSubText" class="form-control">
-            <button class="btn btn-sm btn-secondary" onclick="addSubPlan()">Tambah</button>
-          </div>
-        </div>
-        <button onclick="updatePlan()" class="btn btn-primary w-100 mt-3">Simpan</button>
-        <button onclick="deletePlanItem()" class="btn btn-outline-danger w-100 mt-2">Hapus rencana</button>
-      </div>
-    </div>
-  </div>
-</div>
+<!-- components/modals.html - Full Version (Clean, No Duplicates) -->
 
-<div class="modal fade" id="commentModal" tabindex="-1">
-  <div class="modal-dialog">
-    <div class="modal-content rounded-4">
-      <div class="modal-header border-0">
-        <h5 class="fw-bold">💬 Diskusi</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body">
-        <input type="hidden" id="commentVisionId">
-        <div id="commentList" class="mb-3" style="max-height:280px; overflow:auto"></div>
-        <textarea id="newCommentText" class="form-control mb-2" rows="2" placeholder="tanggapan kamu..."></textarea>
-        <button onclick="addComment()" class="btn btn-primary w-100">Kirim komentar</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="modal fade" id="passModal" tabindex="-1">
-  <div class="modal-dialog">
-    <div class="modal-content rounded-4">
-      <div class="modal-header border-0">
-        <h5 class="fw-bold">Ganti sandi</h5>
-      </div>
-      <div class="modal-body">
-        <input type="password" id="newPass" class="form-control mb-2" placeholder="Password baru">
-        <input type="password" id="confirmPass" class="form-control mb-3" placeholder="Konfirmasi">
-        <button onclick="updateCloudPassword()" class="btn btn-primary w-100">Update</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="modal fade" id="confirmDeleteModal" tabindex="-1">
-  <div class="modal-dialog modal-sm">
-    <div class="modal-content rounded-4">
-      <div class="modal-header bg-danger text-white border-0">
-        <h5 class="fw-bold">Hapus data</h5>
-      </div>
-      <div class="modal-body">Yakin ingin menghapus?</div>
-      <div class="modal-footer">
-        <button class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-        <button id="confirmDeleteBtn" class="btn btn-danger">Hapus</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="modal fade" id="confirmLogoutModal" tabindex="-1">
-  <div class="modal-dialog modal-sm">
-    <div class="modal-content rounded-4">
-      <div class="modal-header bg-warning text-dark border-0">
-        <h5 class="fw-bold">Keluar</h5>
-      </div>
-      <div class="modal-body">Yakin ingin keluar?</div>
-      <div class="modal-footer">
-        <button class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-        <button id="confirmLogoutBtn" class="btn btn-danger">Logout</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Modal Tambah Rencana Baru - tambahkan template buttons -->
+<!-- ==================== ADD PLAN MODAL ==================== -->
 <div class="modal fade" id="addPlanModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content rounded-4">
-      <div class="modal-header border-0 bg-gradient bg-primary text-white">
-        <h5 class="fw-bold"><i class="bi bi-plus-circle me-2"></i>Buat Rencana Baru</h5>
+      <div class="modal-header border-0 bg-gradient bg-primary text-white py-3">
+        <h5 class="fw-bold mb-0"><i class="bi bi-plus-circle me-2"></i>Buat Rencana Baru</h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body p-4">
@@ -100,13 +13,13 @@
         <div class="mb-4">
           <label class="form-label fw-semibold small">🚀 Gunakan Template Cepat</label>
           <div class="d-flex gap-2 flex-wrap">
-            <button type="button" class="btn btn-sm btn-outline-danger" onclick="window.confirmAddTemplate('💍 Lamaran')">
+            <button type="button" class="btn btn-sm btn-outline-danger rounded-pill" onclick="window.confirmAddTemplate('💍 Lamaran')">
               <i class="bi bi-gem-fill"></i> Template Lamaran
             </button>
-            <button type="button" class="btn btn-sm btn-outline-primary" onclick="window.confirmAddTemplate('💍 Menikah')">
+            <button type="button" class="btn btn-sm btn-outline-primary rounded-pill" onclick="window.confirmAddTemplate('💍 Menikah')">
               <i class="bi bi-heart-fill"></i> Template Menikah
             </button>
-            <button type="button" class="btn btn-sm btn-outline-info" onclick="window.confirmAddTemplate('✈️ Liburan')">
+            <button type="button" class="btn btn-sm btn-outline-info rounded-pill" onclick="window.confirmAddTemplate('✈️ Liburan')">
               <i class="bi bi-airplane-fill"></i> Template Liburan
             </button>
           </div>
@@ -115,22 +28,56 @@
         
         <hr class="my-3">
         
+        <!-- Form Input Manual -->
         <div class="mb-3">
           <label class="form-label fw-semibold">Nama Rencana <span class="text-danger">*</span></label>
           <input type="text" id="planText" class="form-control" placeholder="Contoh: Persiapan Akad Nikah">
         </div>
         
-        <!-- rest of the form... -->
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Kategori</label>
+          <select id="planCat" class="form-select">
+            <option value="💍 Menikah">💍 Menikah</option>
+            <option value="💍 Lamaran">💍 Lamaran</option>
+            <option value="✈️ Liburan">✈️ Liburan</option>
+          </select>
+        </div>
+        
+        <div class="row g-3 mb-3">
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Target Tanggal</label>
+            <input type="date" id="planTargetDate" class="form-control">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Estimasi Budget</label>
+            <div class="input-group">
+              <span class="input-group-text">Rp</span>
+              <input type="number" id="planBudget" class="form-control" placeholder="0">
+            </div>
+          </div>
+        </div>
+        
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Deskripsi / Catatan</label>
+          <textarea id="planDesc" class="form-control" rows="2" placeholder="Detail rencana..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer border-0 pt-0 pb-4">
+        <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Batal</button>
+        <button type="button" onclick="window.savePlan()" class="btn btn-primary rounded-pill px-4">
+          <i class="bi bi-save me-2"></i>Simpan Rencana
+        </button>
       </div>
     </div>
   </div>
 </div>
-<!-- Modal Edit Rencana - Tanpa Progress Manual -->
+
+<!-- ==================== EDIT PLAN MODAL ==================== -->
 <div class="modal fade" id="planModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content rounded-4">
-      <div class="modal-header border-0 bg-gradient bg-info text-white">
-        <h5 class="fw-bold"><i class="bi bi-pencil-square me-2"></i>Edit Rencana</h5>
+      <div class="modal-header border-0 bg-gradient bg-info text-white py-3">
+        <h5 class="fw-bold mb-0"><i class="bi bi-pencil-square me-2"></i>Edit Rencana</h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body p-4">
@@ -158,7 +105,10 @@
           </div>
           <div class="col-md-6">
             <label class="form-label fw-semibold">Estimasi Budget (Rp)</label>
-            <input type="number" id="editPlanBudget" class="form-control" placeholder="0">
+            <div class="input-group">
+              <span class="input-group-text">Rp</span>
+              <input type="number" id="editPlanBudget" class="form-control" placeholder="0">
+            </div>
           </div>
         </div>
         
@@ -193,26 +143,25 @@
           <div id="subPlansList" class="small"></div>
         </div>
         
-        <!-- Info bahwa progress otomatis dari checklist -->
         <div class="alert alert-info small py-2 mb-0">
           <i class="bi bi-info-circle me-1"></i>
           Progress akan terisi otomatis berdasarkan checklist yang dicentang
         </div>
       </div>
       <div class="modal-footer border-0">
-        <button type="button" class="btn btn-danger" onclick="window.deletePlanItem()">Hapus Rencana</button>
-        <button type="button" class="btn btn-primary" onclick="window.updatePlan()">Simpan Perubahan</button>
+        <button type="button" class="btn btn-danger rounded-pill" onclick="window.deletePlanItem()">Hapus Rencana</button>
+        <button type="button" class="btn btn-primary rounded-pill" onclick="window.updatePlan()">Simpan Perubahan</button>
       </div>
     </div>
   </div>
 </div>
 
-<!-- Confirm Delete Modal dengan Emoji -->
+<!-- ==================== CONFIRM DELETE MODAL ==================== -->
 <div class="modal fade" id="confirmDeleteModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content rounded-4">
-      <div class="modal-header bg-danger text-white border-0">
-        <h5 class="fw-bold"><i class="bi bi-exclamation-triangle-fill me-2"></i>Konfirmasi Hapus</h5>
+      <div class="modal-header bg-danger text-white border-0 py-3">
+        <h5 class="fw-bold mb-0"><i class="bi bi-exclamation-triangle-fill me-2"></i>Konfirmasi Hapus</h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body text-center py-4">
@@ -220,11 +169,11 @@
         <h5>Yakin ingin menghapus data ini?</h5>
         <p class="text-muted">Data yang sudah dihapus tidak dapat dikembalikan</p>
       </div>
-      <div class="modal-footer border-0 justify-content-center gap-3">
-        <button class="btn btn-secondary px-4" data-bs-dismiss="modal">
+      <div class="modal-footer border-0 justify-content-center gap-3 pb-4">
+        <button class="btn btn-secondary px-4 rounded-pill" data-bs-dismiss="modal">
           <i class="bi bi-x-circle me-2"></i>Batal
         </button>
-        <button id="confirmDeleteBtn" class="btn btn-danger px-4">
+        <button id="confirmDeleteBtn" class="btn btn-danger px-4 rounded-pill">
           <i class="bi bi-trash me-2"></i>Hapus
         </button>
       </div>
@@ -232,24 +181,61 @@
   </div>
 </div>
 
-<!-- Comment Modal - Enhanced -->
+<!-- ==================== CONFIRM LOGOUT MODAL ==================== -->
+<div class="modal fade" id="confirmLogoutModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content rounded-4">
+      <div class="modal-header bg-warning text-dark border-0 py-3">
+        <h5 class="fw-bold mb-0"><i class="bi bi-box-arrow-right me-2"></i>Keluar</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body text-center py-4">
+        <i class="bi bi-question-circle fs-1 text-muted mb-3 d-block"></i>
+        <p>Yakin ingin keluar dari aplikasi?</p>
+      </div>
+      <div class="modal-footer border-0 justify-content-center gap-3 pb-4">
+        <button class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Batal</button>
+        <button id="confirmLogoutBtn" class="btn btn-danger rounded-pill px-4">Logout</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== COMMENT / DISKUSI MODAL ==================== -->
 <div class="modal fade" id="commentModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered modal-lg">
     <div class="modal-content rounded-4">
-      <div class="modal-header border-0 bg-gradient bg-info text-white">
-        <h5 class="fw-bold"><i class="bi bi-chat-dots me-2"></i>💬 Diskusi & Komentar</h5>
+      <div class="modal-header border-0 bg-gradient bg-info text-white py-3">
+        <h5 class="fw-bold mb-0"><i class="bi bi-chat-dots me-2"></i>💬 Diskusi & Komentar</h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
-      <div class="modal-body">
+      <div class="modal-body p-4">
         <input type="hidden" id="commentVisionId">
         <div id="commentList" class="mb-3" style="max-height: 400px; overflow-y: auto;"></div>
         <div class="border-top pt-3">
           <label class="form-label fw-semibold">Tulis komentar</label>
           <textarea id="newCommentText" class="form-control mb-2" rows="2" placeholder="Bagikan pendapat atau dukunganmu..."></textarea>
-          <button onclick="addComment()" class="btn btn-primary w-100">
+          <button onclick="window.addComment()" class="btn btn-primary w-100 rounded-pill">
             <i class="bi bi-send me-2"></i>Kirim Komentar
           </button>
         </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== CHANGE PASSWORD MODAL ==================== -->
+<div class="modal fade" id="passModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content rounded-4">
+      <div class="modal-header border-0 bg-gradient bg-primary text-white py-3">
+        <h5 class="fw-bold mb-0"><i class="bi bi-lock me-2"></i>Ganti Password</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-4">
+        <input type="password" id="newPass" class="form-control mb-3" placeholder="Password baru">
+        <input type="password" id="confirmPass" class="form-control mb-3" placeholder="Konfirmasi password">
+        <button onclick="window.updateCloudPassword()" class="btn btn-primary w-100 rounded-pill">Update Password</button>
       </div>
     </div>
   </div>
