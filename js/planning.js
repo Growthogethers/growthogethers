@@ -1,6 +1,6 @@
-// js/planning.js - Full Optimized Version
+// js/planning.js - Clean version, no duplicates
 import { db, ref, push, update, remove } from './firebase-config.js';
-import { showNotif, masterData, escapeHtml, formatNumberRp, privacyHidden, debounce, truncateText } from './utils.js';
+import { showNotif, masterData, escapeHtml, formatNumberRp, privacyHidden, showCustomConfirm, truncateText, parseNumberInput, formatNumberInput } from './utils.js';
 
 // Template items untuk setiap kategori
 const categoryTemplates = {
@@ -40,7 +40,7 @@ const categoryTemplates = {
   ]
 };
 
-// Cache untuk DOM elements
+// Cache DOM elements
 let domCache = new Map();
 
 function getEl(id) {
@@ -85,30 +85,6 @@ export function confirmAddTemplate(category) {
     `Tambahkan template ${category}?\n\nAkan menambahkan ${categoryTemplates[category]?.length || 0} item rencana.`,
     () => addTemplateToCategory(category)
   );
-}
-
-function showCustomConfirm(message, onConfirm) {
-  const modal = document.getElementById('customConfirmModal');
-  const messageEl = document.getElementById('customConfirmMessage');
-  const okBtn = document.getElementById('customConfirmOkBtn');
-  const titleEl = document.getElementById('customConfirmTitle');
-  
-  if (!modal || !messageEl || !okBtn) {
-    if (confirm(message)) onConfirm();
-    return;
-  }
-  
-  if (titleEl) titleEl.innerText = 'Konfirmasi';
-  messageEl.innerText = message;
-  modal.style.display = 'flex';
-  
-  const handleConfirm = () => {
-    modal.style.display = 'none';
-    okBtn.removeEventListener('click', handleConfirm);
-    onConfirm();
-  };
-  
-  okBtn.addEventListener('click', handleConfirm, { once: true });
 }
 
 // ============ CRUD FUNCTIONS ============
@@ -242,10 +218,9 @@ export function renderBoardPlans(plansMap) {
       return `
         <div class="col-md-6 col-lg-4">
           <div class="plan-card card border-0 shadow-sm h-100 ${isDone ? 'border-start border-success border-3' : ''}" 
-     data-plan-id="${id}" 
-     data-target-date="${p.targetDate || ''}">
+               data-plan-id="${id}" 
+               data-target-date="${p.targetDate || ''}">
             <div class="card-body p-3">
-              <!-- Header -->
               <div class="d-flex justify-content-between align-items-start mb-2">
                 <div class="flex-grow-1">
                   <div class="d-flex align-items-center gap-2 flex-wrap">
@@ -273,7 +248,6 @@ export function renderBoardPlans(plansMap) {
                 </div>
               </div>
               
-              <!-- Progress Bar -->
               <div class="mt-2">
                 <div class="d-flex justify-content-between small mb-1">
                   <span class="text-muted">Progress</span>
@@ -284,7 +258,6 @@ export function renderBoardPlans(plansMap) {
                 </div>
               </div>
               
-              <!-- Budget Info -->
               ${p.estimatedBudget > 0 ? `
                 <div class="mt-2 pt-2 border-top">
                   <div class="d-flex justify-content-between small">
@@ -303,7 +276,6 @@ export function renderBoardPlans(plansMap) {
                 </div>
               ` : ''}
               
-              <!-- Target Date -->
               ${p.targetDate ? `
                 <div class="mt-2 small text-muted">
                   <i class="bi bi-calendar"></i> 
@@ -311,7 +283,6 @@ export function renderBoardPlans(plansMap) {
                 </div>
               ` : ''}
               
-              <!-- Checklist Summary -->
               ${p.sub && Object.keys(p.sub).length > 0 ? `
                 <div class="mt-2">
                   <div class="d-flex justify-content-between small text-muted">
@@ -321,7 +292,6 @@ export function renderBoardPlans(plansMap) {
                 </div>
               ` : ''}
               
-              <!-- Action Buttons -->
               <div class="mt-3 d-flex gap-2">
                 <button class="btn btn-sm btn-outline-secondary flex-grow-1 rounded-pill" onclick="window.addSubPlanWithDetails('${id}')">
                   <i class="bi bi-plus-circle"></i> Checklist
@@ -379,24 +349,6 @@ export async function addBudgetToPlan(pid, currentEstimated, currentActual) {
     showNotif(`✅ Biaya diupdate ke ${formatNumberRp(newActual)}`);
     if (window.renderAll) window.renderAll();
   }
-}
-
-export async function addSubPlan() {
-  const pid = getEl("editPlanId")?.value;
-  const text = getEl("newSubText")?.value.trim();
-  if (!text) { showNotif("❌ Isi checklist", true); return; }
-  
-  await push(ref(db, `data/plans/${pid}/sub`), { 
-    text, 
-    done: false, 
-    estimatedCost: 0, 
-    actualCost: 0,
-    createdAt: Date.now()
-  });
-  if (getEl("newSubText")) getEl("newSubText").value = "";
-  showNotif("✅ Checklist ditambahkan");
-  if (pid) await updateParentProgress(pid);
-  if (window.renderAll) window.renderAll();
 }
 
 // ============ EDIT & DELETE FUNCTIONS ============
@@ -541,7 +493,6 @@ window.deleteSubPlan = deleteSubPlan;
 window.savePlan = savePlan;
 window.updatePlan = updatePlan;
 window.deletePlanItem = deletePlanItem;
-window.addSubPlan = addSubPlan;
 window.togglePlan = togglePlan;
 window.toggleSubPlanCheckbox = toggleSubPlanCheckbox;
 window.openEditPlan = openEditPlan;
