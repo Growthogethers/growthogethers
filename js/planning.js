@@ -1,4 +1,5 @@
-// js/planning.js - Complete with validation and finance target update
+// js/planning.js - Updated with Windows Explorer/Folder view style
+
 import { db, ref, push, update, remove, get } from './firebase-config.js';
 import { showNotif, masterData, escapeHtml, formatNumberRp, privacyHidden, showCustomConfirm, truncateText } from './utils.js';
 
@@ -93,7 +94,6 @@ export async function updateWeddingTargetFromPlans() {
     totalPlansBudget += plan.estimatedBudget || 0;
   }
   
-  // Only update if total plans budget is greater than current target
   if (totalPlansBudget > currentWeddingTarget) {
     await update(ref(db, 'data/settings'), { 
       weddingTarget: totalPlansBudget,
@@ -147,7 +147,6 @@ export async function updatePlanProgressFromSavings() {
   const plans = data?.plans || {};
   const finances = data?.finances || {};
   
-  // Group savings by category
   const savingsByCategory = {};
   Object.values(finances).forEach(f => {
     if (f.type === 'wedding' && f.planCategory && f.planCategory !== 'Lainnya') {
@@ -155,7 +154,6 @@ export async function updatePlanProgressFromSavings() {
     }
   });
   
-  // Update each plan's progress
   for (const [planId, plan] of Object.entries(plans)) {
     if (plan.estimatedBudget > 0 && plan.progress < 100 && plan.planCategory) {
       const savedForCategory = savingsByCategory[plan.planCategory] || 0;
@@ -200,7 +198,6 @@ export async function savePlan() {
     else planCategory = 'default';
   }
   
-  // VALIDATION: Check if plan already exists in this category
   if (planCategory !== 'default' && hasActivePlanInCategory(planCategory)) {
     showNotif(`❌ Rencana untuk kategori "${planCategory}" sudah ada! Selesaikan dulu sebelum membuat baru.`, true);
     return;
@@ -222,14 +219,12 @@ export async function savePlan() {
       updatedAt: Date.now()
     });
     
-    // Update wedding target
     const newTarget = await updateWeddingTargetFromPlans();
     showNotif(`✅ Rencana berhasil ditambahkan! Total target pernikahan: ${formatNumberRp(newTarget)}`);
     
     const modal = bootstrap.Modal.getInstance(document.getElementById("addPlanManualModal"));
     if (modal) modal.hide();
     
-    // Reset form
     const planText = document.getElementById("planText");
     const planTargetDate = document.getElementById("planTargetDate");
     const planDesc = document.getElementById("planDesc");
@@ -260,7 +255,6 @@ export async function addTemplateToCategory(category) {
     return;
   }
   
-  // Check if any template item already exists
   const existingCategories = new Set();
   const data = window.masterData || masterData;
   const plans = data?.plans || {};
@@ -300,7 +294,6 @@ export async function addTemplateToCategory(category) {
     });
   }
   
-  // Update wedding target
   const newTarget = await updateWeddingTargetFromPlans();
   
   showNotif(`✅ Template ${category} berhasil ditambahkan! Total budget: ${formatNumberRp(totalBudget)}. Target pernikahan: ${formatNumberRp(newTarget)}`);
@@ -310,7 +303,6 @@ export async function addTemplateToCategory(category) {
 }
 
 export function confirmAddTemplate(category) {
-  // Check existing plans before showing confirm
   const data = window.masterData || masterData;
   const plans = data?.plans || {};
   const activePlansCount = Object.values(plans).filter(p => p.progress < 100).length;
@@ -358,7 +350,6 @@ export async function updatePlan() {
   
   await update(ref(db, `data/plans/${id}`), updateData);
   
-  // Update wedding target if budget changed
   if (budget !== oldBudget) {
     await updateWeddingTargetFromPlans();
   }
@@ -379,7 +370,6 @@ export async function deletePlanItem() {
   const path = pid ? `data/plans/${pid}/sub/${id}` : `data/plans/${id}`;
   await remove(ref(db, path));
   
-  // Update wedding target if this was a main plan
   if (!pid) {
     await updateWeddingTargetFromPlans();
   }
@@ -412,7 +402,6 @@ export async function togglePlan(id, currentStatus) {
     updatedAt: Date.now()
   });
   
-  // Update wedding target when plan is completed (keep budget in target)
   if (newStatus) {
     showNotif("✅ Rencana selesai! Target tabungan tetap terhitung.");
   } else {
@@ -558,7 +547,6 @@ export function openEditPlan(id, pid = null) {
   if (editPlanPriority) editPlanPriority.value = plan.priority || "medium";
   if (editPlanIsUrgent) editPlanIsUrgent.checked = plan.isUrgent || false;
   
-  // Display sub plans in the modal
   const subPlansList = document.getElementById("subPlansList");
   if (subPlansList && plan.sub) {
     const subs = Object.entries(plan.sub);
@@ -594,12 +582,32 @@ export function openEditPlan(id, pid = null) {
   if (modalEl) new bootstrap.Modal(modalEl).show();
 }
 
-// Render board plans
+// ============ NEW: WINDOWS EXPLORER / FOLDER VIEW FOR PLANNING ============
+
+// Render board plans with Folder/List view (like Windows Explorer)
 export function renderBoardPlans(plansMap) {
   const categories = {
-    "💍 Menikah": { id: "menikahPlans", color: "danger", icon: "bi-heart-fill" },
-    "💍 Lamaran": { id: "lamaranPlans", color: "info", icon: "bi-gem-fill" },
-    "✈️ Liburan": { id: "liburanPlans", color: "warning", icon: "bi-airplane-fill" }
+    "💍 Menikah": { 
+      id: "menikahPlans", 
+      color: "danger", 
+      icon: "bi-heart-fill",
+      folderIcon: "📁",
+      bgColor: "#fef2f2"
+    },
+    "💍 Lamaran": { 
+      id: "lamaranPlans", 
+      color: "info", 
+      icon: "bi-gem-fill",
+      folderIcon: "📂",
+      bgColor: "#eff6ff"
+    },
+    "✈️ Liburan": { 
+      id: "liburanPlans", 
+      color: "warning", 
+      icon: "bi-airplane-fill",
+      folderIcon: "🗂️",
+      bgColor: "#fffbeb"
+    }
   };
   
   const formatWithPrivacy = (value) => {
@@ -607,13 +615,14 @@ export function renderBoardPlans(plansMap) {
     return formatNumberRp(value);
   };
   
-  // Update counts
+  // Update counts in folder headers
   for (const [cat, config] of Object.entries(categories)) {
     const catPlans = plansMap.filter(p => p[1].cat === cat);
     const countEl = document.getElementById(config.id.replace("Plans", "Count"));
     if (countEl) countEl.innerText = catPlans.length;
   }
   
+  // Render each category as a folder
   for (const [cat, config] of Object.entries(categories)) {
     const container = document.getElementById(config.id);
     if (!container) continue;
@@ -621,95 +630,122 @@ export function renderBoardPlans(plansMap) {
     const catPlans = plansMap.filter(p => p[1].cat === cat);
     
     if (catPlans.length === 0) {
+      // Empty folder
       container.innerHTML = `
-        <div class="col-12">
-          <div class="empty-state-card text-center py-5">
-            <i class="bi ${config.icon} fs-1 text-muted"></i>
-            <p class="text-muted mt-2 mb-0">Belum ada rencana</p>
-            <button class="btn btn-sm btn-outline-${config.color} mt-2 rounded-pill" onclick="window.confirmAddTemplate('${cat}')">
-              <i class="bi bi-magic me-1"></i>Gunakan Template
-            </button>
-          </div>
+        <div class="folder-empty-state" style="padding: 24px; text-align: center; background: var(--card-bg); border-radius: 12px; border: 1px dashed var(--border-light);">
+          <i class="bi ${config.icon} fs-2 text-muted"></i>
+          <p class="text-muted mt-2 mb-0">Folder kosong</p>
+          <button class="btn btn-sm btn-outline-${config.color} mt-2 rounded-pill" onclick="window.confirmAddTemplate('${cat}')">
+            <i class="bi bi-magic me-1"></i>Gunakan Template
+          </button>
         </div>
       `;
       continue;
     }
     
-    container.innerHTML = catPlans.map(([id, p]) => {
-      const currentProgress = p.sub && Object.keys(p.sub).length > 0 
-        ? calculateProgressFromSubs(p.sub)
-        : (p.progress || 0);
-      
-      const isDone = currentProgress >= 100;
-      const budgetUsed = p.estimatedBudget > 0 ? Math.round(((p.actualBudget || 0) / p.estimatedBudget) * 100) : 0;
-      const daysLeft = p.targetDate ? Math.ceil((new Date(p.targetDate) - new Date()) / (1000 * 60 * 60 * 24)) : null;
-      
-      // Get category icon
-      const catIcon = p.text.match(/[💍📅🏨📸💐🍽️👗🎤📋✈️💰🧳🛂]/)?.[0] || '📋';
-      
-      return `
-        <div class="col-md-6 col-lg-4">
-          <div class="plan-card card border-0 shadow-sm h-100 ${isDone ? 'border-start border-success border-3' : ''}" 
-               data-plan-id="${id}" data-target-date="${p.targetDate || ''}">
-            <div class="card-body p-3">
-              <div class="d-flex justify-content-between align-items-start mb-2">
-                <div class="flex-grow-1">
-                  <div class="d-flex align-items-center gap-2 flex-wrap">
-                    <h6 class="fw-bold mb-0 ${isDone ? 'text-decoration-line-through text-muted' : ''}">
-                      ${catIcon} ${escapeHtml(truncateText(p.text, 40))}
-                    </h6>
-                    ${isDone ? '<i class="bi bi-check-circle-fill text-success"></i>' : ''}
-                  </div>
-                  ${p.description ? `<p class="small text-muted mt-1 mb-0">${escapeHtml(truncateText(p.description, 60))}</p>` : ''}
-                </div>
-                <div class="dropdown">
-                  <i class="bi bi-three-dots-vertical text-muted" data-bs-toggle="dropdown" style="cursor: pointer;"></i>
-                  <ul class="dropdown-menu dropdown-menu-end">
-                    <li><a class="dropdown-item" onclick="window.togglePlan('${id}', ${isDone})"><i class="bi bi-check-circle me-2"></i>${isDone ? 'Batal Selesai' : 'Tandai Selesai'}</a></li>
-                    <li><a class="dropdown-item" onclick="window.openEditPlan('${id}')"><i class="bi bi-pencil me-2"></i>Edit</a></li>
-                    <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item text-danger" onclick="window.deletePlanItemById('${id}')"><i class="bi bi-trash me-2"></i>Hapus</a></li>
-                  </ul>
-                </div>
-              </div>
-              
-              <div class="mt-2">
-                <div class="d-flex justify-content-between small mb-1">
-                  <span class="text-muted">Progress</span>
-                  <span class="fw-semibold ${currentProgress >= 100 ? 'text-success' : 'text-primary'}">${currentProgress}%</span>
-                </div>
-                <div class="progress" style="height: 6px;">
-                  <div class="progress-bar ${currentProgress >= 100 ? 'bg-success' : 'bg-primary'}" style="width: ${currentProgress}%"></div>
-                </div>
-              </div>
-              
-              ${p.estimatedBudget > 0 ? `
-                <div class="mt-2 pt-2 border-top">
-                  <div class="d-flex justify-content-between small">
-                    <span class="text-muted"><i class="bi bi-cash-stack"></i> Budget</span>
-                    <span class="fw-semibold">${formatWithPrivacy(p.estimatedBudget)}</span>
-                  </div>
-                  ${p.actualBudget > 0 ? `
-                    <div class="d-flex justify-content-between small mt-1">
-                      <span class="text-muted"><i class="bi bi-wallet2"></i> Terpakai</span>
-                      <span class="fw-semibold ${budgetUsed > 100 ? 'text-danger' : 'text-success'}">${formatWithPrivacy(p.actualBudget)}</span>
-                    </div>
-                  ` : ''}
-                </div>
-              ` : ''}
-              
-              ${p.targetDate ? `<div class="mt-2 small text-muted"><i class="bi bi-calendar"></i> ${daysLeft !== null ? (daysLeft >= 0 ? `${daysLeft} hari lagi` : `${Math.abs(daysLeft)} hari terlambat`) : ''}</div>` : ''}
-              
-              <div class="mt-3 d-flex gap-2">
-                <button class="btn btn-sm btn-outline-secondary flex-grow-1 rounded-pill" onclick="window.addSubPlanWithDetails('${id}')"><i class="bi bi-plus-circle"></i> Checklist</button>
-                <button class="btn btn-sm btn-outline-primary rounded-pill" onclick="window.addBudgetToPlan('${id}', ${p.estimatedBudget || 0}, ${p.actualBudget || 0})"><i class="bi bi-cash-stack"></i> Budget</button>
-              </div>
-            </div>
-          </div>
+    // Render as list view (like Windows Explorer)
+    container.innerHTML = `
+      <div class="folder-list-view">
+        <!-- List header -->
+        <div class="list-header" style="display: grid; grid-template-columns: 40px 1fr 100px 120px 100px 80px; gap: 12px; padding: 10px 16px; background: var(--bg-light); border-radius: 8px; margin-bottom: 8px; font-size: 12px; font-weight: 600; color: var(--text-muted);">
+          <div></div>
+          <div>Nama Rencana</div>
+          <div>Progress</div>
+          <div>Budget</div>
+          <div>Deadline</div>
+          <div>Aksi</div>
         </div>
-      `;
-    }).join('');
+        
+        <!-- List items -->
+        <div class="list-items">
+          ${catPlans.map(([id, p]) => {
+            const currentProgress = p.sub && Object.keys(p.sub).length > 0 
+              ? calculateProgressFromSubs(p.sub)
+              : (p.progress || 0);
+            
+            const isDone = currentProgress >= 100;
+            const budgetUsed = p.estimatedBudget > 0 ? Math.round(((p.actualBudget || 0) / p.estimatedBudget) * 100) : 0;
+            const daysLeft = p.targetDate ? Math.ceil((new Date(p.targetDate) - new Date()) / (1000 * 60 * 60 * 24)) : null;
+            
+            const fileIcon = isDone ? '✅' : '📄';
+            const statusColor = isDone ? '#10b981' : currentProgress > 0 ? '#6366f1' : '#64748b';
+            
+            return `
+              <div class="list-item" data-plan-id="${id}" data-target-date="${p.targetDate || ''}" 
+                   style="display: grid; grid-template-columns: 40px 1fr 100px 120px 100px 80px; gap: 12px; align-items: center; padding: 12px 16px; background: var(--card-bg); border-bottom: 1px solid var(--border-light); transition: background 0.2s; cursor: pointer;"
+                   onmouseenter="this.style.backgroundColor='var(--bg-light)'" 
+                   onmouseleave="this.style.backgroundColor=''"
+                   onclick="event.stopPropagation(); window.openEditPlan('${id}')">
+                
+                <!-- Icon -->
+                <div style="font-size: 20px;">${fileIcon}</div>
+                
+                <!-- Name -->
+                <div>
+                  <div class="fw-semibold" style="${isDone ? 'text-decoration: line-through; color: var(--text-muted);' : ''}">
+                    ${escapeHtml(truncateText(p.text, 50))}
+                  </div>
+                  ${p.description ? `<div class="small text-muted">${escapeHtml(truncateText(p.description, 40))}</div>` : ''}
+                </div>
+                
+                <!-- Progress -->
+                <div>
+                  <div class="d-flex align-items-center gap-2">
+                    <div class="progress flex-grow-1" style="height: 6px; width: 60px;">
+                      <div class="progress-bar ${currentProgress >= 100 ? 'bg-success' : 'bg-primary'}" style="width: ${currentProgress}%"></div>
+                    </div>
+                    <span class="small fw-semibold" style="color: ${statusColor}">${currentProgress}%</span>
+                  </div>
+                </div>
+                
+                <!-- Budget -->
+                <div>
+                  ${p.estimatedBudget > 0 ? `
+                    <span class="small fw-semibold">${formatWithPrivacy(p.estimatedBudget)}</span>
+                    ${p.actualBudget > 0 ? `
+                      <div class="small ${budgetUsed > 100 ? 'text-danger' : 'text-success'}">
+                        terpakai: ${formatWithPrivacy(p.actualBudget)}
+                      </div>
+                    ` : ''}
+                  ` : '<span class="text-muted small">-</span>'}
+                </div>
+                
+                <!-- Deadline -->
+                <div class="small">
+                  ${p.targetDate ? `
+                    <span class="${daysLeft !== null ? (daysLeft < 0 ? 'text-danger' : daysLeft < 7 ? 'text-warning' : 'text-muted') : ''}">
+                      <i class="bi bi-calendar"></i> ${formatDateShort(p.targetDate)}
+                    </span>
+                    ${daysLeft !== null ? `<div class="small ${daysLeft < 0 ? 'text-danger' : 'text-muted'}">${daysLeft >= 0 ? `${daysLeft} hari lagi` : `terlambat ${Math.abs(daysLeft)} hari`}</div>` : ''}
+                  ` : '<span class="text-muted">-</span>'}
+                </div>
+                
+                <!-- Actions -->
+                <div class="d-flex gap-2" onclick="event.stopPropagation()">
+                  <button class="btn btn-sm btn-outline-secondary rounded-pill" onclick="window.togglePlan('${id}', ${isDone})" title="${isDone ? 'Batalkan selesai' : 'Tandai selesai'}">
+                    <i class="bi ${isDone ? 'bi-arrow-counterclockwise' : 'bi-check-circle'}"></i>
+                  </button>
+                  <button class="btn btn-sm btn-outline-danger rounded-pill" onclick="window.deletePlanItemById('${id}')" title="Hapus">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `;
   }
+}
+
+// Helper for date formatting
+function formatDateShort(dateStr) {
+  if (!dateStr) return '';
+  const parts = dateStr.split('-');
+  if (parts.length === 3) {
+    return `${parts[2]}/${parts[1]}/${parts[0].slice(2)}`;
+  }
+  return dateStr;
 }
 
 // Filter functions
