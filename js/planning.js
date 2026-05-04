@@ -537,9 +537,9 @@ export function initPlanFilter() {
   });
 }
 
-// ============ EXPORTS ============
-window.renderBoardPlans = renderBoardPlans;
-window.deleteSubPlan = deleteSubPlan;
+// js/planning.js - Tambahkan di bagian akhir
+
+// Export semua fungsi
 window.savePlan = savePlan;
 window.updatePlan = updatePlan;
 window.deletePlanItem = deletePlanItem;
@@ -553,3 +553,7 @@ window.addSubPlanWithDetails = addSubPlanWithDetails;
 window.addSubPlan = addSubPlan;
 window.addBudgetToPlan = addBudgetToPlan;
 window.initPlanFilter = initPlanFilter;
+window.renderBoardPlans = renderBoardPlans;
+window.deleteSubPlan = deleteSubPlan;
+window.getFinancialCategoriesFromPlans = getFinancialCategoriesFromPlans;
+window.updatePlanProgressFromSavings = updatePlanProgressFromSavings;
