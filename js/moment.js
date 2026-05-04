@@ -1,4 +1,4 @@
-// js/moment.js - Clean version with centralized utilities
+// js/moment.js - Complete with love emoji on calendar
 import { db, ref, push, update, remove, get } from './firebase-config.js';
 import { masterData, escapeHtml, showCustomConfirm, formatDateShort } from './utils.js';
 
@@ -230,10 +230,13 @@ export function renderCalendar() {
     if (hasMoment && isCurrentMonth) cellClass += ' has-moment';
     if (isSpecial && isCurrentMonth) cellClass += ' special-moment';
     
+    // Love emoji indicator instead of dot
+    const momentIndicator = hasMoment ? `<span class="moment-love">❤️</span>` : '';
+    
     calendarHtml += `
       <div class="${cellClass}" onclick="window.selectMomentDate('${dateKey}')">
         <span class="day-number">${displayDate}</span>
-        ${hasMoment ? `<span class="moment-dot ${isSpecial ? 'special-dot' : ''}"></span>` : ''}
+        ${momentIndicator}
       </div>
     `;
   }
