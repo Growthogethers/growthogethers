@@ -1,6 +1,6 @@
 <!-- components/modals.html - Full Version (Clean, No Duplicates) -->
 
-<!-- ==================== ADD PLAN MODAL ==================== -->
+<!-- components/modals.html - Update Add Plan Modal -->
 <div class="modal fade" id="addPlanModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content rounded-4">
@@ -9,64 +9,76 @@
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body p-4">
-        <!-- Template Quick Actions -->
+        <!-- 3 Options -->
         <div class="mb-4">
-          <label class="form-label fw-semibold small">🚀 Gunakan Template Cepat</label>
+          <label class="form-label fw-semibold small">🚀 Pilih Cara Membuat Rencana</label>
           <div class="d-flex gap-2 flex-wrap">
-            <button type="button" class="btn btn-sm btn-outline-danger rounded-pill" onclick="window.confirmAddTemplate('💍 Lamaran')">
-              <i class="bi bi-gem-fill"></i> Template Lamaran
-            </button>
-            <button type="button" class="btn btn-sm btn-outline-primary rounded-pill" onclick="window.confirmAddTemplate('💍 Menikah')">
-              <i class="bi bi-heart-fill"></i> Template Menikah
-            </button>
-            <button type="button" class="btn btn-sm btn-outline-info rounded-pill" onclick="window.confirmAddTemplate('✈️ Liburan')">
-              <i class="bi bi-airplane-fill"></i> Template Liburan
-            </button>
+            <button type="button" class="btn btn-sm btn-outline-primary rounded-pill" data-bs-toggle="modal" data-bs-target="#addPlanManualModal"><i class="bi bi-pencil-square"></i> Buat Manual</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" onclick="window.openAIRecommendModal()"><i class="bi bi-robot"></i> Buat dengan AI</button>
+            <div class="dropdown d-inline-block">
+              <button class="btn btn-sm btn-outline-success rounded-pill dropdown-toggle" data-bs-toggle="dropdown"><i class="bi bi-files"></i> Template</button>
+              <ul class="dropdown-menu">
+                <li><a class="dropdown-item" href="#" onclick="window.confirmAddTemplate('💍 Lamaran')"><i class="bi bi-gem-fill"></i> Template Lamaran</a></li>
+                <li><a class="dropdown-item" href="#" onclick="window.confirmAddTemplate('💍 Menikah')"><i class="bi bi-heart-fill"></i> Template Menikah</a></li>
+                <li><a class="dropdown-item" href="#" onclick="window.confirmAddTemplate('✈️ Liburan')"><i class="bi bi-airplane-fill"></i> Template Liburan</a></li>
+              </ul>
+            </div>
           </div>
-          <small class="text-muted">Klik untuk menambahkan checklist lengkap</small>
+          <small class="text-muted">Pilih metode: Manual, AI, atau Template</small>
         </div>
-        
-        <hr class="my-3">
-        
-        <!-- Form Input Manual -->
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add Plan Manual Modal -->
+<div class="modal fade" id="addPlanManualModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content rounded-4">
+      <div class="modal-header border-0 bg-gradient bg-primary text-white py-3">
+        <h5 class="fw-bold mb-0"><i class="bi bi-pencil-square me-2"></i>Buat Rencana Manual</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-4">
         <div class="mb-3">
           <label class="form-label fw-semibold">Nama Rencana <span class="text-danger">*</span></label>
-          <input type="text" id="planText" class="form-control" placeholder="Contoh: Persiapan Akad Nikah">
+          <input type="text" id="planText" class="form-control" placeholder="Contoh: Persiapan Cincin Kawin">
         </div>
-        
         <div class="mb-3">
-          <label class="form-label fw-semibold">Kategori</label>
+          <label class="form-label fw-semibold">Kategori Utama</label>
           <select id="planCat" class="form-select">
             <option value="💍 Menikah">💍 Menikah</option>
             <option value="💍 Lamaran">💍 Lamaran</option>
             <option value="✈️ Liburan">✈️ Liburan</option>
           </select>
         </div>
-        
-        <div class="row g-3 mb-3">
-          <div class="col-md-6">
-            <label class="form-label fw-semibold">Target Tanggal</label>
-            <input type="date" id="planTargetDate" class="form-control">
-          </div>
-          <div class="col-md-6">
-            <label class="form-label fw-semibold">Estimasi Budget</label>
-            <div class="input-group">
-              <span class="input-group-text">Rp</span>
-              <input type="number" id="planBudget" class="form-control" placeholder="0">
-            </div>
-          </div>
-        </div>
-        
         <div class="mb-3">
-          <label class="form-label fw-semibold">Deskripsi / Catatan</label>
-          <textarea id="planDesc" class="form-control" rows="2" placeholder="Detail rencana..."></textarea>
+          <label class="form-label fw-semibold">Jenis Rencana (untuk mapping ke Keuangan)</label>
+          <select id="planCategory" class="form-select">
+            <option value="">Pilih jenis...</option>
+            <option value="Cincin">💍 Cincin & Perhiasan</option>
+            <option value="MUA">💄 MUA & Makeup</option>
+            <option value="Fotografi">📸 Photography & Videography</option>
+            <option value="Venue">🏨 Venue / Gedung</option>
+            <option value="Dekorasi">💐 Dekorasi</option>
+            <option value="Katering">🍽️ Catering</option>
+            <option value="Busana">👗 Busana Pengantin</option>
+            <option value="Entertainment">🎤 Entertainment & MC</option>
+            <option value="Dokumen">📋 Administrasi</option>
+            <option value="Transport">🚗 Transportasi</option>
+            <option value="default">📦 Lainnya</option>
+          </select>
+          <small class="text-muted">Pilih agar tabungan otomatis terhubung dengan rencana ini</small>
         </div>
+        <div class="row g-3 mb-3">
+          <div class="col-md-6"><label class="form-label fw-semibold">Target Tanggal</label><input type="date" id="planTargetDate" class="form-control"></div>
+          <div class="col-md-6"><label class="form-label fw-semibold">Estimasi Budget</label><div class="input-group"><span class="input-group-text">Rp</span><input type="number" id="planBudget" class="form-control" placeholder="0"></div></div>
+        </div>
+        <div class="mb-3"><label class="form-label fw-semibold">Deskripsi</label><textarea id="planDesc" class="form-control" rows="2" placeholder="Detail rencana..."></textarea></div>
       </div>
       <div class="modal-footer border-0 pt-0 pb-4">
         <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Batal</button>
-        <button type="button" onclick="window.savePlan()" class="btn btn-primary rounded-pill px-4">
-          <i class="bi bi-save me-2"></i>Simpan Rencana
-        </button>
+        <button type="button" onclick="window.savePlan()" class="btn btn-primary rounded-pill px-4"><i class="bi bi-save me-2"></i>Simpan Rencana</button>
       </div>
     </div>
   </div>
