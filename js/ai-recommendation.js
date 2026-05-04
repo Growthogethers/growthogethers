@@ -1,4 +1,4 @@
-// js/ai-recommendation.js - AI Planning Generator (Pindah dari Dashboard ke Planning)
+// js/ai-recommendation.js - AI Planning Generator (Complete)
 import { db, ref, push } from './firebase-config.js';
 import { showNotif, formatNumberRp } from './utils.js';
 
@@ -86,8 +86,8 @@ function displayAIRecommendations(recommendations) {
             <input class="form-check-input ai-rec-checkbox" type="checkbox" 
                    value="${rec.name}" data-budget="${rec.estimatedBudget}" 
                    data-category="${rec.category}" data-icon="${rec.icon}"
-                   id="rec_${rec.name}" checked>
-            <label class="form-check-label fw-semibold" for="rec_${rec.name}">
+                   id="rec_${rec.name.replace(/\s/g, '_')}" checked>
+            <label class="form-check-label fw-semibold" for="rec_${rec.name.replace(/\s/g, '_')}">
               ${rec.icon} ${rec.name}
             </label>
             <div class="mt-1 ms-4">
@@ -197,9 +197,54 @@ export function initAIStyleButtons() {
   });
 }
 
+// ============ FUNGSI YANG HILANG (DIPERLUKAN UNTUK COMPATIBILITY) ============
+
+// Fungsi untuk apply AI recommendation ke target tabungan (untuk kompatibilitas)
+export async function applyAIRecommendation() {
+  // Redirect ke pembuatan rencana via AI
+  showNotif('🤖 Gunakan AI di menu Rencana untuk membuat rencana otomatis', false);
+  
+  // Tampilkan modal planning
+  const planningPage = document.getElementById('planning-page');
+  if (planningPage && planningPage.style.display !== 'block') {
+    window.showPage('planning');
+  }
+  
+  // Buka modal AI
+  setTimeout(() => {
+    openAIRecommendModal();
+  }, 500);
+}
+
+// Fungsi untuk generate total budget (untuk kompatibilitas)
+export function getAITotalBudget() {
+  const location = document.getElementById('aiLocation')?.value || 'other';
+  const guestCount = parseInt(document.getElementById('aiGuestCount')?.value || '100');
+  const style = document.getElementById('aiStyle')?.value || 'modern';
+  
+  const multiplier = locationMultipliers[location] || 1;
+  const styleMultiplier = style === 'luxury' ? 1.5 : style === 'simple' ? 0.6 : 1;
+  const finalMultiplier = multiplier * styleMultiplier;
+  
+  let totalBudget = 0;
+  for (const [key, config] of Object.entries(categoryBudgets)) {
+    let adjustedBudget = config.base * finalMultiplier;
+    if (key === 'Katering') {
+      adjustedBudget = (guestCount * 120000) * finalMultiplier;
+    } else if (key === 'Venue') {
+      adjustedBudget = (guestCount * 50000) * finalMultiplier;
+    }
+    totalBudget += Math.round(adjustedBudget);
+  }
+  
+  return totalBudget;
+}
+
 // Export ke window
 window.generateAIRecommendation = generateAIRecommendation;
 window.createPlansFromAIRecommendations = createPlansFromAIRecommendations;
 window.toggleAllAIRecommendations = toggleAllAIRecommendations;
 window.openAIRecommendModal = openAIRecommendModal;
 window.initAIStyleButtons = initAIStyleButtons;
+window.applyAIRecommendation = applyAIRecommendation;
+window.getAITotalBudget = getAITotalBudget;
