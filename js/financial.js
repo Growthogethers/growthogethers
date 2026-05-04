@@ -1,8 +1,10 @@
-// js/financial.js - Fixed version (removed manual target creation)
+// js/financial.js - Complete Fixed Version
 import { db, ref, push, update, remove, get } from './firebase-config.js';
-import { showNotif, masterData, formatNumberRp, escapeHtml, setMasterData, privacyHidden, formatDateLong } from './utils.js';
+import { showNotif, masterData, formatNumberRp, escapeHtml, setMasterData, privacyHidden, formatDateLong, showCustomConfirm } from './utils.js';
 
 let editFinanceId = null;
+
+// ============ HELPER FUNCTIONS ============
 
 // Get all unique plan categories from existing plans
 export function getPlanCategories() {
@@ -31,9 +33,21 @@ function getCategoryIcon(category) {
     'Busana': '👗',
     'Entertainment': '🎤',
     'Dokumen': '📋',
-    'Transport': '🚗'
+    'Transport': '🚗',
+    'Lainnya': '📦'
   };
   return icons[category] || '📦';
+}
+
+// Format date short
+function formatDateShort(dateStr) {
+  if (!dateStr) return '-';
+  const parts = dateStr.split('-');
+  if (parts.length === 3) {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+    return `${parts[2]} ${months[parseInt(parts[1]) - 1]} ${parts[0]}`;
+  }
+  return dateStr;
 }
 
 // Validate if plan exists for category
@@ -89,6 +103,82 @@ async function updatePlanProgressFromSavings() {
   }
 }
 
+// Refresh data from Firebase
+async function refreshData() {
+  try {
+    const snapshot = await get(ref(db, 'data/'));
+    const freshData = snapshot.val() || {};
+    if (window.setMasterData) window.setMasterData(freshData);
+    window.masterData = freshData;
+    return freshData;
+  } catch (error) {
+    console.error("Error refreshing data:", error);
+    return null;
+  }
+}
+
+// Set default date for form
+function setDefaultDate() {
+  const dateInput = document.getElementById("fDate");
+  if (dateInput && !dateInput.value) {
+    dateInput.value = new Date().toISOString().split('T')[0];
+  }
+}
+
+// Update savings summary display
+function updateSavingsSummary() {
+  const data = window.masterData || masterData;
+  const finances = data?.finances || {};
+  let total = 0, fachmi = 0, azizah = 0;
+  const categoryTotals = {};
+  
+  Object.values(finances).forEach(f => {
+    if (f.type === 'wedding') {
+      total += f.amt;
+      if (f.user === 'FACHMI') fachmi += f.amt;
+      else if (f.user === 'AZIZAH') azizah += f.amt;
+      const cat = f.planCategory || 'Lainnya';
+      categoryTotals[cat] = (categoryTotals[cat] || 0) + f.amt;
+    }
+  });
+  
+  const formatVal = (val) => privacyHidden ? "●●● ●●●" : formatNumberRp(val);
+  
+  const totalEl = document.getElementById('totalWeddingSummary');
+  const fachmiEl = document.getElementById('fachmiTotal');
+  const azizahEl = document.getElementById('azizahTotal');
+  if (totalEl) totalEl.innerHTML = formatVal(total);
+  if (fachmiEl) fachmiEl.innerHTML = formatVal(fachmi);
+  if (azizahEl) azizahEl.innerHTML = formatVal(azizah);
+  
+  const breakdownContainer = document.getElementById('categoryBreakdown');
+  if (breakdownContainer) {
+    if (Object.keys(categoryTotals).length > 0) {
+      breakdownContainer.innerHTML = `
+        <div class="card border-0 shadow-sm">
+          <div class="card-body p-3">
+            <h6 class="fw-semibold small mb-2"><i class="bi bi-pie-chart me-1"></i> Breakdown per Kategori:</h6>
+            <div class="row g-2">
+              ${Object.entries(categoryTotals).map(([cat, amt]) => `
+                <div class="col-6 col-md-4 col-lg-3">
+                  <div class="d-flex justify-content-between align-items-center p-2 bg-light rounded-3">
+                    <span class="small">${getCategoryIcon(cat)} ${cat}</span>
+                    <span class="fw-semibold small">${formatVal(amt)}</span>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        </div>
+      `;
+    } else {
+      breakdownContainer.innerHTML = '';
+    }
+  }
+}
+
+// ============ MAIN FUNCTIONS ============
+
 // Save transaction
 export async function saveFinance() {
   const desc = document.getElementById("fDesc")?.value.trim();
@@ -138,49 +228,26 @@ export async function saveFinance() {
   updateSavingsSummary();
 }
 
-// Render category dropdown
-export function renderFinancialCategoryDropdown() {
-  const container = document.getElementById("planCategoryContainer");
-  if (!container) return;
+// Edit finance entry
+export function editFinance(id) {
+  const data = window.masterData || masterData;
+  const f = data?.finances?.[id];
+  if (!f) return;
   
-  const categories = getPlanCategories();
+  const dateEl = document.getElementById("fDate");
+  const descEl = document.getElementById("fDesc");
+  const amtEl = document.getElementById("fAmt");
+  const catEl = document.getElementById("fPlanCategory");
+  const btnSave = document.getElementById("btnSaveFinance");
   
-  if (categories.length === 0) {
-    container.innerHTML = `
-      <div class="alert alert-warning small mb-0">
-        <i class="bi bi-exclamation-triangle me-1"></i>
-        Belum ada rencana. <a href="#" onclick="window.showPage('planning'); return false;">Buat rencana</a> dulu sebelum mencatat tabungan!
-      </div>
-      <input type="hidden" id="fPlanCategory" value="Lainnya">
-    `;
-    return;
-  }
+  if (dateEl) dateEl.value = f.date;
+  if (descEl) descEl.value = f.desc;
+  if (amtEl) amtEl.value = f.amt;
+  if (catEl) catEl.value = f.planCategory || 'Lainnya';
+  editFinanceId = id;
+  if (btnSave) btnSave.innerHTML = "<i class='bi bi-pencil me-1'></i> Update";
   
-  container.innerHTML = `
-    <label class="form-label small fw-semibold mb-1">📂 Kategori Rencana <span class="text-danger">*</span></label>
-    <select id="fPlanCategory" class="form-select" required>
-      <option value="">Pilih kategori rencana...</option>
-      ${categories.map(cat => `<option value="${cat}">${getCategoryIcon(cat)} ${cat}</option>`).join('')}
-      <option value="Lainnya">📦 Lainnya (tanpa rencana)</option>
-    </select>
-    <small class="text-muted">Pilih kategori sesuai rencana yang sudah dibuat. Tabungan akan otomatis mempengaruhi progress rencana.</small>
-  `;
-}
-
-// Render category filter dropdown
-export function renderCategoryFilterDropdown() {
-  const container = document.getElementById("categoryFilterContainer");
-  if (!container) return;
-  
-  const categories = getPlanCategories();
-  
-  container.innerHTML = `
-    <select id="financeCategoryFilter" class="form-select form-select-sm" style="width: auto;" onchange="window.renderFinances()">
-      <option value="all">Semua Kategori</option>
-      ${categories.map(cat => `<option value="${cat}">${getCategoryIcon(cat)} ${cat}</option>`).join('')}
-      <option value="Lainnya">📦 Lainnya</option>
-    </select>
-  `;
+  document.getElementById('financial-page')?.scrollIntoView({ behavior: 'smooth' });
 }
 
 // Render finances table
@@ -235,108 +302,52 @@ export function renderFinances() {
   updateSavingsSummary();
 }
 
-function formatDateShort(dateStr) {
-  if (!dateStr) return '-';
-  const parts = dateStr.split('-');
-  if (parts.length === 3) {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-    return `${parts[2]} ${months[parseInt(parts[1]) - 1]} ${parts[0]}`;
+// Render category dropdown for financial form
+export function renderFinancialCategoryDropdown() {
+  const container = document.getElementById("planCategoryContainer");
+  if (!container) return;
+  
+  const categories = getPlanCategories();
+  
+  if (categories.length === 0) {
+    container.innerHTML = `
+      <div class="alert alert-warning small mb-0">
+        <i class="bi bi-exclamation-triangle me-1"></i>
+        Belum ada rencana. <a href="#" onclick="window.showPage('planning'); return false;">Buat rencana</a> dulu sebelum mencatat tabungan!
+      </div>
+      <input type="hidden" id="fPlanCategory" value="Lainnya">
+    `;
+    return;
   }
-  return dateStr;
+  
+  container.innerHTML = `
+    <label class="form-label small fw-semibold mb-1">📂 Kategori Rencana <span class="text-danger">*</span></label>
+    <select id="fPlanCategory" class="form-select" required>
+      <option value="">Pilih kategori rencana...</option>
+      ${categories.map(cat => `<option value="${cat}">${getCategoryIcon(cat)} ${cat}</option>`).join('')}
+      <option value="Lainnya">📦 Lainnya (tanpa rencana)</option>
+    </select>
+    <small class="text-muted">Pilih kategori sesuai rencana yang sudah dibuat. Tabungan akan otomatis mempengaruhi progress rencana.</small>
+  `;
 }
 
-function updateSavingsSummary() {
-  const data = window.masterData || masterData;
-  const finances = data?.finances || {};
-  let total = 0, fachmi = 0, azizah = 0;
-  const categoryTotals = {};
+// Render category filter dropdown
+export function renderCategoryFilterDropdown() {
+  const container = document.getElementById("categoryFilterContainer");
+  if (!container) return;
   
-  Object.values(finances).forEach(f => {
-    if (f.type === 'wedding') {
-      total += f.amt;
-      if (f.user === 'FACHMI') fachmi += f.amt;
-      else if (f.user === 'AZIZAH') azizah += f.amt;
-      const cat = f.planCategory || 'Lainnya';
-      categoryTotals[cat] = (categoryTotals[cat] || 0) + f.amt;
-    }
-  });
+  const categories = getPlanCategories();
   
-  const formatVal = (val) => privacyHidden ? "●●● ●●●" : formatNumberRp(val);
-  
-  const totalEl = document.getElementById('totalWeddingSummary');
-  const fachmiEl = document.getElementById('fachmiTotal');
-  const azizahEl = document.getElementById('azizahTotal');
-  if (totalEl) totalEl.innerHTML = formatVal(total);
-  if (fachmiEl) fachmiEl.innerHTML = formatVal(fachmi);
-  if (azizahEl) azizahEl.innerHTML = formatVal(azizah);
-  
-  const breakdownContainer = document.getElementById('categoryBreakdown');
-  if (breakdownContainer) {
-    if (Object.keys(categoryTotals).length > 0) {
-      breakdownContainer.innerHTML = `
-        <div class="card border-0 shadow-sm">
-          <div class="card-body p-3">
-            <h6 class="fw-semibold small mb-2"><i class="bi bi-pie-chart me-1"></i> Breakdown per Kategori:</h6>
-            <div class="row g-2">
-              ${Object.entries(categoryTotals).map(([cat, amt]) => `
-                <div class="col-6 col-md-4 col-lg-3">
-                  <div class="d-flex justify-content-between align-items-center p-2 bg-light rounded-3">
-                    <span class="small">${getCategoryIcon(cat)} ${cat}</span>
-                    <span class="fw-semibold small">${formatVal(amt)}</span>
-                  </div>
-                </div>
-              `).join('')}
-            </div>
-          </div>
-        </div>
-      `;
-    } else {
-      breakdownContainer.innerHTML = '';
-    }
-  }
+  container.innerHTML = `
+    <select id="financeCategoryFilter" class="form-select form-select-sm" style="width: auto;" onchange="window.renderFinances()">
+      <option value="all">Semua Kategori</option>
+      ${categories.map(cat => `<option value="${cat}">${getCategoryIcon(cat)} ${cat}</option>`).join('')}
+      <option value="Lainnya">📦 Lainnya</option>
+    </select>
+  `;
 }
 
-async function refreshData() {
-  try {
-    const snapshot = await get(ref(db, 'data/'));
-    const freshData = snapshot.val() || {};
-    if (window.setMasterData) window.setMasterData(freshData);
-    window.masterData = freshData;
-    return freshData;
-  } catch (error) {
-    console.error("Error refreshing data:", error);
-    return null;
-  }
-}
-
-export function editFinance(id) {
-  const data = window.masterData || masterData;
-  const f = data?.finances?.[id];
-  if (!f) return;
-  
-  const dateEl = document.getElementById("fDate");
-  const descEl = document.getElementById("fDesc");
-  const amtEl = document.getElementById("fAmt");
-  const catEl = document.getElementById("fPlanCategory");
-  const btnSave = document.getElementById("btnSaveFinance");
-  
-  if (dateEl) dateEl.value = f.date;
-  if (descEl) descEl.value = f.desc;
-  if (amtEl) amtEl.value = f.amt;
-  if (catEl) catEl.value = f.planCategory || 'Lainnya';
-  editFinanceId = id;
-  if (btnSave) btnSave.innerHTML = "<i class='bi bi-pencil me-1'></i> Update";
-  
-  document.getElementById('financial-page')?.scrollIntoView({ behavior: 'smooth' });
-}
-
-function setDefaultDate() {
-  const dateInput = document.getElementById("fDate");
-  if (dateInput && !dateInput.value) {
-    dateInput.value = new Date().toISOString().split('T')[0];
-  }
-}
-
+// Initialize financial page
 export async function initFinancialPage() {
   await refreshData();
   setDefaultDate();
@@ -346,7 +357,9 @@ export async function initFinancialPage() {
   if (window.loadSavingTargets) window.loadSavingTargets();
 }
 
-// Saving targets - only display, no manual creation
+// ============ SAVING TARGETS FUNCTIONS ============
+
+// Calculate total saved in period
 function calculateTotalInPeriod(startDate, endDate) {
   const data = window.masterData || masterData;
   const finances = data?.finances || {};
@@ -357,6 +370,7 @@ function calculateTotalInPeriod(startDate, endDate) {
   return total;
 }
 
+// Load and display saving targets (read-only)
 export async function loadSavingTargets() {
   const data = window.masterData || masterData;
   if (!data) return;
@@ -374,43 +388,102 @@ export async function loadSavingTargets() {
         <i class="bi bi-inbox fs-1 d-block mb-2"></i>
         <p class="mb-0">✨ Belum ada target tabungan</p>
         <small class="text-muted">Target akan otomatis dibuat saat menggunakan AI Recommendation di menu Rencana</small>
+        <div class="mt-3">
+          <button class="btn btn-primary rounded-pill" onclick="window.showPage('planning')">
+            <i class="bi bi-robot me-2"></i>Buat Rencana dengan AI
+          </button>
+        </div>
       </div>
     `;
     return;
   }
   
-  container.innerHTML = targetEntries.map(([id, target]) => {
+  // Sort targets by end date (nearest first)
+  const sortedTargets = targetEntries.sort((a, b) => {
+    return new Date(a[1].endDate) - new Date(b[1].endDate);
+  });
+  
+  container.innerHTML = sortedTargets.map(([id, target]) => {
     const totalSaved = calculateTotalInPeriod(target.startDate, target.endDate);
-    const percent = target.amount > 0 ? Math.min(100, (totalSaved / target.amount) * 100) : 0;
+    const percent = target.amount > 0 ? Math.min(100, Math.round((totalSaved / target.amount) * 100)) : 0;
     const isAchieved = totalSaved >= target.amount;
     
     return `
-      <div class="target-period-card mb-4 p-4 bg-light rounded-3">
+      <div class="target-period-card mb-4 p-4 ${isAchieved ? 'bg-success bg-opacity-10' : 'bg-light'} rounded-3">
         <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
           <div>
-            <h5 class="fw-bold mb-1"><i class="bi bi-trophy-fill ${isAchieved ? 'text-success' : 'text-warning'} me-2"></i>Target Tabungan</h5>
-            ${target.fromAI ? '<span class="badge bg-info">🎯 Dari AI Recommendation</span>' : ''}
+            <h5 class="fw-bold mb-1">
+              <i class="bi bi-trophy-fill ${isAchieved ? 'text-success' : 'text-warning'} me-2"></i>
+              Target Tabungan
+            </h5>
+            ${target.fromAI ? '<span class="badge bg-info me-2">🎯 Dari AI Recommendation</span>' : ''}
             ${target.description ? `<div class="small text-muted mt-1">${target.description}</div>` : ''}
           </div>
           <div class="d-flex gap-2">
-            <button class="btn btn-sm btn-outline-danger" onclick="window.deleteSavingTarget('${id}')"><i class="bi bi-trash"></i> Hapus</button>
+            <button class="btn btn-sm btn-outline-danger rounded-pill" onclick="window.deleteSavingTarget('${id}')">
+              <i class="bi bi-trash me-1"></i> Hapus
+            </button>
           </div>
         </div>
+        
         <div class="row g-3 mb-3">
-          <div class="col-md-4"><div class="text-center p-2 bg-white rounded-3"><small class="text-muted">🎯 Target</small><h4 class="fw-bold text-primary mb-0">${formatVal(target.amount)}</h4></div></div>
-          <div class="col-md-4"><div class="text-center p-2 bg-white rounded-3"><small class="text-muted">💰 Terkumpul</small><h4 class="fw-bold ${isAchieved ? 'text-success' : 'text-warning'} mb-0">${formatVal(totalSaved)}</h4></div></div>
-          <div class="col-md-4"><div class="text-center p-2 bg-white rounded-3"><small class="text-muted">📊 Progress</small><h4 class="fw-bold mb-0">${Math.round(percent)}%</h4></div></div>
+          <div class="col-md-4">
+            <div class="text-center p-2 bg-white rounded-3">
+              <small class="text-muted">🎯 Target</small>
+              <h4 class="fw-bold text-primary mb-0">${formatVal(target.amount)}</h4>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="text-center p-2 bg-white rounded-3">
+              <small class="text-muted">💰 Terkumpul</small>
+              <h4 class="fw-bold ${isAchieved ? 'text-success' : 'text-warning'} mb-0">${formatVal(totalSaved)}</h4>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="text-center p-2 bg-white rounded-3">
+              <small class="text-muted">📊 Progress</small>
+              <h4 class="fw-bold mb-0">${percent}%</h4>
+            </div>
+          </div>
         </div>
-        <div class="progress" style="height: 10px;"><div class="progress-bar ${isAchieved ? 'bg-success' : 'bg-primary'}" style="width: ${percent}%"></div></div>
+        
+        <div class="progress" style="height: 10px;">
+          <div class="progress-bar ${isAchieved ? 'bg-success' : 'bg-primary'}" style="width: ${percent}%"></div>
+        </div>
+        
         <div class="mt-3 small text-muted">
-          <i class="bi bi-calendar-range me-1"></i> Periode: ${formatDateLong(target.startDate)} - ${formatDateLong(target.endDate)}
+          <i class="bi bi-calendar-range me-1"></i> 
+          Periode: ${formatDateLong(target.startDate)} - ${formatDateLong(target.endDate)}
         </div>
-        ${isAchieved ? '<div class="alert alert-success mt-3 mb-0 py-2"><i class="bi bi-trophy-fill me-1"></i> 🎉 Selamat! Target tabungan telah tercapai! 🎉</div>' : ''}
+        
+        ${isAchieved ? `
+          <div class="alert alert-success mt-3 mb-0 py-2">
+            <i class="bi bi-trophy-fill me-1"></i> 
+            🎉 Selamat! Target tabungan telah tercapai! 🎉
+          </div>
+        ` : ''}
       </div>
     `;
   }).join('');
 }
 
+// Add saving target (compatibility - redirects to AI)
+export async function addSavingTarget() {
+  showNotif("✅ Target tabungan sekarang dibuat otomatis oleh AI Recommendation", false);
+  showNotif("🤖 Klik 'Buat Rencana dengan AI' di menu Rencana", false);
+  setTimeout(() => {
+    if (window.showPage) window.showPage('planning');
+    if (window.openAIRecommendModal) window.openAIRecommendModal();
+  }, 2000);
+}
+
+// Edit saving target (compatibility)
+export async function editSavingTarget(id) {
+  showNotif("✏️ Target tabungan dikelola otomatis oleh sistem", false);
+  showNotif("💡 Gunakan AI Recommendation untuk membuat target baru", false);
+}
+
+// Delete saving target
 export async function deleteSavingTarget(id) {
   showCustomConfirm("Yakin ingin menghapus target tabungan ini?", async () => {
     const settingsRef = ref(db, 'data/settings');
@@ -426,12 +499,14 @@ export async function deleteSavingTarget(id) {
   });
 }
 
-// Export ke window
+// ============ EXPORTS TO WINDOW ============
 window.saveFinance = saveFinance;
 window.editFinance = editFinance;
 window.renderFinances = renderFinances;
 window.initFinancialPage = initFinancialPage;
 window.loadSavingTargets = loadSavingTargets;
+window.addSavingTarget = addSavingTarget;
+window.editSavingTarget = editSavingTarget;
 window.deleteSavingTarget = deleteSavingTarget;
 window.renderFinancialCategoryDropdown = renderFinancialCategoryDropdown;
 window.getPlanCategories = getPlanCategories;
