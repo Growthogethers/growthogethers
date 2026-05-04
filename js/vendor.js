@@ -1,4 +1,4 @@
-// FILE BARU: js/vendor.js - Vendor Management System
+// js/vendor.js - Complete Vendor Management System with Filter Functions
 import { db, ref, push, update, remove, get } from './firebase-config.js';
 import { showNotif, formatNumberRp, escapeHtml, masterData, privacyHidden } from './utils.js';
 
@@ -82,14 +82,9 @@ export async function saveVendor() {
   }
 }
 
-// Render vendors list
-export function renderVendors() {
-  const data = window.masterData || masterData;
-  if (!data) return;
-  
-  const vendors = data.vendors ? Object.entries(data.vendors) : [];
+// Render filtered vendors
+function renderFilteredVendors(vendorsArray) {
   const container = document.getElementById('vendorsList');
-  
   if (!container) return;
   
   const formatPrice = (val) => {
@@ -97,23 +92,6 @@ export function renderVendors() {
     return formatNumberRp(val);
   };
   
-  if (vendors.length === 0) {
-    container.innerHTML = `
-      <div class="col-12">
-        <div class="empty-state-card text-center py-5">
-          <i class="bi bi-shop fs-1 text-muted"></i>
-          <h6 class="mt-2">Belum ada vendor</h6>
-          <p class="text-muted small">Tambahkan vendor untuk persiapan pernikahan</p>
-          <button class="btn btn-primary rounded-pill" onclick="window.openVendorModal()">
-            <i class="bi bi-plus-lg me-2"></i>Tambah Vendor
-          </button>
-        </div>
-      </div>
-    `;
-    return;
-  }
-  
-  // Group by category
   const categories = {
     'MUA': { icon: '💄', name: 'MUA & Makeup' },
     'Photography': { icon: '📸', name: 'Photography & Videography' },
@@ -127,8 +105,22 @@ export function renderVendors() {
     'Other': { icon: '📦', name: 'Lainnya' }
   };
   
+  if (vendorsArray.length === 0) {
+    container.innerHTML = `
+      <div class="col-12">
+        <div class="empty-state-card text-center py-5">
+          <i class="bi bi-shop fs-1 text-muted"></i>
+          <h6 class="mt-2">Tidak ada vendor</h6>
+          <p class="text-muted small">Coba ubah filter atau tambahkan vendor baru</p>
+        </div>
+      </div>
+    `;
+    return;
+  }
+  
+  // Group by category
   const grouped = {};
-  vendors.forEach(([id, v]) => {
+  vendorsArray.forEach(([id, v]) => {
     if (!grouped[v.category]) grouped[v.category] = [];
     grouped[v.category].push({ id, ...v });
   });
@@ -207,6 +199,52 @@ export function renderVendors() {
   }
   
   container.innerHTML = html;
+}
+
+// Filter vendors based on search, category, and status
+export function filterVendors() {
+  const data = window.masterData || masterData;
+  if (!data) return;
+  
+  const vendors = data.vendors ? Object.entries(data.vendors) : [];
+  const searchTerm = document.getElementById('vendorSearchInput')?.value?.toLowerCase() || '';
+  const categoryFilter = document.getElementById('vendorCategoryFilter')?.value || 'all';
+  const statusFilter = document.getElementById('vendorStatusFilter')?.value || 'all';
+  
+  const filtered = vendors.filter(([id, v]) => {
+    // Search filter
+    if (searchTerm && !v.name.toLowerCase().includes(searchTerm)) {
+      return false;
+    }
+    // Category filter
+    if (categoryFilter !== 'all' && v.category !== categoryFilter) {
+      return false;
+    }
+    // Status filter
+    if (statusFilter === 'booked' && !v.isBooked) {
+      return false;
+    }
+    if (statusFilter === 'not_booked' && v.isBooked) {
+      return false;
+    }
+    return true;
+  });
+  
+  // Update counts
+  const totalVendors = vendors.length;
+  const bookedCount = vendors.filter(([id, v]) => v.isBooked).length;
+  const vendorCountEl = document.getElementById('vendorCount');
+  const bookedCountEl = document.getElementById('bookedCount');
+  if (vendorCountEl) vendorCountEl.innerText = totalVendors;
+  if (bookedCountEl) bookedCountEl.innerText = bookedCount;
+  
+  // Render filtered vendors
+  renderFilteredVendors(filtered);
+}
+
+// Render vendors list (calls filter for consistency)
+export function renderVendors() {
+  filterVendors(); // Reuse filter function
 }
 
 // Open vendor modal
@@ -306,17 +344,27 @@ export function editVendorFromDetail() {
 
 // Delete vendor
 export async function deleteVendorFromDetail() {
-  if (currentVendorId && confirm('Yakin ingin menghapus vendor ini?')) {
-    try {
-      await remove(ref(db, `data/vendors/${currentVendorId}`));
-      showNotif('🗑️ Vendor berhasil dihapus');
-      
-      const modal = bootstrap.Modal.getInstance(document.getElementById('vendorDetailModal'));
-      if (modal) modal.hide();
-      
-      renderVendors();
-    } catch (err) {
-      showNotif('❌ Gagal menghapus vendor', true);
+  if (currentVendorId) {
+    const confirmed = await new Promise((resolve) => {
+      if (window.showCustomConfirm) {
+        window.showCustomConfirm('Yakin ingin menghapus vendor ini?', () => resolve(true), 'Konfirmasi Hapus');
+      } else {
+        resolve(confirm('Yakin ingin menghapus vendor ini?'));
+      }
+    });
+    
+    if (confirmed) {
+      try {
+        await remove(ref(db, `data/vendors/${currentVendorId}`));
+        showNotif('🗑️ Vendor berhasil dihapus');
+        
+        const modal = bootstrap.Modal.getInstance(document.getElementById('vendorDetailModal'));
+        if (modal) modal.hide();
+        
+        renderVendors();
+      } catch (err) {
+        showNotif('❌ Gagal menghapus vendor', true);
+      }
     }
   }
 }
@@ -336,14 +384,50 @@ export function copyVendorContact() {
 // Initialize vendor page
 export function initVendorPage() {
   renderVendors();
+  
+  // Set up filter event listeners if not already set
+  const searchInput = document.getElementById('vendorSearchInput');
+  const categoryFilter = document.getElementById('vendorCategoryFilter');
+  const statusFilter = document.getElementById('vendorStatusFilter');
+  
+  if (searchInput && !searchInput.hasAttribute('data-listener')) {
+    searchInput.setAttribute('data-listener', 'true');
+    searchInput.addEventListener('keyup', () => filterVendors());
+  }
+  
+  if (categoryFilter && !categoryFilter.hasAttribute('data-listener')) {
+    categoryFilter.setAttribute('data-listener', 'true');
+    categoryFilter.addEventListener('change', () => filterVendors());
+  }
+  
+  if (statusFilter && !statusFilter.hasAttribute('data-listener')) {
+    statusFilter.setAttribute('data-listener', 'true');
+    statusFilter.addEventListener('change', () => filterVendors());
+  }
 }
 
 // Export to window
-window.saveVendor = saveVendor;
-window.renderVendors = renderVendors;
-window.openVendorModal = openVendorModal;
-window.viewVendorDetail = viewVendorDetail;
-window.editVendorFromDetail = editVendorFromDetail;
-window.deleteVendorFromDetail = deleteVendorFromDetail;
-window.copyVendorContact = copyVendorContact;
-window.initVendorPage = initVendorPage;
+if (typeof window !== 'undefined') {
+  window.saveVendor = saveVendor;
+  window.renderVendors = renderVendors;
+  window.openVendorModal = openVendorModal;
+  window.viewVendorDetail = viewVendorDetail;
+  window.editVendorFromDetail = editVendorFromDetail;
+  window.deleteVendorFromDetail = deleteVendorFromDetail;
+  window.copyVendorContact = copyVendorContact;
+  window.initVendorPage = initVendorPage;
+  window.filterVendors = filterVendors;
+}
+
+// Exports for module
+export default {
+  saveVendor,
+  renderVendors,
+  openVendorModal,
+  viewVendorDetail,
+  editVendorFromDetail,
+  deleteVendorFromDetail,
+  copyVendorContact,
+  initVendorPage,
+  filterVendors
+};
