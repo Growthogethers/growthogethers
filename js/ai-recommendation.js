@@ -1,4 +1,4 @@
-// js/ai-recommendation.js - Fixed to prevent double generation
+// js/ai-recommendation.js - Updated with finance target integration
 import { db, ref, push, update, get } from './firebase-config.js';
 import { showNotif, formatNumberRp } from './utils.js';
 
@@ -30,10 +30,48 @@ const categoryBudgets = {
 let isGenerating = false;
 let currentAIRecommendations = [];
 
+// Check if plan already exists for a category
+function doesPlanExistForCategory(category) {
+  const data = window.masterData || window.masterData;
+  const plans = data?.plans || {};
+  
+  for (const [id, plan] of Object.entries(plans)) {
+    if (plan.planCategory === category && plan.progress < 100) {
+      return true;
+    }
+    if (plan.planCategory === category && plan.progress >= 100) {
+      // Completed plan - still exists but completed
+      return true;
+    }
+  }
+  return false;
+}
+
+// Get all existing plan categories that are not completed
+function getExistingActivePlanCategories() {
+  const data = window.masterData || window.masterData;
+  const plans = data?.plans || {};
+  const categories = new Set();
+  
+  for (const [id, plan] of Object.entries(plans)) {
+    if (plan.planCategory && plan.planCategory !== 'default' && plan.progress < 100) {
+      categories.add(plan.planCategory);
+    }
+  }
+  return categories;
+}
+
 // Generate AI recommendations
 export async function generateAIRecommendation() {
   if (isGenerating) {
     showNotif("⏳ Sedang memproses, tunggu sebentar...", false);
+    return;
+  }
+  
+  // Check existing plans
+  const existingCategories = getExistingActivePlanCategories();
+  if (existingCategories.size > 0) {
+    showNotif(`⚠️ Anda sudah memiliki ${existingCategories.size} rencana aktif. Selesaikan dulu sebelum membuat baru!`, true);
     return;
   }
   
@@ -99,6 +137,9 @@ function displayAIRecommendations(recommendations, totalBudget) {
   const container = document.getElementById('aiRecommendationsList');
   if (!container) return;
   
+  // Check which categories already have plans
+  const existingCategories = getExistingActivePlanCategories();
+  
   container.innerHTML = `
     <div class="mb-3">
       <div class="alert alert-info">
@@ -106,28 +147,42 @@ function displayAIRecommendations(recommendations, totalBudget) {
         <strong>Rekomendasi AI:</strong> Berikut estimasi budget untuk setiap kategori.
         <div class="mt-2 fw-bold text-primary">Total Budget: ${formatNumberRp(totalBudget)}</div>
       </div>
+      ${existingCategories.size > 0 ? `
+        <div class="alert alert-warning">
+          <i class="bi bi-exclamation-triangle me-2"></i>
+          <strong>Perhatian!</strong> Anda sudah memiliki ${existingCategories.size} rencana aktif. 
+          Selesaikan dulu sebelum membuat rencana baru agar target tabungan tidak bentrok.
+        </div>
+      ` : ''}
     </div>
     <div class="list-group mb-3" id="aiRecommendationsChecklist" style="max-height: 400px; overflow-y: auto;">
-      ${recommendations.map(rec => `
-        <div class="list-group-item">
-          <div class="form-check">
-            <input class="form-check-input ai-rec-checkbox" type="checkbox" 
-                   value="${rec.name}" data-budget="${rec.estimatedBudget}" 
-                   data-category="${rec.category}" data-icon="${rec.icon}"
-                   id="rec_${rec.name.replace(/\s/g, '_')}" checked>
-            <label class="form-check-label fw-semibold" for="rec_${rec.name.replace(/\s/g, '_')}">
-              ${rec.icon} ${rec.name}
-            </label>
-            <div class="mt-1 ms-4">
-              <span class="badge bg-primary">${rec.category}</span>
-              <span class="badge bg-success ms-2">${formatNumberRp(rec.estimatedBudget)}</span>
+      ${recommendations.map(rec => {
+        const alreadyExists = existingCategories.has(rec.name);
+        return `
+          <div class="list-group-item ${alreadyExists ? 'bg-light opacity-50' : ''}">
+            <div class="form-check">
+              <input class="form-check-input ai-rec-checkbox" type="checkbox" 
+                     value="${rec.name}" data-budget="${rec.estimatedBudget}" 
+                     data-category="${rec.category}" data-icon="${rec.icon}"
+                     id="rec_${rec.name.replace(/\s/g, '_')}" 
+                     ${alreadyExists ? 'disabled' : 'checked'}>
+              <label class="form-check-label fw-semibold ${alreadyExists ? 'text-muted' : ''}" 
+                     for="rec_${rec.name.replace(/\s/g, '_')}">
+                ${rec.icon} ${rec.name}
+                ${alreadyExists ? '<span class="badge bg-warning ms-2">Sudah ada rencana</span>' : ''}
+              </label>
+              <div class="mt-1 ms-4">
+                <span class="badge bg-primary">${rec.category}</span>
+                <span class="badge bg-success ms-2">${formatNumberRp(rec.estimatedBudget)}</span>
+              </div>
             </div>
           </div>
-        </div>
-      `).join('')}
+        `;
+      }).join('')}
     </div>
     <div class="d-flex gap-2">
-      <button class="btn btn-primary flex-grow-1" onclick="window.createPlansFromAIRecommendations()">
+      <button class="btn btn-primary flex-grow-1" onclick="window.createPlansFromAIRecommendations()" 
+              ${existingCategories.size > 0 ? 'disabled' : ''}>
         <i class="bi bi-magic me-2"></i>Buat Rencana dari Rekomendasi
       </button>
       <button class="btn btn-outline-secondary" onclick="window.toggleAllAIRecommendations(true)">
@@ -151,6 +206,16 @@ export async function createPlansFromAIRecommendations() {
   const checkboxes = document.querySelectorAll('.ai-rec-checkbox:checked');
   if (checkboxes.length === 0) {
     showNotif('❌ Pilih minimal satu kategori', true);
+    return;
+  }
+  
+  // Check again for existing plans
+  const existingCategories = getExistingActivePlanCategories();
+  const selectedCategories = Array.from(checkboxes).map(cb => cb.value);
+  const conflictCategories = selectedCategories.filter(cat => existingCategories.has(cat));
+  
+  if (conflictCategories.length > 0) {
+    showNotif(`❌ Kategori ${conflictCategories.join(', ')} sudah memiliki rencana aktif! Selesaikan dulu.`, true);
     return;
   }
   
@@ -191,25 +256,31 @@ export async function createPlansFromAIRecommendations() {
       await push(ref(db, 'data/plans'), planData);
     }
     
-    // Create saving target based on total budget (only if not exists with same amount and date range)
+    // Update wedding target in settings
+    const settingsRef = ref(db, 'data/settings');
+    const snapshot = await get(settingsRef);
+    const currentSettings = snapshot.val() || {};
+    const currentWeddingTarget = currentSettings.weddingTarget || 50000000;
+    const newWeddingTarget = currentWeddingTarget + totalBudget;
+    
+    await update(ref(db, 'data/settings'), { 
+      weddingTarget: newWeddingTarget,
+      lastUpdated: Date.now()
+    });
+    
+    // Create saving target based on total budget
     const now = new Date();
     const startDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
     const endDate = new Date(now.getFullYear(), now.getMonth() + 6, 1);
     const endDateStr = `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}-01`;
     
-    // Get existing settings
-    const settingsRef = ref(db, 'data/settings');
-    const snapshot = await get(settingsRef);
-    const currentSettings = snapshot.val() || {};
     const currentTargets = currentSettings.savingTargets || {};
     
-    // Check if target already exists to prevent double creation
+    // Check if target already exists
     let targetExists = false;
-    const targetKey = `ai_target_${totalBudget}_${startDate}_${endDateStr}`;
-    
     for (const [id, target] of Object.entries(currentTargets)) {
       if (target.fromAI && 
-          Math.abs(target.amount - totalBudget) < 1000000 && // within 1 million
+          Math.abs(target.amount - totalBudget) < 1000000 &&
           target.startDate === startDate && 
           target.endDate === endDateStr) {
         targetExists = true;
@@ -225,16 +296,14 @@ export async function createPlansFromAIRecommendations() {
         amount: totalBudget,
         createdAt: Date.now(),
         fromAI: true,
-        description: 'Target dari AI Recommendation'
+        description: `Target dari AI Recommendation (${checkboxes.length} kategori)`
       };
       
       await update(ref(db, 'data/settings'), { savingTargets: currentTargets });
       showNotif(`✅ Target tabungan Rp ${totalBudget.toLocaleString()} untuk 6 bulan telah ditambahkan.`);
-    } else {
-      showNotif(`✅ Target tabungan sudah ada, tidak perlu menambah duplikat.`);
     }
     
-    showNotif(`✅ ${selectedPlans.length} rencana berhasil dibuat!`);
+    showNotif(`✅ ${selectedPlans.length} rencana berhasil dibuat! Total budget: ${formatNumberRp(totalBudget)}`);
     
     // Tutup modal dan refresh
     const modal = bootstrap.Modal.getInstance(document.getElementById('aiRecommendModal'));
@@ -255,7 +324,7 @@ export async function createPlansFromAIRecommendations() {
 }
 
 export function toggleAllAIRecommendations(checked) {
-  const checkboxes = document.querySelectorAll('.ai-rec-checkbox');
+  const checkboxes = document.querySelectorAll('.ai-rec-checkbox:not([disabled])');
   checkboxes.forEach(cb => cb.checked = checked);
 }
 
