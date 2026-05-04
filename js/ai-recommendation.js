@@ -1,4 +1,4 @@
-// js/ai-recommendation.js - AI Planning Generator (Complete)
+// js/ai-recommendation.js - Fixed to prevent double generation
 import { db, ref, push, update, get } from './firebase-config.js';
 import { showNotif, formatNumberRp } from './utils.js';
 
@@ -27,50 +27,72 @@ const categoryBudgets = {
   'Transport': { base: 2000000, category: 'Transport', icon: '🚗' }
 };
 
+let isGenerating = false;
 let currentAIRecommendations = [];
 
 // Generate AI recommendations
 export async function generateAIRecommendation() {
-  const location = document.getElementById('aiLocation')?.value || 'other';
-  const guestCount = parseInt(document.getElementById('aiGuestCount')?.value || '100');
-  const style = document.getElementById('aiStyle')?.value || 'modern';
-  
-  const multiplier = locationMultipliers[location] || 1;
-  const styleMultiplier = style === 'luxury' ? 1.5 : style === 'simple' ? 0.6 : 1;
-  const finalMultiplier = multiplier * styleMultiplier;
-  
-  // Generate recommendations
-  const recommendations = [];
-  let totalBudget = 0;
-  
-  for (const [key, config] of Object.entries(categoryBudgets)) {
-    let adjustedBudget = config.base * finalMultiplier;
-    
-    // Special adjustments
-    if (key === 'Katering') {
-      adjustedBudget = (guestCount * 120000) * finalMultiplier;
-    } else if (key === 'Venue') {
-      adjustedBudget = (guestCount * 50000) * finalMultiplier;
-    }
-    
-    adjustedBudget = Math.round(adjustedBudget);
-    totalBudget += adjustedBudget;
-    
-    recommendations.push({
-      name: key,
-      displayName: key,
-      category: config.category,
-      icon: config.icon,
-      estimatedBudget: adjustedBudget,
-      isRecommended: true
-    });
+  if (isGenerating) {
+    showNotif("⏳ Sedang memproses, tunggu sebentar...", false);
+    return;
   }
   
-  // Sort by budget
-  recommendations.sort((a, b) => b.estimatedBudget - a.estimatedBudget);
-  currentAIRecommendations = recommendations;
+  isGenerating = true;
+  const generateBtn = document.getElementById('aiGenerateBtn');
+  if (generateBtn) {
+    generateBtn.disabled = true;
+    generateBtn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Memproses...';
+  }
   
-  displayAIRecommendations(recommendations, totalBudget);
+  try {
+    const location = document.getElementById('aiLocation')?.value || 'other';
+    const guestCount = parseInt(document.getElementById('aiGuestCount')?.value || '100');
+    const style = document.getElementById('aiStyle')?.value || 'modern';
+    
+    const multiplier = locationMultipliers[location] || 1;
+    const styleMultiplier = style === 'luxury' ? 1.5 : style === 'simple' ? 0.6 : 1;
+    const finalMultiplier = multiplier * styleMultiplier;
+    
+    // Generate recommendations
+    const recommendations = [];
+    let totalBudget = 0;
+    
+    for (const [key, config] of Object.entries(categoryBudgets)) {
+      let adjustedBudget = config.base * finalMultiplier;
+      
+      if (key === 'Katering') {
+        adjustedBudget = (guestCount * 120000) * finalMultiplier;
+      } else if (key === 'Venue') {
+        adjustedBudget = (guestCount * 50000) * finalMultiplier;
+      }
+      
+      adjustedBudget = Math.round(adjustedBudget);
+      totalBudget += adjustedBudget;
+      
+      recommendations.push({
+        name: key,
+        displayName: key,
+        category: config.category,
+        icon: config.icon,
+        estimatedBudget: adjustedBudget,
+        isRecommended: true
+      });
+    }
+    
+    recommendations.sort((a, b) => b.estimatedBudget - a.estimatedBudget);
+    currentAIRecommendations = recommendations;
+    
+    displayAIRecommendations(recommendations, totalBudget);
+  } catch (error) {
+    console.error('Error generating recommendations:', error);
+    showNotif('❌ Gagal generate rekomendasi', true);
+  } finally {
+    isGenerating = false;
+    if (generateBtn) {
+      generateBtn.disabled = false;
+      generateBtn.innerHTML = '<i class="bi bi-magic me-2"></i>Generate Rekomendasi';
+    }
+  }
 }
 
 function displayAIRecommendations(recommendations, totalBudget) {
@@ -118,82 +140,118 @@ function displayAIRecommendations(recommendations, totalBudget) {
   `;
 }
 
+let isCreating = false;
+
 export async function createPlansFromAIRecommendations() {
+  if (isCreating) {
+    showNotif("⏳ Sedang membuat rencana, tunggu sebentar...", false);
+    return;
+  }
+  
   const checkboxes = document.querySelectorAll('.ai-rec-checkbox:checked');
   if (checkboxes.length === 0) {
     showNotif('❌ Pilih minimal satu kategori', true);
     return;
   }
   
+  isCreating = true;
   showNotif(`📋 Membuat ${checkboxes.length} rencana...`);
   
-  // Collect all selected recommendations
-  const selectedPlans = [];
-  let totalBudget = 0;
-  
-  for (const checkbox of checkboxes) {
-    const name = checkbox.value;
-    const budget = parseInt(checkbox.dataset.budget);
-    const category = checkbox.dataset.category;
-    const icon = checkbox.dataset.icon;
+  try {
+    // Collect all selected recommendations
+    const selectedPlans = [];
+    let totalBudget = 0;
     
-    totalBudget += budget;
-    selectedPlans.push({
-      text: `${icon} Persiapan ${name} Pernikahan`,
-      cat: "💍 Menikah",
-      targetDate: "",
-      progress: 0,
-      done: false,
-      sub: {},
-      description: `Persiapan untuk ${name}. Estimasi budget: ${formatNumberRp(budget)}`,
-      estimatedBudget: budget,
-      actualBudget: 0,
-      planCategory: name,
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-      isFromAI: true
-    });
+    for (const checkbox of checkboxes) {
+      const name = checkbox.value;
+      const budget = parseInt(checkbox.dataset.budget);
+      const category = checkbox.dataset.category;
+      const icon = checkbox.dataset.icon;
+      
+      totalBudget += budget;
+      selectedPlans.push({
+        text: `${icon} Persiapan ${name} Pernikahan`,
+        cat: "💍 Menikah",
+        targetDate: "",
+        progress: 0,
+        done: false,
+        sub: {},
+        description: `Persiapan untuk ${name}. Estimasi budget: ${formatNumberRp(budget)}`,
+        estimatedBudget: budget,
+        actualBudget: 0,
+        planCategory: name,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        isFromAI: true
+      });
+    }
+    
+    // Save all plans
+    for (const planData of selectedPlans) {
+      await push(ref(db, 'data/plans'), planData);
+    }
+    
+    // Create saving target based on total budget (only if not exists with same amount and date range)
+    const now = new Date();
+    const startDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+    const endDate = new Date(now.getFullYear(), now.getMonth() + 6, 1);
+    const endDateStr = `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}-01`;
+    
+    // Get existing settings
+    const settingsRef = ref(db, 'data/settings');
+    const snapshot = await get(settingsRef);
+    const currentSettings = snapshot.val() || {};
+    const currentTargets = currentSettings.savingTargets || {};
+    
+    // Check if target already exists to prevent double creation
+    let targetExists = false;
+    const targetKey = `ai_target_${totalBudget}_${startDate}_${endDateStr}`;
+    
+    for (const [id, target] of Object.entries(currentTargets)) {
+      if (target.fromAI && 
+          Math.abs(target.amount - totalBudget) < 1000000 && // within 1 million
+          target.startDate === startDate && 
+          target.endDate === endDateStr) {
+        targetExists = true;
+        break;
+      }
+    }
+    
+    if (!targetExists) {
+      const targetId = `ai_target_${Date.now()}`;
+      currentTargets[targetId] = {
+        startDate: startDate,
+        endDate: endDateStr,
+        amount: totalBudget,
+        createdAt: Date.now(),
+        fromAI: true,
+        description: 'Target dari AI Recommendation'
+      };
+      
+      await update(ref(db, 'data/settings'), { savingTargets: currentTargets });
+      showNotif(`✅ Target tabungan Rp ${totalBudget.toLocaleString()} untuk 6 bulan telah ditambahkan.`);
+    } else {
+      showNotif(`✅ Target tabungan sudah ada, tidak perlu menambah duplikat.`);
+    }
+    
+    showNotif(`✅ ${selectedPlans.length} rencana berhasil dibuat!`);
+    
+    // Tutup modal dan refresh
+    const modal = bootstrap.Modal.getInstance(document.getElementById('aiRecommendModal'));
+    if (modal) modal.hide();
+    
+    // Refresh all data
+    if (window.renderAll) window.renderAll();
+    if (window.loadSavingTargets) window.loadSavingTargets();
+    if (window.renderFinances) window.renderFinances();
+    if (window.renderDashboard) window.renderDashboard();
+    
+  } catch (error) {
+    console.error('Error creating plans:', error);
+    showNotif('❌ Gagal membuat rencana: ' + error.message, true);
+  } finally {
+    isCreating = false;
   }
-  
-  // Save all plans
-  for (const planData of selectedPlans) {
-    await push(ref(db, 'data/plans'), planData);
-  }
-  
-  // Create saving target based on total budget
-  const now = new Date();
-  const startDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
-  const endDate = new Date(now.getFullYear(), now.getMonth() + 6, 1);
-  const endDateStr = `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}-01`;
-  
-  // Get existing settings
-  const settingsRef = ref(db, 'data/settings');
-  const snapshot = await get(settingsRef);
-  const currentSettings = snapshot.val() || {};
-  const currentTargets = currentSettings.savingTargets || {};
-  
-  // Add new target from AI
-  const targetId = `ai_target_${Date.now()}`;
-  currentTargets[targetId] = {
-    startDate: startDate,
-    endDate: endDateStr,
-    amount: totalBudget,
-    createdAt: Date.now(),
-    fromAI: true,
-    description: 'Target dari AI Recommendation'
-  };
-  
-  await update(ref(db, 'data/settings'), { savingTargets: currentTargets });
-  
-  showNotif(`✅ ${selectedPlans.length} rencana berhasil dibuat! Target tabungan Rp ${totalBudget.toLocaleString()} untuk 6 bulan telah ditambahkan.`);
-  
-  // Tutup modal dan refresh
-  const modal = bootstrap.Modal.getInstance(document.getElementById('aiRecommendModal'));
-  if (modal) modal.hide();
-  
-  if (window.renderAll) window.renderAll();
-  if (window.loadSavingTargets) window.loadSavingTargets();
-  if (window.renderFinances) window.renderFinances();
 }
 
 export function toggleAllAIRecommendations(checked) {
