@@ -1,16 +1,22 @@
-// js/app.js - Update untuk menghubungkan semua modul
+// js/app.js - Complete fixed version
 import { db, ref, onValue, set, update, push, remove, get } from './firebase-config.js';
 import { masterData, setMasterData, showNotif, togglePrivacy, setCurrentUser, privacyHidden } from './utils.js';
 import { handleLogin, updateCloudPassword, resetPassword, confirmLogout, handleLogout, checkSessionOnLoad, startSessionMonitoring, resetSessionTimeout, stopSessionMonitoring } from './auth.js';
 import { renderDashboard, updateCharts } from './dashboard.js';
 import { savePlan, renderBoardPlans, updatePlan, deletePlanItem, addSubPlan, togglePlan, openEditPlan, deletePlanItemById, deleteSubPlan, initPlanFilter, confirmAddTemplate, addTemplateToCategory } from './planning.js';
 import { saveFinance, editFinance, renderFinances, initFinancialPage, addSavingTarget, editSavingTarget, deleteSavingTarget, loadSavingTargets, renderFinancialCategoryDropdown, getPlanCategories } from './financial.js';
-import { saveDream, openDreamModal, viewDreamDetail, editDreamFromDetail, deleteDreamFromDetail, deleteDreamFromCard, openFundingModal, confirmUpdateFunding, updateDreamSavedAmount, initDreamBoard, renderDreamBoard } from './vision.js';
+import { saveDream, openDreamModal, viewDreamDetail, editDreamFromDetail, deleteDreamFromDetail, deleteDreamFromCard, openFundingModal, confirmUpdateFunding, updateDreamSavedAmount, initDreamBoard, renderDreamBoard, previewDreamImage } from './vision.js';
 import { initMomentPage, renderCalendar, renderMomentsList, saveMoment, viewMomentDetail, deleteMomentFromDetail, changeMonth, selectMomentDate, openMomentModal, handleMultiplePhotos, removePhotoAtIndex } from './moment.js';
 import { generateAIRecommendation, createPlansFromAIRecommendations, toggleAllAIRecommendations, openAIRecommendModal, initAIStyleButtons } from './ai-recommendation.js';
+import { saveVendor, renderVendors, openVendorModal, viewVendorDetail, editVendorFromDetail, deleteVendorFromDetail, copyVendorContact, initVendorPage, filterVendors } from './vendor.js';
+import { setupGlobalErrorHandler, safeFetchData, initPerformanceMonitoring } from './error-handler.js';
+import { startNotificationListener, stopNotificationListener, requestNotificationPermission, checkAndShowPermissionModal, showRealtimeToast, hideRealtimeToast } from './notifications.js';
+import { startCountdown, renderCountdownWidget, showEditWeddingDateModal } from './countdown.js';
+import { initIntegrations } from './integration-planning-vendor.js';
 
 let weddingChart = null;
 let plansChart = null;
+let firebaseListener = null;
 
 // Load components
 async function loadComponents() {
@@ -22,6 +28,8 @@ async function loadComponents() {
     const contentHtml = await fetch('components/content.html').then(r => r.text());
     const loginHtml = await fetch('components/login.html').then(r => r.text());
     const aiModalHtml = await fetch('components/ai-recommendation.html').then(r => r.text());
+    const vendorPageHtml = await fetch('components/vendor-page.html').then(r => r.text());
+    const notificationModalsHtml = await fetch('components/notification-modals.html').then(r => r.text());
     
     document.getElementById('sidebar-container').innerHTML = sidebarHtml;
     document.getElementById('bottom-nav-container').innerHTML = bottomNavHtml;
@@ -29,6 +37,13 @@ async function loadComponents() {
     document.getElementById('app-content').innerHTML = contentHtml;
     document.getElementById('login-screen').innerHTML = loginHtml;
     document.getElementById('modals-container').insertAdjacentHTML('beforeend', aiModalHtml);
+    document.getElementById('modals-container').insertAdjacentHTML('beforeend', notificationModalsHtml);
+    
+    // Insert vendor page into app-content
+    const appContent = document.getElementById('app-content');
+    if (appContent && !document.getElementById('vendor-page')) {
+      appContent.insertAdjacentHTML('beforeend', vendorPageHtml);
+    }
     
     attachEventListeners();
     
@@ -38,6 +53,8 @@ async function loadComponents() {
       if (window.initMomentPage) window.initMomentPage();
       if (window.initAIStyleButtons) window.initAIStyleButtons();
       if (window.renderFinancialCategoryDropdown) window.renderFinancialCategoryDropdown();
+      if (window.renderCountdownWidget) window.renderCountdownWidget();
+      if (window.initVendorPage) window.initVendorPage();
     }, 100);
     
   } catch (error) {
@@ -139,6 +156,10 @@ function showPage(pageId) {
   if (pageId === "moment" && window.initMomentPage) {
     setTimeout(() => window.initMomentPage(), 100);
   }
+  
+  if (pageId === "vendor" && window.initVendorPage) {
+    setTimeout(() => window.initVendorPage(), 100);
+  }
 }
 
 function renderAll() {
@@ -148,6 +169,7 @@ function renderAll() {
   if (window.renderDreamBoard) window.renderDreamBoard();
   if (window.renderFinances) window.renderFinances();
   if (window.loadSavingTargets) window.loadSavingTargets();
+  if (window.renderVendors) window.renderVendors();
   
   const plansArray = masterData.plans ? Object.entries(masterData.plans) : [];
   if (window.renderBoardPlans) window.renderBoardPlans(plansArray);
@@ -209,12 +231,25 @@ function setupAppSession(u) {
   startSessionMonitoring();
   resetSessionTimeout();
   
+  // Start notification listener
+  startNotificationListener();
+  
+  // Start countdown
+  startCountdown();
+  
+  // Initialize integrations
+  if (window.initIntegrations) window.initIntegrations();
+  
   renderAll();
   showPage('dashboard');
 }
 
 // Initialize app
 document.addEventListener("DOMContentLoaded", () => {
+  // Setup error handling and performance monitoring
+  setupGlobalErrorHandler();
+  initPerformanceMonitoring();
+  
   loadComponents().then(() => {
     if (checkSessionOnLoad()) {
       const savedUser = sessionStorage.getItem("progrowth_user");
@@ -223,19 +258,28 @@ document.addEventListener("DOMContentLoaded", () => {
         setupAppSession(savedUser);
       }
     }
+    
+    // Check for notification permission
+    setTimeout(() => {
+      checkAndShowPermissionModal();
+    }, 2000);
   });
 });
 
-// Firebase listener
-onValue(ref(db, "data/"), (snapshot) => {
-  const data = snapshot.val() || { dreams: {}, plans: {}, finances: {}, settings: {}, comments: {}, likes: {}, moments: {} };
-  setMasterData(data);
-  
-  if (!data.auth) set(ref(db, "data/auth"), { FACHMI: "gokil223", AZIZAH: "1234" });
-  if (!data.settings?.weddingTarget) set(ref(db, "data/settings"), { weddingTarget: 50000000 });
-  
-  if (sessionStorage.getItem("progrowth_user")) renderAll();
-});
+// Single Firebase listener - prevent duplicates
+if (!firebaseListener) {
+  firebaseListener = onValue(ref(db, "data/"), (snapshot) => {
+    const data = snapshot.val() || { dreams: {}, plans: {}, finances: {}, settings: {}, comments: {}, likes: {}, moments: {}, vendors: {} };
+    setMasterData(data);
+    
+    if (!data.auth) set(ref(db, "data/auth"), { FACHMI: "gokil223", AZIZAH: "1234" });
+    if (!data.settings?.weddingTarget) set(ref(db, "data/settings"), { weddingTarget: 50000000 });
+    
+    if (sessionStorage.getItem("progrowth_user")) {
+      renderAll();
+    }
+  });
+}
 
 // Exports
 window.setupAppSession = setupAppSession;
@@ -296,6 +340,23 @@ window.openAIRecommendModal = openAIRecommendModal;
 window.initAIStyleButtons = initAIStyleButtons;
 window.renderFinancialCategoryDropdown = renderFinancialCategoryDropdown;
 window.getPlanCategories = getPlanCategories;
+window.saveVendor = saveVendor;
+window.renderVendors = renderVendors;
+window.openVendorModal = openVendorModal;
+window.viewVendorDetail = viewVendorDetail;
+window.editVendorFromDetail = editVendorFromDetail;
+window.deleteVendorFromDetail = deleteVendorFromDetail;
+window.copyVendorContact = copyVendorContact;
+window.initVendorPage = initVendorPage;
+window.filterVendors = filterVendors;
+window.requestNotificationPermission = requestNotificationPermission;
+window.showRealtimeToast = showRealtimeToast;
+window.hideRealtimeToast = hideRealtimeToast;
+window.startCountdown = startCountdown;
+window.renderCountdownWidget = renderCountdownWidget;
+window.showEditWeddingDateModal = showEditWeddingDateModal;
+window.initIntegrations = initIntegrations;
+window.previewDreamImage = previewDreamImage;
 
 window.deleteItem = (path, id) => {
   window.pendingDelete = { path, id };
