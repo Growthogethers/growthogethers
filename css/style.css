@@ -1,4 +1,4 @@
-/* style.css - UI/UX Enhanced Version - FULL CSS (Tanpa Duplikasi) */
+/* style.css - UI/UX Enhanced Version - FULL CSS (Tanpa Duplikasi) - Windows Explorer Style */
 
 * {
   margin: 0;
@@ -813,43 +813,67 @@ body.dark .calendar-day.special-moment .moment-love {
   transform: scale(1.1);
 }
 
-/* ============ PLANNING CARDS ============ */
-.plan-card {
+/* ============ WINDOWS EXPLORER / FOLDER VIEW STYLES ============ */
+
+/* Folder header */
+.folder-header {
   transition: all 0.2s ease;
 }
 
-.plan-card:active {
-  transform: scale(0.98);
+.folder-header:hover {
+  background: var(--border-light) !important;
+  transform: translateX(4px);
 }
 
-/* ============ EMPTY STATE ============ */
-.empty-state {
-  text-align: center;
-  padding: 2rem;
+.folder-chevron {
+  transition: transform 0.3s ease;
+  font-size: 14px;
+}
+
+.folder-chevron.collapsed {
+  transform: rotate(-90deg);
+}
+
+.folder-content {
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+.folder-content.collapsed {
+  display: none;
+}
+
+/* List view like Windows Explorer */
+.folder-list-view {
   background: var(--card-bg);
-  border-radius: var(--radius-lg);
+  border-radius: 12px;
+  border: 1px solid var(--border-light);
+  overflow: hidden;
 }
 
-.empty-state i {
-  font-size: 3rem;
-  color: var(--text-muted);
-  margin-bottom: 1rem;
-}
-
-.empty-state-card {
-  text-align: center;
-  padding: 48px 24px;
-}
-
-.empty-icon {
-  width: 64px;
-  height: 64px;
+.list-header {
   background: var(--bg-light);
-  border-radius: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0 auto 16px;
+  border-bottom: 1px solid var(--border-light);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.list-item {
+  transition: background 0.2s ease;
+}
+
+.list-item:hover {
+  background: var(--bg-light);
+}
+
+/* Empty folder state */
+.folder-empty-state {
+  background: var(--card-bg);
+  border-radius: 12px;
+  border: 1px dashed var(--border-light);
+  text-align: center;
+  padding: 32px;
 }
 
 /* ============ DREAM BOARD STYLES ============ */
@@ -1127,6 +1151,24 @@ body.dark .saving-progress {
   background: #0f172a;
 }
 
+body.dark .folder-header {
+  background: var(--bg-light) !important;
+}
+
+body.dark .folder-header[style*="background"] {
+  background: var(--bg-light) !important;
+}
+
+body.dark .list-header {
+  background: var(--card-bg);
+  border-bottom-color: var(--border-light);
+}
+
+body.dark .folder-empty-state {
+  background: var(--card-bg);
+  border-color: var(--border-light);
+}
+
 /* ============ VENDOR PAGE STYLES ============ */
 .vendor-card {
   transition: all 0.2s ease;
@@ -1338,6 +1380,27 @@ button,
   100% { background-position: -200% 0; }
 }
 
+/* ============ REALTIME TOAST NOTIFICATION ============ */
+.realtime-toast {
+  position: fixed;
+  top: 70px;
+  right: 16px;
+  z-index: 10000;
+  max-width: 350px;
+  animation: slideInRight 0.3s ease-out;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
 /* ============ RESPONSIVE ============ */
 @media (min-width: 769px) {
   .main-content {
@@ -1466,6 +1529,34 @@ button,
     top: -8px;
     right: -8px;
   }
+  
+  /* Responsive: List view becomes card view on mobile */
+  .list-header {
+    display: none !important;
+  }
+  
+  .list-item {
+    display: flex !important;
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 8px;
+    padding: 16px !important;
+    border-bottom: 1px solid var(--border-light);
+    margin-bottom: 0;
+  }
+  
+  .list-item > div {
+    width: 100%;
+  }
+  
+  .list-item .progress {
+    width: 100% !important;
+  }
+  
+  .list-item .d-flex.gap-2 {
+    justify-content: flex-end;
+    width: 100%;
+  }
 }
 
 @media (max-width: 480px) {
@@ -1498,27 +1589,6 @@ button,
   .moment-mood-option {
     padding: 4px 10px;
     font-size: 0.7rem;
-  }
-}
-
-/* ============ REALTIME TOAST NOTIFICATION ============ */
-.realtime-toast {
-  position: fixed;
-  top: 70px;
-  right: 16px;
-  z-index: 10000;
-  max-width: 350px;
-  animation: slideInRight 0.3s ease-out;
-}
-
-@keyframes slideInRight {
-  from {
-    transform: translateX(100%);
-    opacity: 0;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
   }
 }
 
