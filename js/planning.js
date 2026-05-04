@@ -1,56 +1,215 @@
-// js/planning.js - Full Version
+// js/planning.js - Complete version with all missing functions
 import { db, ref, push, update, remove } from './firebase-config.js';
 import { showNotif, masterData, escapeHtml, formatNumberRp, privacyHidden, showCustomConfirm, truncateText } from './utils.js';
 
-// Template items untuk setiap kategori
+// Category mapping
+export const planCategoryToFinancialCategory = {
+  'Cincin': '💍 Cincin & Perhiasan',
+  'MUA': '💄 MUA & Makeup',
+  'Fotografi': '📸 Photography & Videography',
+  'Venue': '🏨 Venue / Gedung',
+  'Dekorasi': '💐 Dekorasi',
+  'Katering': '🍽️ Catering',
+  'Busana': '👗 Busana Pengantin',
+  'Entertainment': '🎤 Entertainment & MC',
+  'Dokumen': '📋 Administrasi',
+  'Transport': '🚗 Transportasi',
+  'default': '📦 Lainnya'
+};
+
+// Template items
 const categoryTemplates = {
   "💍 Lamaran": [
-    { text: "💍 Cincin lamaran", estimatedBudget: 5000000 },
-    { text: "📅 Tentukan tanggal lamaran", estimatedBudget: 0 },
-    { text: "🏨 Booking venue/restoran", estimatedBudget: 3000000 },
-    { text: "📸 Sewa fotografer/videografer", estimatedBudget: 2500000 },
-    { text: "💐 Dekorasi dan bunga", estimatedBudget: 1500000 },
-    { text: "🍽️ Katering snack", estimatedBudget: 1000000 },
-    { text: "👗 Busana lamaran", estimatedBudget: 2000000 },
-    { text: "🎁 Seserahan", estimatedBudget: 3000000 }
+    { text: "💍 Cincin lamaran", estimatedBudget: 5000000, planCategory: "Cincin" },
+    { text: "📅 Tentukan tanggal lamaran", estimatedBudget: 0, planCategory: "Dokumen" },
+    { text: "🏨 Booking venue/restoran", estimatedBudget: 3000000, planCategory: "Venue" },
+    { text: "📸 Sewa fotografer/videografer", estimatedBudget: 2500000, planCategory: "Fotografi" },
+    { text: "💐 Dekorasi dan bunga", estimatedBudget: 1500000, planCategory: "Dekorasi" },
+    { text: "🍽️ Katering snack", estimatedBudget: 1000000, planCategory: "Katering" },
+    { text: "👗 Busana lamaran", estimatedBudget: 2000000, planCategory: "Busana" },
+    { text: "🎁 Seserahan", estimatedBudget: 3000000, planCategory: "default" }
   ],
   "💍 Menikah": [
-    { text: "📅 Tentukan tanggal pernikahan", estimatedBudget: 0 },
-    { text: "📝 Urus dokumen KUA", estimatedBudget: 500000 },
-    { text: "🏨 Booking gedung pernikahan", estimatedBudget: 15000000 },
-    { text: "💄 MUA (Makeup Artist)", estimatedBudget: 3500000 },
-    { text: "👗 Busana pengantin", estimatedBudget: 5000000 },
-    { text: "📸 Dokumentasi & prewedding", estimatedBudget: 8000000 },
-    { text: "💐 Dekorasi pelaminan", estimatedBudget: 5000000 },
-    { text: "🍽️ Katering resepsi", estimatedBudget: 20000000 },
-    { text: "🎤 MC & Entertainment", estimatedBudget: 3000000 },
-    { text: "📨 Undangan pernikahan", estimatedBudget: 2000000 },
-    { text: "💍 Cincin kawin", estimatedBudget: 5000000 },
-    { text: "✈️ Honeymoon", estimatedBudget: 10000000 }
+    { text: "📅 Tentukan tanggal pernikahan", estimatedBudget: 0, planCategory: "Dokumen" },
+    { text: "📝 Urus dokumen KUA", estimatedBudget: 500000, planCategory: "Dokumen" },
+    { text: "🏨 Booking gedung pernikahan", estimatedBudget: 15000000, planCategory: "Venue" },
+    { text: "💄 MUA (Makeup Artist)", estimatedBudget: 3500000, planCategory: "MUA" },
+    { text: "👗 Busana pengantin", estimatedBudget: 5000000, planCategory: "Busana" },
+    { text: "📸 Dokumentasi & prewedding", estimatedBudget: 8000000, planCategory: "Fotografi" },
+    { text: "💐 Dekorasi pelaminan", estimatedBudget: 5000000, planCategory: "Dekorasi" },
+    { text: "🍽️ Katering resepsi", estimatedBudget: 20000000, planCategory: "Katering" },
+    { text: "🎤 MC & Entertainment", estimatedBudget: 3000000, planCategory: "Entertainment" },
+    { text: "📨 Undangan pernikahan", estimatedBudget: 2000000, planCategory: "default" },
+    { text: "💍 Cincin kawin", estimatedBudget: 5000000, planCategory: "Cincin" },
+    { text: "✈️ Honeymoon", estimatedBudget: 10000000, planCategory: "Transport" }
   ],
   "✈️ Liburan": [
-    { text: "📍 Tentukan destinasi", estimatedBudget: 0 },
-    { text: "📅 Tentukan tanggal", estimatedBudget: 0 },
-    { text: "✈️ Booking tiket pesawat", estimatedBudget: 3000000 },
-    { text: "🏨 Booking hotel", estimatedBudget: 4000000 },
-    { text: "🗺️ Buat itinerary", estimatedBudget: 0 },
-    { text: "💰 Siapkan budget", estimatedBudget: 5000000 },
-    { text: "🧳 Siapkan barang", estimatedBudget: 1000000 },
-    { text: "🛂 Urus paspor/visa", estimatedBudget: 1000000 }
+    { text: "📍 Tentukan destinasi", estimatedBudget: 0, planCategory: "Dokumen" },
+    { text: "📅 Tentukan tanggal", estimatedBudget: 0, planCategory: "Dokumen" },
+    { text: "✈️ Booking tiket pesawat", estimatedBudget: 3000000, planCategory: "Transport" },
+    { text: "🏨 Booking hotel", estimatedBudget: 4000000, planCategory: "Venue" },
+    { text: "🗺️ Buat itinerary", estimatedBudget: 0, planCategory: "Dokumen" },
+    { text: "💰 Siapkan budget", estimatedBudget: 5000000, planCategory: "default" },
+    { text: "🧳 Siapkan barang", estimatedBudget: 1000000, planCategory: "default" },
+    { text: "🛂 Urus paspor/visa", estimatedBudget: 1000000, planCategory: "Dokumen" }
   ]
 };
 
-// Cache DOM elements
-let domCache = new Map();
-
-function getEl(id) {
-  if (domCache.has(id)) return domCache.get(id);
-  const el = document.getElementById(id);
-  domCache.set(id, el);
-  return el;
+// Get financial category from plan
+export function getFinancialCategoryFromPlan(plan) {
+  if (plan.planCategory && planCategoryToFinancialCategory[plan.planCategory]) {
+    return planCategoryToFinancialCategory[plan.planCategory];
+  }
+  
+  const title = plan.text.toLowerCase();
+  if (title.includes('cincin')) return '💍 Cincin & Perhiasan';
+  if (title.includes('mua') || title.includes('makeup')) return '💄 MUA & Makeup';
+  if (title.includes('foto') || title.includes('video')) return '📸 Photography & Videography';
+  if (title.includes('venue') || title.includes('gedung')) return '🏨 Venue / Gedung';
+  if (title.includes('dekorasi')) return '💐 Dekorasi';
+  if (title.includes('katering') || title.includes('makan')) return '🍽️ Catering';
+  if (title.includes('busana') || title.includes('baju')) return '👗 Busana Pengantin';
+  if (title.includes('mc') || title.includes('hiburan')) return '🎤 Entertainment & MC';
+  if (title.includes('dokumen') || title.includes('surat')) return '📋 Administrasi';
+  if (title.includes('transport') || title.includes('travel')) return '🚗 Transportasi';
+  
+  return '📦 Lainnya';
 }
 
-// ============ TEMPLATE FUNCTIONS ============
+// Get all financial categories from plans
+export function getFinancialCategoriesFromPlans() {
+  const data = window.masterData || masterData;
+  const plans = data?.plans || {};
+  const categories = new Set();
+  
+  Object.values(plans).forEach(plan => {
+    if (plan.planCategory && plan.planCategory !== 'default' && plan.planCategory !== 'undefined') {
+      const category = planCategoryToFinancialCategory[plan.planCategory] || plan.planCategory;
+      categories.add(category);
+    }
+  });
+  
+  return Array.from(categories);
+}
+
+// Get all unique plan categories
+export function getPlanCategories() {
+  const data = window.masterData || masterData;
+  const plans = data?.plans || {};
+  const categories = new Set();
+  
+  Object.values(plans).forEach(plan => {
+    if (plan.planCategory && plan.planCategory !== 'default') {
+      categories.add(plan.planCategory);
+    }
+  });
+  
+  return Array.from(categories);
+}
+
+// Update plan progress based on savings
+export async function updatePlanProgressFromSavings() {
+  const data = window.masterData || masterData;
+  const plans = data?.plans || {};
+  const finances = data?.finances || {};
+  
+  // Group savings by category
+  const savingsByCategory = {};
+  Object.values(finances).forEach(f => {
+    if (f.type === 'wedding' && f.planCategory && f.planCategory !== 'Lainnya') {
+      savingsByCategory[f.planCategory] = (savingsByCategory[f.planCategory] || 0) + f.amt;
+    }
+  });
+  
+  // Update each plan's progress
+  for (const [planId, plan] of Object.entries(plans)) {
+    if (plan.estimatedBudget > 0 && plan.progress < 100 && plan.planCategory) {
+      const savedForCategory = savingsByCategory[plan.planCategory] || 0;
+      let newProgress = Math.min(100, Math.round((savedForCategory / plan.estimatedBudget) * 100));
+      
+      if (newProgress !== plan.progress) {
+        await update(ref(db, `data/plans/${planId}`), {
+          progress: newProgress,
+          done: newProgress >= 100,
+          updatedAt: Date.now()
+        });
+      }
+    }
+  }
+}
+
+// Save plan
+export async function savePlan() {
+  const text = document.getElementById("planText")?.value.trim();
+  if (!text) { 
+    showNotif("❌ Nama rencana harus diisi!", true); 
+    return; 
+  }
+  
+  const cat = document.getElementById("planCat")?.value || "💍 Menikah";
+  const targetDate = document.getElementById("planTargetDate")?.value;
+  const description = document.getElementById("planDesc")?.value || "";
+  const estimatedBudget = parseInt(document.getElementById("planBudget")?.value) || 0;
+  const planCategorySelect = document.getElementById("planCategory")?.value;
+  
+  let planCategory = planCategorySelect;
+  if (!planCategory || planCategory === '') {
+    const lowerText = text.toLowerCase();
+    if (lowerText.includes('cincin')) planCategory = 'Cincin';
+    else if (lowerText.includes('mua') || lowerText.includes('makeup')) planCategory = 'MUA';
+    else if (lowerText.includes('foto')) planCategory = 'Fotografi';
+    else if (lowerText.includes('venue')) planCategory = 'Venue';
+    else if (lowerText.includes('dekorasi')) planCategory = 'Dekorasi';
+    else if (lowerText.includes('katering')) planCategory = 'Katering';
+    else if (lowerText.includes('busana')) planCategory = 'Busana';
+    else if (lowerText.includes('mc') || lowerText.includes('entertainment')) planCategory = 'Entertainment';
+    else planCategory = 'default';
+  }
+  
+  try {
+    await push(ref(db, "data/plans"), {
+      text: text,
+      cat: cat,
+      targetDate: targetDate || null,
+      progress: 0,
+      done: false,
+      sub: {},
+      description: description,
+      estimatedBudget: estimatedBudget,
+      actualBudget: 0,
+      planCategory: planCategory,
+      createdAt: Date.now(),
+      updatedAt: Date.now()
+    });
+    
+    showNotif("✅ Rencana berhasil ditambahkan!");
+    
+    const modal = bootstrap.Modal.getInstance(document.getElementById("addPlanManualModal"));
+    if (modal) modal.hide();
+    
+    // Reset form
+    const planText = document.getElementById("planText");
+    const planTargetDate = document.getElementById("planTargetDate");
+    const planDesc = document.getElementById("planDesc");
+    const planBudget = document.getElementById("planBudget");
+    const planCategoryEl = document.getElementById("planCategory");
+    
+    if (planText) planText.value = "";
+    if (planTargetDate) planTargetDate.value = "";
+    if (planDesc) planDesc.value = "";
+    if (planBudget) planBudget.value = "";
+    if (planCategoryEl) planCategoryEl.value = "";
+    
+    if (window.renderAll) window.renderAll();
+    if (window.renderFinances) window.renderFinances();
+    
+  } catch (err) {
+    console.error("Error saving plan:", err);
+    showNotif("❌ Gagal menyimpan rencana: " + err.message, true);
+  }
+}
+
+// Add template to category
 export async function addTemplateToCategory(category) {
   const templates = categoryTemplates[category];
   if (!templates) {
@@ -68,9 +227,10 @@ export async function addTemplateToCategory(category) {
       progress: 0,
       done: false,
       sub: {},
-      description: "",
+      description: `${item.text} - Persiapan ${category}`,
       estimatedBudget: item.estimatedBudget,
       actualBudget: 0,
+      planCategory: item.planCategory || 'default',
       createdAt: Date.now(),
       updatedAt: Date.now()
     });
@@ -78,6 +238,7 @@ export async function addTemplateToCategory(category) {
   
   showNotif(`✅ Template ${category} berhasil ditambahkan!`);
   if (window.renderAll) window.renderAll();
+  if (window.renderFinances) window.renderFinances();
 }
 
 export function confirmAddTemplate(category) {
@@ -87,78 +248,25 @@ export function confirmAddTemplate(category) {
   );
 }
 
-// ============ SAVE PLAN ============
-export async function savePlan() {
-  const text = document.getElementById("planText")?.value.trim();
-  if (!text) { 
-    showNotif("❌ Nama rencana harus diisi!", true); 
-    return; 
-  }
-  
-  const cat = document.getElementById("planCat")?.value;
-  const targetDate = document.getElementById("planTargetDate")?.value;
-  const description = document.getElementById("planDesc")?.value || "";
-  const estimatedBudget = parseInt(document.getElementById("planBudget")?.value) || 0;
-  
-  try {
-    await push(ref(db, "data/plans"), {
-      text: text,
-      cat: cat,
-      targetDate: targetDate || null,
-      progress: 0,
-      done: false,
-      sub: {},
-      description: description,
-      estimatedBudget: estimatedBudget,
-      actualBudget: 0,
-      createdAt: Date.now(),
-      updatedAt: Date.now()
-    });
-    
-    showNotif("✅ Rencana berhasil ditambahkan!");
-    
-    // Tutup modal
-    const modal = bootstrap.Modal.getInstance(document.getElementById("addPlanModal"));
-    if (modal) modal.hide();
-    
-    // Reset form
-    const planText = document.getElementById("planText");
-    const planTargetDate = document.getElementById("planTargetDate");
-    const planDesc = document.getElementById("planDesc");
-    const planBudget = document.getElementById("planBudget");
-    
-    if (planText) planText.value = "";
-    if (planTargetDate) planTargetDate.value = "";
-    if (planDesc) planDesc.value = "";
-    if (planBudget) planBudget.value = "";
-    
-    // Refresh tampilan
-    if (window.renderAll) window.renderAll();
-    
-  } catch (err) {
-    console.error("Error saving plan:", err);
-    showNotif("❌ Gagal menyimpan rencana: " + err.message, true);
-  }
-}
-
-// ============ UPDATE PLAN ============
+// Update plan
 export async function updatePlan() {
-  const id = getEl("editPlanId")?.value;
-  const text = getEl("editPlanText")?.value.trim();
+  const id = document.getElementById("editPlanId")?.value;
+  const text = document.getElementById("editPlanText")?.value.trim();
   
   if (!text) { 
     showNotif("❌ Nama rencana harus diisi!", true); 
     return; 
   }
   
-  const cat = getEl("editPlanCat")?.value;
-  const targetDate = getEl("editPlanTargetDate")?.value;
-  const description = getEl("editPlanDesc")?.value;
-  const budget = parseInt(getEl("editPlanBudget")?.value) || 0;
-  const priority = getEl("editPlanPriority")?.value;
-  const isUrgent = getEl("editPlanIsUrgent")?.checked || false;
+  const cat = document.getElementById("editPlanCat")?.value;
+  const targetDate = document.getElementById("editPlanTargetDate")?.value;
+  const description = document.getElementById("editPlanDesc")?.value;
+  const budget = parseInt(document.getElementById("editPlanBudget")?.value) || 0;
+  const priority = document.getElementById("editPlanPriority")?.value;
+  const isUrgent = document.getElementById("editPlanIsUrgent")?.checked || false;
+  const planCategory = document.getElementById("editPlanCategory")?.value;
   
-  await update(ref(db, `data/plans/${id}`), { 
+  const updateData = { 
     text, 
     cat, 
     targetDate: targetDate || null, 
@@ -167,17 +275,24 @@ export async function updatePlan() {
     priority: priority || "medium",
     isUrgent: isUrgent,
     updatedAt: Date.now()
-  });
+  };
+  
+  if (planCategory && planCategory !== 'auto') {
+    updateData.planCategory = planCategory;
+  }
+  
+  await update(ref(db, `data/plans/${id}`), updateData);
   
   showNotif("✅ Rencana berhasil diupdate");
   
-  const modal = bootstrap.Modal.getInstance(getEl("planModal"));
+  const modal = bootstrap.Modal.getInstance(document.getElementById("planModal"));
   if (modal) modal.hide();
   
   if (window.renderAll) window.renderAll();
+  if (window.renderFinances) window.renderFinances();
 }
 
-// ============ DELETE PLAN ============
+// Delete plan
 export async function deletePlanItem() {
   const { id, pid } = window.currentDeletePlanId || {};
   if (!id) return;
@@ -185,7 +300,7 @@ export async function deletePlanItem() {
   await remove(ref(db, path));
   showNotif("🗑️ Rencana dihapus");
   
-  const modal = bootstrap.Modal.getInstance(getEl("planModal"));
+  const modal = bootstrap.Modal.getInstance(document.getElementById("planModal"));
   if (modal) modal.hide();
   if (window.renderAll) window.renderAll();
 }
@@ -194,7 +309,7 @@ export function deletePlanItemById(id) {
   window.confirmDelete("plans", id);
 }
 
-// ============ SUB PLAN FUNCTIONS ============
+// Sub plan functions
 function calculateProgressFromSubs(subs) {
   if (!subs || Object.keys(subs).length === 0) return 0;
   const total = Object.keys(subs).length;
@@ -317,60 +432,41 @@ export async function toggleSubPlanCheckbox(pid, sid, currentStatus) {
   if (window.renderAll) window.renderAll();
 }
 
-// ============ RENDER FUNCTIONS ============
-function renderSubPlansList(pid, subs) {
-  const container = getEl("subPlansList");
-  if (!container) return;
-  
-  if (!subs || Object.keys(subs).length === 0) {
-    container.innerHTML = '<p class="text-muted small mb-0">Belum ada subtugas</p>';
-    return;
-  }
-  
-  container.innerHTML = Object.entries(subs).map(([sid, s]) => `
-    <div class="d-flex justify-content-between align-items-center mb-2 p-2 bg-white rounded-3">
-      <div class="form-check flex-grow-1">
-        <input class="form-check-input" type="checkbox" ${s.done ? 'checked' : ''} 
-               onchange="window.toggleSubPlanCheckbox('${pid}', '${sid}', ${s.done})">
-        <label class="form-check-label ${s.done ? 'text-decoration-line-through text-muted' : ''}">
-          ${escapeHtml(truncateText(s.text, 40))}
-        </label>
-        ${s.estimatedCost > 0 ? `<span class="badge bg-secondary bg-opacity-10 ms-2">Rp ${s.estimatedCost.toLocaleString()}</span>` : ''}
-      </div>
-      <i class="bi bi-trash text-danger small" style="cursor: pointer;" 
-         onclick="window.deleteSubPlan('${pid}', '${sid}')"></i>
-    </div>
-  `).join('');
-}
-
+// Open edit plan
 export function openEditPlan(id, pid = null) {
   const data = window.masterData || masterData;
   const plan = pid ? data?.plans?.[pid]?.sub?.[id] : data?.plans?.[id];
   if (!plan) return;
   
-  if (getEl("editPlanId")) getEl("editPlanId").value = id;
-  if (getEl("editPlanParentId")) getEl("editPlanParentId").value = pid || "";
-  if (getEl("editPlanText")) getEl("editPlanText").value = plan.text;
-  if (getEl("editPlanCat")) getEl("editPlanCat").value = plan.cat || "💍 Menikah";
-  if (getEl("editPlanTargetDate")) getEl("editPlanTargetDate").value = plan.targetDate || "";
-  if (getEl("editPlanDesc")) getEl("editPlanDesc").value = plan.description || "";
-  if (getEl("editPlanBudget")) getEl("editPlanBudget").value = plan.estimatedBudget || 0;
-  if (getEl("editPlanPriority")) getEl("editPlanPriority").value = plan.priority || "medium";
-  if (getEl("editPlanIsUrgent")) getEl("editPlanIsUrgent").checked = plan.isUrgent || false;
+  const editPlanId = document.getElementById("editPlanId");
+  const editPlanParentId = document.getElementById("editPlanParentId");
+  const editPlanText = document.getElementById("editPlanText");
+  const editPlanCat = document.getElementById("editPlanCat");
+  const editPlanTargetDate = document.getElementById("editPlanTargetDate");
+  const editPlanDesc = document.getElementById("editPlanDesc");
+  const editPlanBudget = document.getElementById("editPlanBudget");
+  const editPlanPriority = document.getElementById("editPlanPriority");
+  const editPlanIsUrgent = document.getElementById("editPlanIsUrgent");
+  const editPlanCategory = document.getElementById("editPlanCategory");
+  
+  if (editPlanId) editPlanId.value = id;
+  if (editPlanParentId) editPlanParentId.value = pid || "";
+  if (editPlanText) editPlanText.value = plan.text;
+  if (editPlanCat) editPlanCat.value = plan.cat || "💍 Menikah";
+  if (editPlanTargetDate) editPlanTargetDate.value = plan.targetDate || "";
+  if (editPlanDesc) editPlanDesc.value = plan.description || "";
+  if (editPlanBudget) editPlanBudget.value = plan.estimatedBudget || 0;
+  if (editPlanPriority) editPlanPriority.value = plan.priority || "medium";
+  if (editPlanIsUrgent) editPlanIsUrgent.checked = plan.isUrgent || false;
+  if (editPlanCategory && plan.planCategory) editPlanCategory.value = plan.planCategory;
   
   window.currentDeletePlanId = { id, pid };
   
-  if (!pid && plan.sub && Object.keys(plan.sub).length > 0) {
-    renderSubPlansList(id, plan.sub);
-  } else {
-    const subPlansList = getEl("subPlansList");
-    if (subPlansList) subPlansList.innerHTML = "";
-  }
-  
-  const modalEl = getEl("planModal");
+  const modalEl = document.getElementById("planModal");
   if (modalEl) new bootstrap.Modal(modalEl).show();
 }
 
+// Render board plans
 export function renderBoardPlans(plansMap) {
   const categories = {
     "💍 Menikah": { id: "menikahPlans", color: "danger", icon: "bi-heart-fill" },
@@ -386,12 +482,12 @@ export function renderBoardPlans(plansMap) {
   // Update counts
   for (const [cat, config] of Object.entries(categories)) {
     const catPlans = plansMap.filter(p => p[1].cat === cat);
-    const countEl = getEl(config.id.replace("Plans", "Count"));
+    const countEl = document.getElementById(config.id.replace("Plans", "Count"));
     if (countEl) countEl.innerText = catPlans.length;
   }
   
   for (const [cat, config] of Object.entries(categories)) {
-    const container = getEl(config.id);
+    const container = document.getElementById(config.id);
     if (!container) continue;
     
     const catPlans = plansMap.filter(p => p[1].cat === cat);
@@ -423,8 +519,7 @@ export function renderBoardPlans(plansMap) {
       return `
         <div class="col-md-6 col-lg-4">
           <div class="plan-card card border-0 shadow-sm h-100 ${isDone ? 'border-start border-success border-3' : ''}" 
-               data-plan-id="${id}" 
-               data-target-date="${p.targetDate || ''}">
+               data-plan-id="${id}" data-target-date="${p.targetDate || ''}">
             <div class="card-body p-3">
               <div class="d-flex justify-content-between align-items-start mb-2">
                 <div class="flex-grow-1">
@@ -439,16 +534,10 @@ export function renderBoardPlans(plansMap) {
                 <div class="dropdown">
                   <i class="bi bi-three-dots-vertical text-muted" data-bs-toggle="dropdown" style="cursor: pointer;"></i>
                   <ul class="dropdown-menu dropdown-menu-end">
-                    <li><a class="dropdown-item" onclick="window.togglePlan('${id}', ${isDone})">
-                      <i class="bi bi-check-circle me-2"></i>${isDone ? 'Batal Selesai' : 'Tandai Selesai'}
-                    </a></li>
-                    <li><a class="dropdown-item" onclick="window.openEditPlan('${id}')">
-                      <i class="bi bi-pencil me-2"></i>Edit
-                    </a></li>
+                    <li><a class="dropdown-item" onclick="window.togglePlan('${id}', ${isDone})"><i class="bi bi-check-circle me-2"></i>${isDone ? 'Batal Selesai' : 'Tandai Selesai'}</a></li>
+                    <li><a class="dropdown-item" onclick="window.openEditPlan('${id}')"><i class="bi bi-pencil me-2"></i>Edit</a></li>
                     <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item text-danger" onclick="window.deletePlanItemById('${id}')">
-                      <i class="bi bi-trash me-2"></i>Hapus
-                    </a></li>
+                    <li><a class="dropdown-item text-danger" onclick="window.deletePlanItemById('${id}')"><i class="bi bi-trash me-2"></i>Hapus</a></li>
                   </ul>
                 </div>
               </div>
@@ -474,36 +563,15 @@ export function renderBoardPlans(plansMap) {
                       <span class="text-muted"><i class="bi bi-wallet2"></i> Terpakai</span>
                       <span class="fw-semibold ${budgetUsed > 100 ? 'text-danger' : 'text-success'}">${formatWithPrivacy(p.actualBudget)}</span>
                     </div>
-                    <div class="progress mt-1" style="height: 3px;">
-                      <div class="progress-bar ${budgetUsed > 100 ? 'bg-danger' : 'bg-info'}" style="width: ${Math.min(100, budgetUsed)}%"></div>
-                    </div>
                   ` : ''}
                 </div>
               ` : ''}
               
-              ${p.targetDate ? `
-                <div class="mt-2 small text-muted">
-                  <i class="bi bi-calendar"></i> 
-                  ${daysLeft !== null ? (daysLeft >= 0 ? `${daysLeft} hari lagi` : `${Math.abs(daysLeft)} hari terlambat`) : ''}
-                </div>
-              ` : ''}
-              
-              ${p.sub && Object.keys(p.sub).length > 0 ? `
-                <div class="mt-2">
-                  <div class="d-flex justify-content-between small text-muted">
-                    <span><i class="bi bi-list-check"></i> Checklist</span>
-                    <span>${Object.values(p.sub).filter(s => s.done).length}/${Object.keys(p.sub).length}</span>
-                  </div>
-                </div>
-              ` : ''}
+              ${p.targetDate ? `<div class="mt-2 small text-muted"><i class="bi bi-calendar"></i> ${daysLeft !== null ? (daysLeft >= 0 ? `${daysLeft} hari lagi` : `${Math.abs(daysLeft)} hari terlambat`) : ''}</div>` : ''}
               
               <div class="mt-3 d-flex gap-2">
-                <button class="btn btn-sm btn-outline-secondary flex-grow-1 rounded-pill" onclick="window.addSubPlanWithDetails('${id}')">
-                  <i class="bi bi-plus-circle"></i> Checklist
-                </button>
-                <button class="btn btn-sm btn-outline-primary rounded-pill" onclick="window.addBudgetToPlan('${id}', ${p.estimatedBudget || 0}, ${p.actualBudget || 0})">
-                  <i class="bi bi-cash-stack"></i> Budget
-                </button>
+                <button class="btn btn-sm btn-outline-secondary flex-grow-1 rounded-pill" onclick="window.addSubPlanWithDetails('${id}')"><i class="bi bi-plus-circle"></i> Checklist</button>
+                <button class="btn btn-sm btn-outline-primary rounded-pill" onclick="window.addBudgetToPlan('${id}', ${p.estimatedBudget || 0}, ${p.actualBudget || 0})"><i class="bi bi-cash-stack"></i> Budget</button>
               </div>
             </div>
           </div>
@@ -513,7 +581,7 @@ export function renderBoardPlans(plansMap) {
   }
 }
 
-// ============ FILTER FUNCTIONS ============
+// Filter functions
 export function initPlanFilter() {
   const filterBtns = document.querySelectorAll('.filter-cat');
   const categories = document.querySelectorAll('.plan-category');
@@ -537,9 +605,7 @@ export function initPlanFilter() {
   });
 }
 
-// js/planning.js - Tambahkan di bagian akhir
-
-// Export semua fungsi
+// Export to window
 window.savePlan = savePlan;
 window.updatePlan = updatePlan;
 window.deletePlanItem = deletePlanItem;
@@ -556,4 +622,6 @@ window.initPlanFilter = initPlanFilter;
 window.renderBoardPlans = renderBoardPlans;
 window.deleteSubPlan = deleteSubPlan;
 window.getFinancialCategoriesFromPlans = getFinancialCategoriesFromPlans;
+window.getPlanCategories = getPlanCategories;
 window.updatePlanProgressFromSavings = updatePlanProgressFromSavings;
+window.getFinancialCategoryFromPlan = getFinancialCategoryFromPlan;
