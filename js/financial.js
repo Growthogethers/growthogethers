@@ -1,8 +1,7 @@
-// js/financial.js - Dengan kategori dari planning, validasi lock save
+// js/financial.js - Fixed version (removed manual target creation)
 import { db, ref, push, update, remove, get } from './firebase-config.js';
-import { showNotif, masterData, formatNumberRp, escapeHtml, setMasterData, privacyHidden } from './utils.js';
+import { showNotif, masterData, formatNumberRp, escapeHtml, setMasterData, privacyHidden, formatDateLong } from './utils.js';
 
-let financialDataListener = null;
 let editFinanceId = null;
 
 // Get all unique plan categories from existing plans
@@ -37,7 +36,7 @@ function getCategoryIcon(category) {
   return icons[category] || '📦';
 }
 
-// Validate if plan exists for category (LOCK SAVE if no plan)
+// Validate if plan exists for category
 export function validatePlanExistsForCategory(planCategory) {
   if (!planCategory || planCategory === 'Lainnya') return true;
   
@@ -67,7 +66,6 @@ async function updatePlanProgressFromSavings() {
   const plans = data?.plans || {};
   const finances = data?.finances || {};
   
-  // Group savings by category
   const savingsByCategory = {};
   Object.values(finances).forEach(f => {
     if (f.type === 'wedding' && f.planCategory && f.planCategory !== 'Lainnya') {
@@ -75,7 +73,6 @@ async function updatePlanProgressFromSavings() {
     }
   });
   
-  // Update each plan's progress
   for (const [planId, plan] of Object.entries(plans)) {
     if (plan.estimatedBudget > 0 && plan.progress < 100 && plan.planCategory) {
       const savedForCategory = savingsByCategory[plan.planCategory] || 0;
@@ -92,7 +89,7 @@ async function updatePlanProgressFromSavings() {
   }
 }
 
-// Save transaction with validation
+// Save transaction
 export async function saveFinance() {
   const desc = document.getElementById("fDesc")?.value.trim();
   const amt = parseInt(document.getElementById("fAmt")?.value);
@@ -104,7 +101,6 @@ export async function saveFinance() {
   if (isNaN(amt) || amt <= 0) { showNotif("❌ Nominal harus lebih dari 0", true); return; }
   if (!date) { showNotif("❌ Tanggal harus dipilih", true); return; }
   
-  // VALIDASI LOCK SAVE: Cek apakah plan untuk kategori ini sudah dibuat
   if (planCategory && planCategory !== 'Lainnya') {
     const isValid = validatePlanExistsForCategory(planCategory);
     if (!isValid) return;
@@ -128,11 +124,9 @@ export async function saveFinance() {
     showNotif(`💰 Tabungan ${formatNumberRp(amt)} berhasil dicatat!`);
   }
   
-  // Update plan progress otomatis
   await updatePlanProgressFromSavings();
   await refreshData();
   
-  // Reset form
   const fDesc = document.getElementById("fDesc");
   const fAmt = document.getElementById("fAmt");
   if (fDesc) fDesc.value = "";
@@ -144,7 +138,7 @@ export async function saveFinance() {
   updateSavingsSummary();
 }
 
-// Render category dropdown for financial form
+// Render category dropdown
 export function renderFinancialCategoryDropdown() {
   const container = document.getElementById("planCategoryContainer");
   if (!container) return;
@@ -226,7 +220,7 @@ export function renderFinances() {
       .map(([id, f]) => `
         <tr>
           <td><span class="badge ${f.user === "FACHMI" ? "badge-fachmi" : "badge-azizah"}">${escapeHtml(f.user)}</span></td>
-          <td class="text-nowrap">${formatDate(f.date)}</td>
+          <td class="text-nowrap">${formatDateShort(f.date)}</td>
           <td class="text-wrap">${escapeHtml(f.desc)}</td>
           <td><span class="badge bg-secondary">${getCategoryIcon(f.planCategory)} ${escapeHtml(f.planCategory || 'Lainnya')}</span></td>
           <td class="fw-semibold text-success text-nowrap">${formatWithPrivacy(f.amt)}</td>
@@ -241,7 +235,7 @@ export function renderFinances() {
   updateSavingsSummary();
 }
 
-function formatDate(dateStr) {
+function formatDateShort(dateStr) {
   if (!dateStr) return '-';
   const parts = dateStr.split('-');
   if (parts.length === 3) {
@@ -305,7 +299,7 @@ function updateSavingsSummary() {
 async function refreshData() {
   try {
     const snapshot = await get(ref(db, 'data/'));
-    const freshData = snapshot.val() || { visions: {}, plans: {}, finances: {}, settings: {}, comments: {}, likes: {}, moments: {} };
+    const freshData = snapshot.val() || {};
     if (window.setMasterData) window.setMasterData(freshData);
     window.masterData = freshData;
     return freshData;
@@ -352,7 +346,17 @@ export async function initFinancialPage() {
   if (window.loadSavingTargets) window.loadSavingTargets();
 }
 
-// Saving targets functions
+// Saving targets - only display, no manual creation
+function calculateTotalInPeriod(startDate, endDate) {
+  const data = window.masterData || masterData;
+  const finances = data?.finances || {};
+  let total = 0;
+  Object.values(finances).forEach(f => {
+    if (f.type === 'wedding' && f.date && f.date >= startDate && f.date <= endDate) total += f.amt;
+  });
+  return total;
+}
+
 export async function loadSavingTargets() {
   const data = window.masterData || masterData;
   if (!data) return;
@@ -365,7 +369,13 @@ export async function loadSavingTargets() {
   const targetEntries = Object.entries(targets);
   
   if (targetEntries.length === 0) {
-    container.innerHTML = '<div class="text-center py-4 text-muted"><i class="bi bi-inbox fs-1 d-block mb-2"></i><p class="mb-0">✨ Belum ada target tabungan</p><small>Buat target di bawah</small></div>';
+    container.innerHTML = `
+      <div class="text-center py-5 text-muted">
+        <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+        <p class="mb-0">✨ Belum ada target tabungan</p>
+        <small class="text-muted">Target akan otomatis dibuat saat menggunakan AI Recommendation di menu Rencana</small>
+      </div>
+    `;
     return;
   }
   
@@ -379,9 +389,10 @@ export async function loadSavingTargets() {
         <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
           <div>
             <h5 class="fw-bold mb-1"><i class="bi bi-trophy-fill ${isAchieved ? 'text-success' : 'text-warning'} me-2"></i>Target Tabungan</h5>
+            ${target.fromAI ? '<span class="badge bg-info">🎯 Dari AI Recommendation</span>' : ''}
+            ${target.description ? `<div class="small text-muted mt-1">${target.description}</div>` : ''}
           </div>
           <div class="d-flex gap-2">
-            <button class="btn btn-sm btn-outline-primary" onclick="window.editSavingTarget('${id}')"><i class="bi bi-pencil"></i> Edit</button>
             <button class="btn btn-sm btn-outline-danger" onclick="window.deleteSavingTarget('${id}')"><i class="bi bi-trash"></i> Hapus</button>
           </div>
         </div>
@@ -391,94 +402,38 @@ export async function loadSavingTargets() {
           <div class="col-md-4"><div class="text-center p-2 bg-white rounded-3"><small class="text-muted">📊 Progress</small><h4 class="fw-bold mb-0">${Math.round(percent)}%</h4></div></div>
         </div>
         <div class="progress" style="height: 10px;"><div class="progress-bar ${isAchieved ? 'bg-success' : 'bg-primary'}" style="width: ${percent}%"></div></div>
-        ${isAchieved ? '<div class="alert alert-success mt-3 mb-0 py-2"><i class="bi bi-trophy-fill"></i> <small>🎉 Selamat! Target tabungan telah tercapai!</small></div>' : ''}
+        <div class="mt-3 small text-muted">
+          <i class="bi bi-calendar-range me-1"></i> Periode: ${formatDateLong(target.startDate)} - ${formatDateLong(target.endDate)}
+        </div>
+        ${isAchieved ? '<div class="alert alert-success mt-3 mb-0 py-2"><i class="bi bi-trophy-fill me-1"></i> 🎉 Selamat! Target tabungan telah tercapai! 🎉</div>' : ''}
       </div>
     `;
   }).join('');
 }
 
-function calculateTotalInPeriod(startDate, endDate) {
-  const data = window.masterData || masterData;
-  const finances = data?.finances || {};
-  let total = 0;
-  Object.values(finances).forEach(f => {
-    if (f.type === 'wedding' && f.date && f.date >= startDate && f.date <= endDate) total += f.amt;
-  });
-  return total;
-}
-
-export async function addSavingTarget() {
-  const startDate = document.getElementById('targetStartDate')?.value;
-  const endDate = document.getElementById('targetEndDate')?.value;
-  const amount = parseInt(document.getElementById('targetAmount')?.value);
-  
-  if (!startDate) { showNotif('❌ Pilih tanggal mulai', true); return; }
-  if (!endDate) { showNotif('❌ Pilih tanggal target', true); return; }
-  if (new Date(endDate) <= new Date(startDate)) { showNotif('❌ Target selesai harus setelah mulai', true); return; }
-  if (isNaN(amount) || amount <= 0) { showNotif('❌ Target nominal harus > 0', true); return; }
-  
-  const settingsRef = ref(db, 'data/settings');
-  const snapshot = await get(settingsRef);
-  const currentSettings = snapshot.val() || {};
-  const currentTargets = currentSettings.savingTargets || {};
-  const targetId = `target_${Date.now()}`;
-  
-  currentTargets[targetId] = { startDate, endDate, amount, createdAt: Date.now() };
-  await update(ref(db, 'data/settings'), { savingTargets: currentTargets });
-  showNotif(`✅ Target ${formatNumberRp(amount)} ditambahkan!`);
-  
-  const startInput = document.getElementById('targetStartDate');
-  const endInput = document.getElementById('targetEndDate');
-  const amountInput = document.getElementById('targetAmount');
-  if (startInput) startInput.value = '';
-  if (endInput) endInput.value = '';
-  if (amountInput) amountInput.value = '';
-  
-  await refreshData();
-  loadSavingTargets();
-  if (window.renderAll) window.renderAll();
-}
-
 export async function deleteSavingTarget(id) {
-  window.confirmDelete("settings/savingTargets", id);
-}
-
-export async function editSavingTarget(id) {
-  const settingsRef = ref(db, 'data/settings');
-  const snapshot = await get(settingsRef);
-  const currentSettings = snapshot.val() || {};
-  const currentTargets = currentSettings.savingTargets || {};
-  const target = currentTargets[id];
-  
-  if (!target) { showNotif('❌ Target tidak ditemukan', true); return; }
-  
-  const newAmount = prompt(`Edit target nominal:\nTarget saat ini: ${formatNumberRp(target.amount)}`, target.amount);
-  if (newAmount && !isNaN(parseInt(newAmount)) && parseInt(newAmount) > 0) {
-    currentTargets[id].amount = parseInt(newAmount);
-    currentTargets[id].updatedAt = Date.now();
+  showCustomConfirm("Yakin ingin menghapus target tabungan ini?", async () => {
+    const settingsRef = ref(db, 'data/settings');
+    const snapshot = await get(settingsRef);
+    const currentSettings = snapshot.val() || {};
+    const currentTargets = currentSettings.savingTargets || {};
+    delete currentTargets[id];
     await update(ref(db, 'data/settings'), { savingTargets: currentTargets });
-    showNotif('✅ Target berhasil diupdate!');
+    showNotif('✅ Target tabungan dihapus');
     await refreshData();
     loadSavingTargets();
     if (window.renderAll) window.renderAll();
-  }
+  });
 }
 
 // Export ke window
-// js/financial.js - Tambahkan di bagian akhir
-
-// Export semua fungsi yang diperlukan
 window.saveFinance = saveFinance;
 window.editFinance = editFinance;
 window.renderFinances = renderFinances;
 window.initFinancialPage = initFinancialPage;
 window.loadSavingTargets = loadSavingTargets;
-window.addSavingTarget = addSavingTarget;
-window.editSavingTarget = editSavingTarget;
 window.deleteSavingTarget = deleteSavingTarget;
 window.renderFinancialCategoryDropdown = renderFinancialCategoryDropdown;
 window.getPlanCategories = getPlanCategories;
 window.validatePlanExistsForCategory = validatePlanExistsForCategory;
 window.updatePlanProgressFromSavings = updatePlanProgressFromSavings;
-window.getPlanCategories = getPlanCategories;
-window.validatePlanExistsForCategory = validatePlanExistsForCategory;
