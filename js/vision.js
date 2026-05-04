@@ -581,7 +581,34 @@ function initDreamBoardFunction() {
   renderDreamBoardFunction();
 }
 
-// ============ EXPOSE FUNCTIONS TO WINDOW ============
+// Add this function to vision.js
+export function previewDreamImage(input) {
+  const previewDiv = document.getElementById('dreamImagePreview');
+  const previewImg = document.getElementById('dreamImagePreviewImg');
+  
+  if (input.files && input.files[0]) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      if (previewImg) {
+        previewImg.src = e.target.result;
+      }
+      if (previewDiv) {
+        previewDiv.style.display = 'block';
+      }
+    };
+    reader.readAsDataURL(input.files[0]);
+  } else {
+    if (previewDiv) {
+      previewDiv.style.display = 'none';
+    }
+    if (previewImg) {
+      previewImg.src = '';
+    }
+  }
+}
+
+// Export to window
+window.previewDreamImage = previewDreamImage;
 window.saveDream = saveDreamFunction;
 window.openDreamModal = openDreamModalFunction;
 window.viewDreamDetail = viewDreamDetailFunction;
