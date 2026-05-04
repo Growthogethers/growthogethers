@@ -1,4 +1,4 @@
-// js/firebase-config.js - Clean version, only used functions
+// js/firebase-config.js - Optimized version with shorter cache
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getDatabase, ref, set, push, onValue, remove, update, get, query, orderByChild, limitToLast, startAfter, endAt } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
@@ -15,14 +15,15 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-// Simple cache configuration
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+// Cache configuration - shorter duration for better real-time sync
+const CACHE_DURATION = 30 * 1000; // 30 seconds (reduced from 5 minutes)
 let dataCache = null;
 let cacheTimestamp = null;
 
-export async function getDataWithCache() {
+export async function getDataWithCache(forceRefresh = false) {
   const now = Date.now();
-  if (dataCache && cacheTimestamp && (now - cacheTimestamp) < CACHE_DURATION) {
+  
+  if (!forceRefresh && dataCache && cacheTimestamp && (now - cacheTimestamp) < CACHE_DURATION) {
     console.log("Using cached data");
     return dataCache;
   }
@@ -38,6 +39,11 @@ export function invalidateCache() {
   dataCache = null;
   cacheTimestamp = null;
   console.log("Cache invalidated");
+}
+
+// Force refresh function for real-time collaboration
+export async function forceRefresh() {
+  return await getDataWithCache(true);
 }
 
 export { 
