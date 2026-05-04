@@ -1,4 +1,3 @@
-<!-- FILE BARU: components/ai-recommendation.html -->
 <!-- AI Recommendation Modal -->
 <div class="modal fade" id="aiRecommendModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered modal-lg">
@@ -31,7 +30,7 @@
             <select id="aiGuestCount" class="form-select">
               <option value="50">50 orang (Intim)</option>
               <option value="100">100 orang (Kecil)</option>
-              <option value="250">250 orang (Sedang)</option>
+              <option value="250" selected>250 orang (Sedang)</option>
               <option value="500">500 orang (Besar)</option>
               <option value="1000">1000+ orang (Sangat Besar)</option>
             </select>
@@ -42,7 +41,7 @@
           <div class="col-md-12">
             <label class="form-label fw-semibold">💒 Gaya Pernikahan</label>
             <div class="d-flex flex-wrap gap-2">
-              <button type="button" class="btn btn-outline-primary rounded-pill style-option" data-style="modern">Modern Minimalis</button>
+              <button type="button" class="btn btn-outline-primary rounded-pill style-option active" data-style="modern">Modern Minimalis</button>
               <button type="button" class="btn btn-outline-primary rounded-pill style-option" data-style="traditional">Adat / Tradisional</button>
               <button type="button" class="btn btn-outline-primary rounded-pill style-option" data-style="outdoor">Outdoor / Garden</button>
               <button type="button" class="btn btn-outline-primary rounded-pill style-option" data-style="luxury">Luxury / Mewah</button>
@@ -56,28 +55,8 @@
           <i class="bi bi-magic me-2"></i>Generate Rekomendasi
         </button>
         
-        <div id="aiResult" style="display: none;">
-          <div class="card border-0 bg-gradient bg-success text-white">
-            <div class="card-body text-center p-4">
-              <i class="bi bi-trophy-fill fs-1"></i>
-              <h4 class="mt-2 mb-0" id="aiTotalBudget">Rp0</h4>
-              <small>Estimasi Total Budget Pernikahan</small>
-            </div>
-          </div>
-          
-          <div class="mt-4">
-            <h6 class="fw-bold"><i class="bi bi-pie-chart me-2"></i>Rincian Budget</h6>
-            <div id="aiBreakdown" class="mt-2"></div>
-          </div>
-          
-          <div class="mt-4">
-            <h6 class="fw-bold"><i class="bi bi-lightbulb me-2"></i>Tips Hemat dari AI</h6>
-            <ul id="aiTips" class="mt-2"></ul>
-          </div>
-          
-          <button onclick="window.applyAIRecommendation()" class="btn btn-success w-100 mt-3">
-            <i class="bi bi-check-circle me-2"></i>Terapkan ke Target Tabungan
-          </button>
+        <div id="aiRecommendationsList">
+          <div class="text-center text-muted py-4">Klik "Generate Rekomendasi" untuk mulai</div>
         </div>
       </div>
     </div>
