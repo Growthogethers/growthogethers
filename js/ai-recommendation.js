@@ -1,5 +1,5 @@
 // js/ai-recommendation.js - AI Planning Generator (Complete)
-import { db, ref, push } from './firebase-config.js';
+import { db, ref, push, update, get } from './firebase-config.js';
 import { showNotif, formatNumberRp } from './utils.js';
 
 // Location multipliers
@@ -15,16 +15,16 @@ const locationMultipliers = {
 
 // Budget per category (base)
 const categoryBudgets = {
-  'Cincin': { base: 3000000, category: '💍 Cincin & Perhiasan', icon: '💍' },
-  'MUA': { base: 3500000, category: '💄 MUA & Makeup', icon: '💄' },
-  'Fotografi': { base: 8000000, category: '📸 Photography & Videography', icon: '📸' },
-  'Venue': { base: 15000000, category: '🏨 Venue / Gedung', icon: '🏨' },
-  'Dekorasi': { base: 5000000, category: '💐 Dekorasi', icon: '💐' },
-  'Katering': { base: 20000000, category: '🍽️ Catering', icon: '🍽️' },
-  'Busana': { base: 5000000, category: '👗 Busana Pengantin', icon: '👗' },
-  'Entertainment': { base: 3000000, category: '🎤 Entertainment & MC', icon: '🎤' },
-  'Dokumen': { base: 500000, category: '📋 Administrasi', icon: '📋' },
-  'Transport': { base: 2000000, category: '🚗 Transportasi', icon: '🚗' }
+  'Cincin': { base: 3000000, category: 'Cincin', icon: '💍' },
+  'MUA': { base: 3500000, category: 'MUA', icon: '💄' },
+  'Fotografi': { base: 8000000, category: 'Fotografi', icon: '📸' },
+  'Venue': { base: 15000000, category: 'Venue', icon: '🏨' },
+  'Dekorasi': { base: 5000000, category: 'Dekorasi', icon: '💐' },
+  'Katering': { base: 20000000, category: 'Katering', icon: '🍽️' },
+  'Busana': { base: 5000000, category: 'Busana', icon: '👗' },
+  'Entertainment': { base: 3000000, category: 'Entertainment', icon: '🎤' },
+  'Dokumen': { base: 500000, category: 'Dokumen', icon: '📋' },
+  'Transport': { base: 2000000, category: 'Transport', icon: '🚗' }
 };
 
 let currentAIRecommendations = [];
@@ -41,6 +41,8 @@ export async function generateAIRecommendation() {
   
   // Generate recommendations
   const recommendations = [];
+  let totalBudget = 0;
+  
   for (const [key, config] of Object.entries(categoryBudgets)) {
     let adjustedBudget = config.base * finalMultiplier;
     
@@ -51,12 +53,15 @@ export async function generateAIRecommendation() {
       adjustedBudget = (guestCount * 50000) * finalMultiplier;
     }
     
+    adjustedBudget = Math.round(adjustedBudget);
+    totalBudget += adjustedBudget;
+    
     recommendations.push({
       name: key,
       displayName: key,
       category: config.category,
       icon: config.icon,
-      estimatedBudget: Math.round(adjustedBudget),
+      estimatedBudget: adjustedBudget,
       isRecommended: true
     });
   }
@@ -65,10 +70,10 @@ export async function generateAIRecommendation() {
   recommendations.sort((a, b) => b.estimatedBudget - a.estimatedBudget);
   currentAIRecommendations = recommendations;
   
-  displayAIRecommendations(recommendations);
+  displayAIRecommendations(recommendations, totalBudget);
 }
 
-function displayAIRecommendations(recommendations) {
+function displayAIRecommendations(recommendations, totalBudget) {
   const container = document.getElementById('aiRecommendationsList');
   if (!container) return;
   
@@ -77,9 +82,10 @@ function displayAIRecommendations(recommendations) {
       <div class="alert alert-info">
         <i class="bi bi-robot me-2"></i>
         <strong>Rekomendasi AI:</strong> Berikut estimasi budget untuk setiap kategori.
+        <div class="mt-2 fw-bold text-primary">Total Budget: ${formatNumberRp(totalBudget)}</div>
       </div>
     </div>
-    <div class="list-group mb-3" id="aiRecommendationsChecklist">
+    <div class="list-group mb-3" id="aiRecommendationsChecklist" style="max-height: 400px; overflow-y: auto;">
       ${recommendations.map(rec => `
         <div class="list-group-item">
           <div class="form-check">
@@ -121,13 +127,18 @@ export async function createPlansFromAIRecommendations() {
   
   showNotif(`📋 Membuat ${checkboxes.length} rencana...`);
   
+  // Collect all selected recommendations
+  const selectedPlans = [];
+  let totalBudget = 0;
+  
   for (const checkbox of checkboxes) {
     const name = checkbox.value;
     const budget = parseInt(checkbox.dataset.budget);
     const category = checkbox.dataset.category;
     const icon = checkbox.dataset.icon;
     
-    const planData = {
+    totalBudget += budget;
+    selectedPlans.push({
       text: `${icon} Persiapan ${name} Pernikahan`,
       cat: "💍 Menikah",
       targetDate: "",
@@ -141,18 +152,47 @@ export async function createPlansFromAIRecommendations() {
       createdAt: Date.now(),
       updatedAt: Date.now(),
       isFromAI: true
-    };
-    
+    });
+  }
+  
+  // Save all plans
+  for (const planData of selectedPlans) {
     await push(ref(db, 'data/plans'), planData);
   }
   
-  showNotif(`✅ ${checkboxes.length} rencana berhasil dibuat!`);
+  // Create saving target based on total budget
+  const now = new Date();
+  const startDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+  const endDate = new Date(now.getFullYear(), now.getMonth() + 6, 1);
+  const endDateStr = `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}-01`;
+  
+  // Get existing settings
+  const settingsRef = ref(db, 'data/settings');
+  const snapshot = await get(settingsRef);
+  const currentSettings = snapshot.val() || {};
+  const currentTargets = currentSettings.savingTargets || {};
+  
+  // Add new target from AI
+  const targetId = `ai_target_${Date.now()}`;
+  currentTargets[targetId] = {
+    startDate: startDate,
+    endDate: endDateStr,
+    amount: totalBudget,
+    createdAt: Date.now(),
+    fromAI: true,
+    description: 'Target dari AI Recommendation'
+  };
+  
+  await update(ref(db, 'data/settings'), { savingTargets: currentTargets });
+  
+  showNotif(`✅ ${selectedPlans.length} rencana berhasil dibuat! Target tabungan Rp ${totalBudget.toLocaleString()} untuk 6 bulan telah ditambahkan.`);
   
   // Tutup modal dan refresh
   const modal = bootstrap.Modal.getInstance(document.getElementById('aiRecommendModal'));
   if (modal) modal.hide();
   
   if (window.renderAll) window.renderAll();
+  if (window.loadSavingTargets) window.loadSavingTargets();
   if (window.renderFinances) window.renderFinances();
 }
 
@@ -197,54 +237,9 @@ export function initAIStyleButtons() {
   });
 }
 
-// ============ FUNGSI YANG HILANG (DIPERLUKAN UNTUK COMPATIBILITY) ============
-
-// Fungsi untuk apply AI recommendation ke target tabungan (untuk kompatibilitas)
-export async function applyAIRecommendation() {
-  // Redirect ke pembuatan rencana via AI
-  showNotif('🤖 Gunakan AI di menu Rencana untuk membuat rencana otomatis', false);
-  
-  // Tampilkan modal planning
-  const planningPage = document.getElementById('planning-page');
-  if (planningPage && planningPage.style.display !== 'block') {
-    window.showPage('planning');
-  }
-  
-  // Buka modal AI
-  setTimeout(() => {
-    openAIRecommendModal();
-  }, 500);
-}
-
-// Fungsi untuk generate total budget (untuk kompatibilitas)
-export function getAITotalBudget() {
-  const location = document.getElementById('aiLocation')?.value || 'other';
-  const guestCount = parseInt(document.getElementById('aiGuestCount')?.value || '100');
-  const style = document.getElementById('aiStyle')?.value || 'modern';
-  
-  const multiplier = locationMultipliers[location] || 1;
-  const styleMultiplier = style === 'luxury' ? 1.5 : style === 'simple' ? 0.6 : 1;
-  const finalMultiplier = multiplier * styleMultiplier;
-  
-  let totalBudget = 0;
-  for (const [key, config] of Object.entries(categoryBudgets)) {
-    let adjustedBudget = config.base * finalMultiplier;
-    if (key === 'Katering') {
-      adjustedBudget = (guestCount * 120000) * finalMultiplier;
-    } else if (key === 'Venue') {
-      adjustedBudget = (guestCount * 50000) * finalMultiplier;
-    }
-    totalBudget += Math.round(adjustedBudget);
-  }
-  
-  return totalBudget;
-}
-
 // Export ke window
 window.generateAIRecommendation = generateAIRecommendation;
 window.createPlansFromAIRecommendations = createPlansFromAIRecommendations;
 window.toggleAllAIRecommendations = toggleAllAIRecommendations;
 window.openAIRecommendModal = openAIRecommendModal;
 window.initAIStyleButtons = initAIStyleButtons;
-window.applyAIRecommendation = applyAIRecommendation;
-window.getAITotalBudget = getAITotalBudget;
