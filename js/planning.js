@@ -1,4 +1,4 @@
-// js/planning.js - Complete version with all fixes
+// js/planning.js - Complete with validation and finance target update
 import { db, ref, push, update, remove, get } from './firebase-config.js';
 import { showNotif, masterData, escapeHtml, formatNumberRp, privacyHidden, showCustomConfirm, truncateText } from './utils.js';
 
@@ -54,6 +54,56 @@ const categoryTemplates = {
     { text: "🛂 Urus paspor/visa jika perlu", estimatedBudget: 1000000, planCategory: "Dokumen" }
   ]
 };
+
+// Check if plan already exists (active, not completed)
+export function hasActivePlanInCategory(planCategory) {
+  const data = window.masterData || masterData;
+  const plans = data?.plans || {};
+  
+  for (const [id, plan] of Object.entries(plans)) {
+    if (plan.planCategory === planCategory && plan.progress < 100) {
+      return true;
+    }
+  }
+  return false;
+}
+
+// Check if any active plan exists
+export function hasAnyActivePlan() {
+  const data = window.masterData || masterData;
+  const plans = data?.plans || {};
+  
+  for (const [id, plan] of Object.entries(plans)) {
+    if (plan.progress < 100) {
+      return true;
+    }
+  }
+  return false;
+}
+
+// Update wedding target based on all plan budgets
+export async function updateWeddingTargetFromPlans() {
+  const data = window.masterData || masterData;
+  const plans = data?.plans || {};
+  const settings = data?.settings || {};
+  const currentWeddingTarget = settings.weddingTarget || 50000000;
+  
+  let totalPlansBudget = 0;
+  for (const [id, plan] of Object.entries(plans)) {
+    totalPlansBudget += plan.estimatedBudget || 0;
+  }
+  
+  // Only update if total plans budget is greater than current target
+  if (totalPlansBudget > currentWeddingTarget) {
+    await update(ref(db, 'data/settings'), { 
+      weddingTarget: totalPlansBudget,
+      lastUpdatedFromPlans: Date.now()
+    });
+    console.log(`Wedding target updated from ${formatNumberRp(currentWeddingTarget)} to ${formatNumberRp(totalPlansBudget)}`);
+    return totalPlansBudget;
+  }
+  return currentWeddingTarget;
+}
 
 // Get financial category from plan
 export function getFinancialCategoryFromPlan(plan) {
@@ -150,6 +200,12 @@ export async function savePlan() {
     else planCategory = 'default';
   }
   
+  // VALIDATION: Check if plan already exists in this category
+  if (planCategory !== 'default' && hasActivePlanInCategory(planCategory)) {
+    showNotif(`❌ Rencana untuk kategori "${planCategory}" sudah ada! Selesaikan dulu sebelum membuat baru.`, true);
+    return;
+  }
+  
   try {
     await push(ref(db, "data/plans"), {
       text: text,
@@ -166,7 +222,9 @@ export async function savePlan() {
       updatedAt: Date.now()
     });
     
-    showNotif("✅ Rencana berhasil ditambahkan!");
+    // Update wedding target
+    const newTarget = await updateWeddingTargetFromPlans();
+    showNotif(`✅ Rencana berhasil ditambahkan! Total target pernikahan: ${formatNumberRp(newTarget)}`);
     
     const modal = bootstrap.Modal.getInstance(document.getElementById("addPlanManualModal"));
     if (modal) modal.hide();
@@ -186,6 +244,7 @@ export async function savePlan() {
     
     if (window.renderAll) window.renderAll();
     if (window.renderFinances) window.renderFinances();
+    if (window.loadSavingTargets) window.loadSavingTargets();
     
   } catch (err) {
     console.error("Error saving plan:", err);
@@ -201,9 +260,30 @@ export async function addTemplateToCategory(category) {
     return;
   }
   
+  // Check if any template item already exists
+  const existingCategories = new Set();
+  const data = window.masterData || masterData;
+  const plans = data?.plans || {};
+  
+  for (const [id, plan] of Object.entries(plans)) {
+    if (plan.planCategory && plan.planCategory !== 'default' && plan.progress < 100) {
+      existingCategories.add(plan.planCategory);
+    }
+  }
+  
+  const templateCategories = templates.map(t => t.planCategory).filter(c => c !== 'default');
+  const conflicts = templateCategories.filter(cat => existingCategories.has(cat));
+  
+  if (conflicts.length > 0) {
+    showNotif(`❌ Template mengandung kategori yang sudah ada: ${conflicts.join(', ')}. Selesaikan rencana tersebut dulu!`, true);
+    return;
+  }
+  
   showNotif(`📋 Menambahkan template ${category}...`, false);
+  let totalBudget = 0;
   
   for (const item of templates) {
+    totalBudget += item.estimatedBudget;
     await push(ref(db, "data/plans"), {
       text: item.text,
       cat: category,
@@ -220,12 +300,26 @@ export async function addTemplateToCategory(category) {
     });
   }
   
-  showNotif(`✅ Template ${category} berhasil ditambahkan!`);
+  // Update wedding target
+  const newTarget = await updateWeddingTargetFromPlans();
+  
+  showNotif(`✅ Template ${category} berhasil ditambahkan! Total budget: ${formatNumberRp(totalBudget)}. Target pernikahan: ${formatNumberRp(newTarget)}`);
   if (window.renderAll) window.renderAll();
   if (window.renderFinances) window.renderFinances();
+  if (window.loadSavingTargets) window.loadSavingTargets();
 }
 
 export function confirmAddTemplate(category) {
+  // Check existing plans before showing confirm
+  const data = window.masterData || masterData;
+  const plans = data?.plans || {};
+  const activePlansCount = Object.values(plans).filter(p => p.progress < 100).length;
+  
+  if (activePlansCount > 0) {
+    showNotif(`⚠️ Anda sudah memiliki ${activePlansCount} rencana aktif. Selesaikan dulu sebelum menambah template!`, true);
+    return;
+  }
+  
   showCustomConfirm(
     `Tambahkan template ${category}?\n\nAkan menambahkan ${categoryTemplates[category]?.length || 0} item rencana.`,
     () => addTemplateToCategory(category)
@@ -249,6 +343,8 @@ export async function updatePlan() {
   const priority = document.getElementById("editPlanPriority")?.value;
   const isUrgent = document.getElementById("editPlanIsUrgent")?.checked || false;
   
+  const oldBudget = masterData?.plans?.[id]?.estimatedBudget || 0;
+  
   const updateData = { 
     text, 
     cat, 
@@ -261,6 +357,11 @@ export async function updatePlan() {
   };
   
   await update(ref(db, `data/plans/${id}`), updateData);
+  
+  // Update wedding target if budget changed
+  if (budget !== oldBudget) {
+    await updateWeddingTargetFromPlans();
+  }
   
   showNotif("✅ Rencana berhasil diupdate");
   
@@ -277,6 +378,12 @@ export async function deletePlanItem() {
   if (!id) return;
   const path = pid ? `data/plans/${pid}/sub/${id}` : `data/plans/${id}`;
   await remove(ref(db, path));
+  
+  // Update wedding target if this was a main plan
+  if (!pid) {
+    await updateWeddingTargetFromPlans();
+  }
+  
   showNotif("🗑️ Rencana dihapus");
   
   const modal = bootstrap.Modal.getInstance(document.getElementById("planModal"));
@@ -287,8 +394,10 @@ export async function deletePlanItem() {
 export function deletePlanItemById(id) {
   showCustomConfirm("Yakin ingin menghapus rencana ini?", async () => {
     await remove(ref(db, `data/plans/${id}`));
+    await updateWeddingTargetFromPlans();
     showNotif("🗑️ Rencana dihapus");
     if (window.renderAll) window.renderAll();
+    if (window.loadSavingTargets) window.loadSavingTargets();
   });
 }
 
@@ -303,8 +412,15 @@ export async function togglePlan(id, currentStatus) {
     updatedAt: Date.now()
   });
   
-  showNotif(newStatus ? "✅ Rencana selesai!" : "⏸️ Rencana dibatalkan");
+  // Update wedding target when plan is completed (keep budget in target)
+  if (newStatus) {
+    showNotif("✅ Rencana selesai! Target tabungan tetap terhitung.");
+  } else {
+    showNotif("⏸️ Rencana dibatalkan");
+  }
+  
   if (window.renderAll) window.renderAll();
+  if (window.loadSavingTargets) window.loadSavingTargets();
 }
 
 // Sub plan functions
@@ -385,6 +501,7 @@ export async function addSubPlanWithDetails(pid) {
       totalEstimated += sub.estimatedCost || 0;
     });
     await update(ref(db, `data/plans/${pid}`), { estimatedBudget: totalEstimated });
+    await updateWeddingTargetFromPlans();
   }
   
   showNotif("✅ Item berhasil ditambahkan!");
@@ -440,6 +557,36 @@ export function openEditPlan(id, pid = null) {
   if (editPlanBudget) editPlanBudget.value = plan.estimatedBudget || 0;
   if (editPlanPriority) editPlanPriority.value = plan.priority || "medium";
   if (editPlanIsUrgent) editPlanIsUrgent.checked = plan.isUrgent || false;
+  
+  // Display sub plans in the modal
+  const subPlansList = document.getElementById("subPlansList");
+  if (subPlansList && plan.sub) {
+    const subs = Object.entries(plan.sub);
+    if (subs.length > 0) {
+      subPlansList.innerHTML = `
+        <ul class="list-group list-group-flush">
+          ${subs.map(([sid, sub]) => `
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" 
+                       ${sub.done ? 'checked' : ''} 
+                       onchange="window.toggleSubPlanCheckbox('${pid || id}', '${sid}', ${sub.done})">
+                <label class="form-check-label ${sub.done ? 'text-decoration-line-through' : ''}">
+                  ${escapeHtml(sub.text)}
+                </label>
+                ${sub.estimatedCost > 0 ? `<small class="text-muted ms-2">(${formatNumberRp(sub.estimatedCost)})</small>` : ''}
+              </div>
+              <button class="btn btn-sm btn-outline-danger" onclick="window.deleteSubPlan('${pid || id}', '${sid}')">
+                <i class="bi bi-trash"></i>
+              </button>
+            </li>
+          `).join('')}
+        </ul>
+      `;
+    } else {
+      subPlansList.innerHTML = '<p class="text-muted small mb-0">Belum ada checklist</p>';
+    }
+  }
   
   window.currentDeletePlanId = { id, pid };
   
@@ -608,3 +755,6 @@ window.deleteSubPlan = deleteSubPlan;
 window.getPlanCategories = getPlanCategories;
 window.updatePlanProgressFromSavings = updatePlanProgressFromSavings;
 window.getFinancialCategoryFromPlan = getFinancialCategoryFromPlan;
+window.hasActivePlanInCategory = hasActivePlanInCategory;
+window.hasAnyActivePlan = hasAnyActivePlan;
+window.updateWeddingTargetFromPlans = updateWeddingTargetFromPlans;
