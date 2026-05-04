@@ -1,5 +1,5 @@
-// js/planning.js - Complete version with all missing functions
-import { db, ref, push, update, remove } from './firebase-config.js';
+// js/planning.js - Complete version with all fixes
+import { db, ref, push, update, remove, get } from './firebase-config.js';
 import { showNotif, masterData, escapeHtml, formatNumberRp, privacyHidden, showCustomConfirm, truncateText } from './utils.js';
 
 // Category mapping
@@ -49,9 +49,9 @@ const categoryTemplates = {
     { text: "✈️ Booking tiket pesawat", estimatedBudget: 3000000, planCategory: "Transport" },
     { text: "🏨 Booking hotel", estimatedBudget: 4000000, planCategory: "Venue" },
     { text: "🗺️ Buat itinerary", estimatedBudget: 0, planCategory: "Dokumen" },
-    { text: "💰 Siapkan budget", estimatedBudget: 5000000, planCategory: "default" },
-    { text: "🧳 Siapkan barang", estimatedBudget: 1000000, planCategory: "default" },
-    { text: "🛂 Urus paspor/visa", estimatedBudget: 1000000, planCategory: "Dokumen" }
+    { text: "💰 Siapkan budget perjalanan", estimatedBudget: 5000000, planCategory: "default" },
+    { text: "🧳 Siapkan perlengkapan", estimatedBudget: 1000000, planCategory: "default" },
+    { text: "🛂 Urus paspor/visa jika perlu", estimatedBudget: 1000000, planCategory: "Dokumen" }
   ]
 };
 
@@ -76,23 +76,7 @@ export function getFinancialCategoryFromPlan(plan) {
   return '📦 Lainnya';
 }
 
-// Get all financial categories from plans
-export function getFinancialCategoriesFromPlans() {
-  const data = window.masterData || masterData;
-  const plans = data?.plans || {};
-  const categories = new Set();
-  
-  Object.values(plans).forEach(plan => {
-    if (plan.planCategory && plan.planCategory !== 'default' && plan.planCategory !== 'undefined') {
-      const category = planCategoryToFinancialCategory[plan.planCategory] || plan.planCategory;
-      categories.add(category);
-    }
-  });
-  
-  return Array.from(categories);
-}
-
-// Get all unique plan categories
+// Get all plan categories
 export function getPlanCategories() {
   const data = window.masterData || masterData;
   const plans = data?.plans || {};
@@ -264,7 +248,6 @@ export async function updatePlan() {
   const budget = parseInt(document.getElementById("editPlanBudget")?.value) || 0;
   const priority = document.getElementById("editPlanPriority")?.value;
   const isUrgent = document.getElementById("editPlanIsUrgent")?.checked || false;
-  const planCategory = document.getElementById("editPlanCategory")?.value;
   
   const updateData = { 
     text, 
@@ -276,10 +259,6 @@ export async function updatePlan() {
     isUrgent: isUrgent,
     updatedAt: Date.now()
   };
-  
-  if (planCategory && planCategory !== 'auto') {
-    updateData.planCategory = planCategory;
-  }
   
   await update(ref(db, `data/plans/${id}`), updateData);
   
@@ -306,7 +285,26 @@ export async function deletePlanItem() {
 }
 
 export function deletePlanItemById(id) {
-  window.confirmDelete("plans", id);
+  showCustomConfirm("Yakin ingin menghapus rencana ini?", async () => {
+    await remove(ref(db, `data/plans/${id}`));
+    showNotif("🗑️ Rencana dihapus");
+    if (window.renderAll) window.renderAll();
+  });
+}
+
+// Toggle plan completion
+export async function togglePlan(id, currentStatus) {
+  const newStatus = !currentStatus;
+  const progress = newStatus ? 100 : 0;
+  
+  await update(ref(db, `data/plans/${id}`), { 
+    done: newStatus,
+    progress: progress,
+    updatedAt: Date.now()
+  });
+  
+  showNotif(newStatus ? "✅ Rencana selesai!" : "⏸️ Rencana dibatalkan");
+  if (window.renderAll) window.renderAll();
 }
 
 // Sub plan functions
@@ -410,21 +408,6 @@ export async function deleteSubPlan(pid, sid) {
   if (window.renderAll) window.renderAll();
 }
 
-export async function togglePlan(id, status, pid = null) {
-  const path = pid ? `data/plans/${pid}/sub/${id}` : `data/plans/${id}`;
-  await update(ref(db, path), { done: !status });
-  
-  if (!pid) {
-    const newProgress = !status ? 100 : 0;
-    await update(ref(db, `data/plans/${id}`), { progress: newProgress, updatedAt: Date.now() });
-  } else {
-    await updateParentProgress(pid);
-  }
-  
-  showNotif(!status ? "✅ Selesai!" : "⏸️ Dibatalkan");
-  if (window.renderAll) window.renderAll();
-}
-
 export async function toggleSubPlanCheckbox(pid, sid, currentStatus) {
   await update(ref(db, `data/plans/${pid}/sub/${sid}`), { done: !currentStatus });
   const newProgress = await updateParentProgress(pid);
@@ -447,7 +430,6 @@ export function openEditPlan(id, pid = null) {
   const editPlanBudget = document.getElementById("editPlanBudget");
   const editPlanPriority = document.getElementById("editPlanPriority");
   const editPlanIsUrgent = document.getElementById("editPlanIsUrgent");
-  const editPlanCategory = document.getElementById("editPlanCategory");
   
   if (editPlanId) editPlanId.value = id;
   if (editPlanParentId) editPlanParentId.value = pid || "";
@@ -458,7 +440,6 @@ export function openEditPlan(id, pid = null) {
   if (editPlanBudget) editPlanBudget.value = plan.estimatedBudget || 0;
   if (editPlanPriority) editPlanPriority.value = plan.priority || "medium";
   if (editPlanIsUrgent) editPlanIsUrgent.checked = plan.isUrgent || false;
-  if (editPlanCategory && plan.planCategory) editPlanCategory.value = plan.planCategory;
   
   window.currentDeletePlanId = { id, pid };
   
@@ -516,6 +497,9 @@ export function renderBoardPlans(plansMap) {
       const budgetUsed = p.estimatedBudget > 0 ? Math.round(((p.actualBudget || 0) / p.estimatedBudget) * 100) : 0;
       const daysLeft = p.targetDate ? Math.ceil((new Date(p.targetDate) - new Date()) / (1000 * 60 * 60 * 24)) : null;
       
+      // Get category icon
+      const catIcon = p.text.match(/[💍📅🏨📸💐🍽️👗🎤📋✈️💰🧳🛂]/)?.[0] || '📋';
+      
       return `
         <div class="col-md-6 col-lg-4">
           <div class="plan-card card border-0 shadow-sm h-100 ${isDone ? 'border-start border-success border-3' : ''}" 
@@ -525,7 +509,7 @@ export function renderBoardPlans(plansMap) {
                 <div class="flex-grow-1">
                   <div class="d-flex align-items-center gap-2 flex-wrap">
                     <h6 class="fw-bold mb-0 ${isDone ? 'text-decoration-line-through text-muted' : ''}">
-                      ${escapeHtml(truncateText(p.text, 40))}
+                      ${catIcon} ${escapeHtml(truncateText(p.text, 40))}
                     </h6>
                     ${isDone ? '<i class="bi bi-check-circle-fill text-success"></i>' : ''}
                   </div>
@@ -621,7 +605,6 @@ window.addBudgetToPlan = addBudgetToPlan;
 window.initPlanFilter = initPlanFilter;
 window.renderBoardPlans = renderBoardPlans;
 window.deleteSubPlan = deleteSubPlan;
-window.getFinancialCategoriesFromPlans = getFinancialCategoriesFromPlans;
 window.getPlanCategories = getPlanCategories;
 window.updatePlanProgressFromSavings = updatePlanProgressFromSavings;
 window.getFinancialCategoryFromPlan = getFinancialCategoryFromPlan;
