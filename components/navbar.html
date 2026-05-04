@@ -47,12 +47,9 @@
 </div>
 
 <style>
-  /* Skip link styling */
   .skip-link:focus {
     top: 0;
   }
-  
-  /* Chat FAB mobile adjustment */
   @media (max-width: 768px) {
     .chat-fab {
       bottom: 90px;
@@ -64,24 +61,11 @@
       font-size: 1.5rem;
     }
   }
-  
-  /* Toast animation */
+  .toast-notif { animation: slideInUp 0.3s ease-out; }
   @keyframes slideInUp {
-    from {
-      transform: translateY(100%);
-      opacity: 0;
-    }
-    to {
-      transform: translateY(0);
-      opacity: 1;
-    }
+    from { transform: translateY(100%); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
   }
-  
-  .toast-notif {
-    animation: slideInUp 0.3s ease-out;
-  }
-  
-  /* Touch feedback */
   .bottom-nav-item:active,
   .dark-mode-fab:active,
   .menu-toggle-hp:active,
@@ -89,12 +73,9 @@
     transform: scale(0.95);
     transition: transform 0.1s ease;
   }
-  
-  /* Loading spinner animation */
   @keyframes spin {
     to { transform: rotate(360deg); }
   }
-  
   .loading-spinner {
     animation: spin 0.8s linear infinite;
   }
