@@ -465,6 +465,9 @@ export async function editSavingTarget(id) {
 }
 
 // Export ke window
+// js/financial.js - Tambahkan di bagian akhir
+
+// Export semua fungsi yang diperlukan
 window.saveFinance = saveFinance;
 window.editFinance = editFinance;
 window.renderFinances = renderFinances;
@@ -474,5 +477,8 @@ window.addSavingTarget = addSavingTarget;
 window.editSavingTarget = editSavingTarget;
 window.deleteSavingTarget = deleteSavingTarget;
 window.renderFinancialCategoryDropdown = renderFinancialCategoryDropdown;
+window.getPlanCategories = getPlanCategories;
+window.validatePlanExistsForCategory = validatePlanExistsForCategory;
+window.updatePlanProgressFromSavings = updatePlanProgressFromSavings;
 window.getPlanCategories = getPlanCategories;
 window.validatePlanExistsForCategory = validatePlanExistsForCategory;
